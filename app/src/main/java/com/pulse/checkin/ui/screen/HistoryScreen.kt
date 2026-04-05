@@ -1,8 +1,11 @@
 ﻿package com.pulse.checkin.ui.screen
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -53,7 +56,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.stats.CalendarDaySummary
@@ -61,6 +63,8 @@ import com.pulse.checkin.domain.stats.CheckInRecordItem
 import com.pulse.checkin.domain.stats.HistoryHabitDetail
 import com.pulse.checkin.domain.stats.MonthSnapshot
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.HeaderFilterButton
+import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.LocalDate
 import java.time.YearMonth
@@ -90,134 +94,143 @@ fun HistoryScreen(
     val currentMonth = YearMonth.now()
     var selectedDetailHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     val selectedDetail = snapshot.selectedDateDetails.firstOrNull { it.habit.id == selectedDetailHabitId }
+    var showFilters by rememberSaveable { mutableStateOf(selectedHabitId != null) }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = horizontalPadding,
-            end = horizontalPadding,
-            top = horizontalPadding,
-            bottom = if (compactLayout) 108.dp else 120.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(contentSpacing),
-    ) {
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "\u5386\u53f2",
-                    style = if (compactLayout) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displaySmall,
+    Column(modifier = Modifier.fillMaxSize()) {
+        ScreenHeader(
+            title = "\u5386\u53f2",
+            compactLayout = compactLayout,
+            action = {
+                HeaderFilterButton(
+                    active = showFilters || selectedHabitId != null,
+                    compactLayout = compactLayout,
+                    onClick = { showFilters = !showFilters },
                 )
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("\u4e60\u60ef\u7b5b\u9009", style = MaterialTheme.typography.titleLarge)
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
-                    contentPadding = PaddingValues(end = 4.dp),
-                ) {
-                    item {
-                        HistoryFilterChip(
-                            label = "\u5168\u90e8",
-                            selected = selectedHabitId == null,
-                            accentColor = MaterialTheme.colorScheme.primary,
-                            onClick = { onSelectHabit(null) },
-                        )
-                    }
-                    items(habits, key = { it.id }) { habit ->
-                        HistoryFilterChip(
-                            label = habit.name,
-                            selected = selectedHabitId == habit.id,
-                            accentColor = habit.colorArgb.toPulseColor(),
-                            prefix = habit.glyph,
-                            onClick = { onSelectHabit(habit.id) },
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            GlassCard(
-                modifier = Modifier.pointerInput(snapshot.month) {
-                    var totalDrag = 0f
-                    detectHorizontalDragGestures(
-                        onHorizontalDrag = { _, dragAmount ->
-                            totalDrag += dragAmount
-                        },
-                        onDragEnd = {
-                            when {
-                                totalDrag >= 48f -> onPreviousMonth()
-                                totalDrag <= -48f -> onNextMonth()
-                            }
-                            totalDrag = 0f
-                        },
-                        onDragCancel = {
-                            totalDrag = 0f
-                        },
-                    )
-                },
-            ) {
-                AnimatedContent(
-                    targetState = snapshot,
-                    transitionSpec = {
-                        val forward = targetState.month > initialState.month
-                        (
-                            slideInHorizontally(animationSpec = tween(280)) { fullWidth ->
-                                if (forward) fullWidth else -fullWidth / 3
-                            } + fadeIn(animationSpec = tween(220))
-                            ).togetherWith(
-                            slideOutHorizontally(animationSpec = tween(280)) { fullWidth ->
-                                if (forward) -fullWidth / 3 else fullWidth
-                            } + fadeOut(animationSpec = tween(180))
-                            )
-                    },
-                    label = "monthChange",
-                ) { animatedSnapshot ->
-                    MonthCalendarSection(
-                        snapshot = animatedSnapshot,
-                        selectedDate = selectedDate,
-                        currentMonth = currentMonth,
-                        compactLayout = compactLayout,
-                        onPreviousMonth = onPreviousMonth,
-                        onNextMonth = onNextMonth,
-                        onBackToCurrentMonth = onBackToCurrentMonth,
-                        onSelectDate = onSelectDate,
-                    )
-                }
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
-                HistoryMetric("\u6708\u6b21\u6570", snapshot.monthTotalCount.toString(), Modifier.weight(1f), compactLayout)
-                HistoryMetric(
-                    "\u8fbe\u6807\u7387",
-                    if (snapshot.targetHabitDays == 0) "--" else "${(snapshot.completedHabitDays * 100 / snapshot.targetHabitDays)}%",
-                    Modifier.weight(1f),
-                    compactLayout,
-                )
-                HistoryMetric(
-                    "\u5f53\u524d\u8fde\u7eed",
-                    if (snapshot.bestCurrentStreak == 0) "--" else "${snapshot.bestCurrentStreak} \u5929",
-                    Modifier.weight(1f),
-                    compactLayout,
-                )
-            }
-        }
-        item {
-            Text(selectedDate.format(detailFormatter), style = MaterialTheme.typography.headlineMedium)
-        }
-        if (snapshot.selectedDateDetails.isEmpty()) {
+            },
+        )
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(
+                start = horizontalPadding,
+                end = horizontalPadding,
+                top = contentSpacing,
+                bottom = if (compactLayout) 108.dp else 120.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(contentSpacing),
+        ) {
             item {
-                GlassCard {
-                    Text("\u8fd9\u4e2a\u7b5b\u9009\u6761\u4ef6\u4e0b\u6682\u65e0\u8bb0\u5f55", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                AnimatedVisibility(
+                    visible = showFilters,
+                    enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(180)),
+                    exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("\u4e60\u60ef\u7b5b\u9009", style = MaterialTheme.typography.titleLarge)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                            contentPadding = PaddingValues(end = 4.dp),
+                        ) {
+                            item {
+                                HistoryFilterChip(
+                                    label = "\u5168\u90e8",
+                                    selected = selectedHabitId == null,
+                                    accentColor = MaterialTheme.colorScheme.primary,
+                                    onClick = { onSelectHabit(null) },
+                                )
+                            }
+                            items(habits, key = { it.id }) { habit ->
+                                HistoryFilterChip(
+                                    label = habit.name,
+                                    selected = selectedHabitId == habit.id,
+                                    accentColor = habit.colorArgb.toPulseColor(),
+                                    prefix = habit.glyph,
+                                    onClick = { onSelectHabit(habit.id) },
+                                )
+                            }
+                        }
+                    }
                 }
             }
-        } else {
-            items(snapshot.selectedDateDetails, key = { it.habit.id }) { detail ->
-                DayDetailCard(detail = detail, compactLayout = compactLayout, onClick = { selectedDetailHabitId = detail.habit.id })
+            item {
+                GlassCard(
+                    modifier = Modifier.pointerInput(snapshot.month) {
+                        var totalDrag = 0f
+                        detectHorizontalDragGestures(
+                            onHorizontalDrag = { _, dragAmount ->
+                                totalDrag += dragAmount
+                            },
+                            onDragEnd = {
+                                when {
+                                    totalDrag >= 48f -> onPreviousMonth()
+                                    totalDrag <= -48f -> onNextMonth()
+                                }
+                                totalDrag = 0f
+                            },
+                            onDragCancel = {
+                                totalDrag = 0f
+                            },
+                        )
+                    },
+                ) {
+                    AnimatedContent(
+                        targetState = snapshot,
+                        transitionSpec = {
+                            val forward = targetState.month > initialState.month
+                            (
+                                slideInHorizontally(animationSpec = tween(280)) { fullWidth ->
+                                    if (forward) fullWidth else -fullWidth / 3
+                                } + fadeIn(animationSpec = tween(220))
+                            ).togetherWith(
+                                slideOutHorizontally(animationSpec = tween(280)) { fullWidth ->
+                                    if (forward) -fullWidth / 3 else fullWidth
+                                } + fadeOut(animationSpec = tween(180))
+                            )
+                        },
+                        label = "monthChange",
+                    ) { animatedSnapshot ->
+                        MonthCalendarSection(
+                            snapshot = animatedSnapshot,
+                            selectedDate = selectedDate,
+                            currentMonth = currentMonth,
+                            compactLayout = compactLayout,
+                            onPreviousMonth = onPreviousMonth,
+                            onNextMonth = onNextMonth,
+                            onBackToCurrentMonth = onBackToCurrentMonth,
+                            onSelectDate = onSelectDate,
+                        )
+                    }
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
+                    HistoryMetric("\u6708\u6b21\u6570", snapshot.monthTotalCount.toString(), Modifier.weight(1f), compactLayout)
+                    HistoryMetric(
+                        "\u8fbe\u6807\u7387",
+                        if (snapshot.targetHabitDays == 0) "--" else "${(snapshot.completedHabitDays * 100 / snapshot.targetHabitDays)}%",
+                        Modifier.weight(1f),
+                        compactLayout,
+                    )
+                    HistoryMetric(
+                        "\u5f53\u524d\u8fde\u7eed",
+                        if (snapshot.bestCurrentStreak == 0) "--" else "${snapshot.bestCurrentStreak} \u5929",
+                        Modifier.weight(1f),
+                        compactLayout,
+                    )
+                }
+            }
+            item {
+                Text(selectedDate.format(detailFormatter), style = MaterialTheme.typography.headlineMedium)
+            }
+            if (snapshot.selectedDateDetails.isEmpty()) {
+                item {
+                    GlassCard {
+                        Text("\u8fd9\u4e2a\u7b5b\u9009\u6761\u4ef6\u4e0b\u6682\u65e0\u8bb0\u5f55", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else {
+                items(snapshot.selectedDateDetails, key = { it.habit.id }) { detail ->
+                    DayDetailCard(detail = detail, compactLayout = compactLayout, onClick = { selectedDetailHabitId = detail.habit.id })
+                }
             }
         }
     }
@@ -492,15 +505,6 @@ private fun DayDetailCard(detail: HistoryHabitDetail, compactLayout: Boolean, on
                 style = if (compactLayout) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
             )
         }
-        if (detail.records.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(if (compactLayout) 10.dp else 14.dp))
-            Text(
-                text = detail.records.joinToString("  ") { it.displayTime.format(recordTimeFormatter) },
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (compactLayout) 2 else 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -624,6 +628,18 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

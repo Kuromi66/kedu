@@ -46,6 +46,7 @@ import com.pulse.checkin.domain.stats.TodayCheckInRecord
 import com.pulse.checkin.domain.stats.TodayHabitSummary
 import com.pulse.checkin.domain.stats.TodaySnapshot
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.Instant
 import java.time.ZoneId
@@ -65,67 +66,63 @@ fun TodayScreen(
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
-    val topSpacing = if (compactLayout) 16.dp else 20.dp
     val bottomPadding = if (compactLayout) 108.dp else 120.dp
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = topSpacing, bottom = bottomPadding),
-        verticalArrangement = Arrangement.spacedBy(contentSpacing),
-    ) {
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "\u4eca\u65e5",
-                    style = if (compactLayout) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displaySmall,
-                )
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
-                OverviewMetric("\u4eca\u65e5\u6b21\u6570", snapshot.totalCount.toString(), Modifier.weight(1f), compactLayout)
-                OverviewMetric(
-                    "\u5df2\u8fbe\u6807",
-                    if (snapshot.targetHabitCount == 0) "0" else "${snapshot.completedHabits}/${snapshot.targetHabitCount}",
-                    Modifier.weight(1f),
-                    compactLayout,
-                )
-                OverviewMetric(
-                    "\u6700\u4f73\u8fde\u51fb",
-                    if (snapshot.bestCurrentStreak == 0) "--" else "${snapshot.bestCurrentStreak} \u5929",
-                    Modifier.weight(1f),
-                    compactLayout,
-                )
-            }
-        }
-        if (snapshot.habits.isEmpty()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        ScreenHeader(title = "\u4eca\u65e5", compactLayout = compactLayout)
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(
+                start = horizontalPadding,
+                end = horizontalPadding,
+                top = contentSpacing,
+                bottom = bottomPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(contentSpacing),
+        ) {
             item {
-                GlassCard {
-                    Text("\u5148\u521b\u5efa\u4f60\u7684\u7b2c\u4e00\u4e2a\u4e60\u60ef", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "\u6bcf\u4e2a\u4e60\u60ef\u73b0\u5728\u90fd\u53ef\u4ee5\u7528\u4e00\u4e2a\u6253\u5361\u6309\u94ae\u8ffd\u52a0\u8bb0\u5f55\uff0c\u5e76\u67e5\u770b\u5f53\u5929\u660e\u7ec6\u3002",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
+                    OverviewMetric("\u4eca\u65e5\u6b21\u6570", snapshot.totalCount.toString(), Modifier.weight(1f), compactLayout)
+                    OverviewMetric(
+                        "\u5df2\u8fbe\u6807",
+                        if (snapshot.targetHabitCount == 0) "0" else "${snapshot.completedHabits}/${snapshot.targetHabitCount}",
+                        Modifier.weight(1f),
+                        compactLayout,
                     )
-                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
-                    Button(onClick = onAddHabit) { Text("\u5f00\u59cb\u6dfb\u52a0") }
+                    OverviewMetric(
+                        "\u6700\u4f73\u8fde\u51fb",
+                        if (snapshot.bestCurrentStreak == 0) "--" else "${snapshot.bestCurrentStreak} \u5929",
+                        Modifier.weight(1f),
+                        compactLayout,
+                    )
                 }
             }
-        } else {
-            items(snapshot.habits, key = { it.habit.id }) { item ->
-                HabitCard(
-                    item = item,
-                    compactLayout = compactLayout,
-                    onEdit = { onEditHabit(item.habit) },
-                    onCheckIn = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onCheckInHabit(item.habit.id)
-                    },
-                    onDeleteRecord = onDeleteRecord,
-                )
+            if (snapshot.habits.isEmpty()) {
+                item {
+                    GlassCard {
+                        Text("\u5148\u521b\u5efa\u4f60\u7684\u7b2c\u4e00\u4e2a\u4e60\u60ef", style = MaterialTheme.typography.titleLarge)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "\u6bcf\u4e2a\u4e60\u60ef\u73b0\u5728\u90fd\u53ef\u4ee5\u7528\u4e00\u4e2a\u6253\u5361\u6309\u94ae\u8ffd\u52a0\u8bb0\u5f55\uff0c\u5e76\u67e5\u770b\u5f53\u5929\u660e\u7ec6\u3002",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
+                        Button(onClick = onAddHabit) { Text("\u5f00\u59cb\u6dfb\u52a0") }
+                    }
+                }
+            } else {
+                items(snapshot.habits, key = { it.habit.id }) { item ->
+                    HabitCard(
+                        item = item,
+                        compactLayout = compactLayout,
+                        onEdit = { onEditHabit(item.habit) },
+                        onCheckIn = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onCheckInHabit(item.habit.id)
+                        },
+                        onDeleteRecord = onDeleteRecord,
+                    )
+                }
             }
         }
     }
@@ -308,4 +305,12 @@ private fun CheckInRecordRow(
         )
     }
 }
+
+
+
+
+
+
+
+
 

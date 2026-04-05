@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.ScreenHeader
 
 @Composable
 fun SettingsScreen(
@@ -39,57 +40,54 @@ fun SettingsScreen(
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = horizontalPadding, bottom = if (compactLayout) 108.dp else 120.dp),
-        verticalArrangement = Arrangement.spacedBy(contentSpacing),
-    ) {
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = "\u8bbe\u7f6e",
-                    style = if (compactLayout) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displaySmall,
-                )
-            }
-        }
-        item {
-            GlassCard {
-                Text("\u5916\u89c2", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "\u9009\u4e00\u4e2a\u66f4\u9002\u5408\u73af\u5883\u7684\u663e\u793a\u65b9\u5f0f",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
-                ThemeChoiceRow(selected = themeMode, onThemeModeChange = onThemeModeChange, compactLayout = compactLayout)
-            }
-        }
-        item {
-            GlassCard {
-                Text("\u901a\u77e5", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (notificationsGranted) "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5df2\u5f00\u542f" else "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5c1a\u672a\u5f00\u542f",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
-                Button(onClick = onRequestNotificationPermission, enabled = !notificationsGranted) {
-                    Text(if (notificationsGranted) "\u5df2\u5f00\u542f\u901a\u77e5" else "\u8bf7\u6c42\u901a\u77e5\u6743\u9650")
+    Column(modifier = Modifier.fillMaxSize()) {
+        ScreenHeader(title = "\u8bbe\u7f6e", compactLayout = compactLayout)
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(
+                start = horizontalPadding,
+                end = horizontalPadding,
+                top = contentSpacing,
+                bottom = if (compactLayout) 108.dp else 120.dp,
+            ),
+            verticalArrangement = Arrangement.spacedBy(contentSpacing),
+        ) {
+            item {
+                GlassCard {
+                    Text("\u5916\u89c2", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "\u9009\u4e00\u4e2a\u66f4\u9002\u5408\u73af\u5883\u7684\u663e\u793a\u65b9\u5f0f",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
+                    ThemeChoiceRow(selected = themeMode, onThemeModeChange = onThemeModeChange, compactLayout = compactLayout)
                 }
             }
-        }
-        item {
-            GlassCard {
-                Text("\u5e94\u7528\u8bf4\u660e", style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Pulse \u662f\u4e00\u4e2a\u5b8c\u5168\u672c\u5730\u7684\u6b21\u6570\u578b\u4e60\u60ef\u6253\u5361\u5e94\u7528\u3002\u4f60\u53ef\u4ee5\u4e3a\u6bcf\u4e2a\u4e60\u60ef\u914d\u7f6e\u53ef\u9009\u76ee\u6807\u548c\u6bcf\u65e5\u63d0\u9192\uff0c\u5e76\u5728\u5386\u53f2\u9875\u67e5\u770b\u6708\u5386\u4e0e\u5f53\u5929\u660e\u7ec6\u3002",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            item {
+                GlassCard {
+                    Text("\u901a\u77e5", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = if (notificationsGranted) "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5df2\u5f00\u542f" else "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5c1a\u672a\u5f00\u542f",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
+                    Button(onClick = onRequestNotificationPermission, enabled = !notificationsGranted) {
+                        Text(if (notificationsGranted) "\u5df2\u5f00\u542f\u901a\u77e5" else "\u8bf7\u6c42\u901a\u77e5\u6743\u9650")
+                    }
+                }
+            }
+            item {
+                GlassCard {
+                    Text("\u5e94\u7528\u8bf4\u660e", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Pulse \u662f\u4e00\u4e2a\u5b8c\u5168\u672c\u5730\u7684\u6b21\u6570\u578b\u4e60\u60ef\u6253\u5361\u5e94\u7528\u3002\u4f60\u53ef\u4ee5\u4e3a\u6bcf\u4e2a\u4e60\u60ef\u914d\u7f6e\u53ef\u9009\u76ee\u6807\u548c\u6bcf\u65e5\u63d0\u9192\uff0c\u5e76\u5728\u5386\u53f2\u9875\u67e5\u770b\u6708\u5386\u4e0e\u5f53\u5929\u660e\u7ec6\u3002",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -204,4 +202,13 @@ private fun ThemeChoiceCard(
         }
     }
 }
+
+
+
+
+
+
+
+
+
 
