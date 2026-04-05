@@ -1,4 +1,4 @@
-package com.pulse.checkin.ui
+﻿package com.pulse.checkin.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -60,11 +60,22 @@ data class HabitDraft(
 data class AppUiState(
     val selectedTab: AppTab = AppTab.TODAY,
     val selectedDate: LocalDate = LocalDate.now(),
+    val selectedHistoryHabitId: Long? = null,
     val preferences: UserPreferences = UserPreferences(),
     val habits: List<Habit> = emptyList(),
     val todaySnapshot: TodaySnapshot = TodaySnapshot.Empty,
     val historySnapshot: MonthSnapshot = MonthSnapshot.Empty,
     val isLoading: Boolean = true,
+)
+
+private data class BaseUiInputs(
+    val habits: List<Habit>,
+    val preferences: UserPreferences,
+    val selectedTab: AppTab,
+    val selectedDate: LocalDate,
+    val todaySnapshot: TodaySnapshot,
+    val selectedMonth: YearMonth,
+    val allEvents: List<com.pulse.checkin.domain.model.CheckInEvent>,
 )
 
 class AppViewModel(
@@ -76,6 +87,7 @@ class AppViewModel(
 ) : ViewModel() {
     private val selectedTab = MutableStateFlow(AppTab.TODAY)
     private val selectedDate = MutableStateFlow(LocalDate.now())
+    private val selectedHistoryHabitId = MutableStateFlow<Long?>(null)
 
     val uiState: StateFlow<AppUiState> = combine(
         habitRepository.observeHabits(),
@@ -83,20 +95,40 @@ class AppViewModel(
         appPreferences.userPreferences,
         selectedTab,
         selectedDate,
-    ) { habits, events, preferences, tab, selectedDate ->
+    ) { habits, events, preferences, tab, date ->
         val today = LocalDate.now()
-        val selectedMonth = YearMonth.from(selectedDate)
-        AppUiState(
-            selectedTab = tab,
-            selectedDate = selectedDate,
-            preferences = preferences,
+        BaseUiInputs(
             habits = habits,
+            preferences = preferences,
+            selectedTab = tab,
+            selectedDate = date,
             todaySnapshot = statsCalculator.buildTodaySnapshot(habits, events, today),
+            selectedMonth = YearMonth.from(date),
+            allEvents = events,
+        )
+    }.combine(selectedHistoryHabitId) { base, rawSelectedHistoryHabitId ->
+        val today = LocalDate.now()
+        val effectiveHistoryHabitId = rawSelectedHistoryHabitId?.takeIf { id ->
+            base.habits.any { it.id == id }
+        }
+        val historyHabits = effectiveHistoryHabitId?.let { filterId ->
+            base.habits.filter { it.id == filterId }
+        } ?: base.habits
+        val historyEvents = effectiveHistoryHabitId?.let { filterId ->
+            base.allEvents.filter { it.habitId == filterId }
+        } ?: base.allEvents
+        AppUiState(
+            selectedTab = base.selectedTab,
+            selectedDate = base.selectedDate,
+            selectedHistoryHabitId = effectiveHistoryHabitId,
+            preferences = base.preferences,
+            habits = base.habits,
+            todaySnapshot = base.todaySnapshot,
             historySnapshot = statsCalculator.buildMonthSnapshot(
-                habits = habits,
-                events = events,
-                month = selectedMonth,
-                selectedDate = selectedDate,
+                habits = historyHabits,
+                events = historyEvents,
+                month = base.selectedMonth,
+                selectedDate = base.selectedDate,
                 today = today,
             ),
             isLoading = false,
@@ -115,6 +147,10 @@ class AppViewModel(
         selectedDate.value = date
     }
 
+    fun selectHistoryHabit(habitId: Long?) {
+        selectedHistoryHabitId.value = habitId
+    }
+
     fun shiftMonth(delta: Long) {
         val current = YearMonth.from(selectedDate.value)
         val next = current.plusMonths(delta)
@@ -122,15 +158,15 @@ class AppViewModel(
         selectedDate.value = next.atDay(targetDay)
     }
 
-    fun incrementHabit(habitId: Long) {
+    fun checkInHabit(habitId: Long) {
         viewModelScope.launch {
             checkInRepository.addCheckIn(habitId)
         }
     }
 
-    fun decrementHabit(habitId: Long) {
+    fun deleteCheckInRecord(eventId: Long) {
         viewModelScope.launch {
-            checkInRepository.removeLatestForDay(habitId, LocalDate.now())
+            checkInRepository.deleteCheckIn(eventId)
         }
     }
 

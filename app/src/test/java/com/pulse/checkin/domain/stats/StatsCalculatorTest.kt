@@ -1,4 +1,4 @@
-package com.pulse.checkin.domain.stats
+﻿package com.pulse.checkin.domain.stats
 
 import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.Habit
@@ -27,6 +27,21 @@ class StatsCalculatorTest {
         assertEquals(3, snapshot.totalCount)
         assertEquals(3, snapshot.habits.single().todayCount)
         assertFalse(snapshot.habits.single().reachedTarget)
+    }
+
+    @Test
+    fun `today snapshot exposes same-day records in descending time order`() {
+        val habit = habit(targetEnabled = false)
+        val events = listOf(
+            event(habitId = 1, date = today, millis = 1000),
+            event(habitId = 1, date = today, millis = 3000),
+            event(habitId = 1, date = today, millis = 2000),
+        )
+
+        val records = calculator.buildTodaySnapshot(listOf(habit), events, today).habits.single().records
+
+        assertEquals(listOf(3000L, 2000L, 1000L), records.map { it.occurredAtEpochMillis })
+        assertEquals(listOf(3L, 2L, 1L), records.map { it.id })
     }
 
     @Test
@@ -100,7 +115,7 @@ class StatsCalculatorTest {
     )
 
     private fun event(habitId: Long, date: LocalDate, millis: Long): CheckInEvent = CheckInEvent(
-        id = millis,
+        id = millis / 1000,
         habitId = habitId,
         occurredAtEpochMillis = millis,
         localDate = date,

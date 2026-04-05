@@ -1,4 +1,4 @@
-package com.pulse.checkin.domain.repository
+﻿package com.pulse.checkin.domain.repository
 
 import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.Habit
@@ -17,4 +17,5 @@ interface CheckInRepository {
     fun observeAllEvents(): Flow<List<CheckInEvent>>
     suspend fun addCheckIn(habitId: Long, occurredAtEpochMillis: Long = System.currentTimeMillis())
     suspend fun removeLatestForDay(habitId: Long, date: LocalDate)
+    suspend fun deleteCheckIn(eventId: Long)
 }

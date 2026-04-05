@@ -1,4 +1,4 @@
-package com.pulse.checkin.data.repository
+﻿package com.pulse.checkin.data.repository
 
 import com.pulse.checkin.data.db.dao.CheckInEventDao
 import com.pulse.checkin.data.db.dao.HabitDao
@@ -57,6 +57,10 @@ class CheckInRepositoryImpl(
     override suspend fun removeLatestForDay(habitId: Long, date: LocalDate) {
         val latest = eventDao.getLatestForDay(habitId = habitId, localDate = date.toString()) ?: return
         eventDao.deleteById(latest.id)
+    }
+
+    override suspend fun deleteCheckIn(eventId: Long) {
+        eventDao.deleteById(eventId)
     }
 }
 

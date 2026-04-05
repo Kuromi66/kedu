@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.model.ThemeMode
@@ -34,15 +35,24 @@ fun SettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     onRequestNotificationPermission: () -> Unit,
 ) {
+    val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
+    val horizontalPadding = if (compactLayout) 16.dp else 20.dp
+    val contentSpacing = if (compactLayout) 12.dp else 16.dp
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding, top = horizontalPadding, bottom = if (compactLayout) 108.dp else 120.dp),
+        verticalArrangement = Arrangement.spacedBy(contentSpacing),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Settings", style = MaterialTheme.typography.displaySmall)
-                Text("\u4fdd\u6301\u754c\u9762\u514b\u5236\uff0c\u628a\u91cd\u8981\u8bbe\u7f6e\u7559\u5728\u6700\u524d\u9762\u3002", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "\u8bbe\u7f6e",
+                    style = if (compactLayout) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displaySmall,
+                )
             }
         }
         item {
@@ -54,8 +64,8 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                Spacer(modifier = Modifier.height(18.dp))
-                ThemeChoiceRow(selected = themeMode, onThemeModeChange = onThemeModeChange)
+                Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
+                ThemeChoiceRow(selected = themeMode, onThemeModeChange = onThemeModeChange, compactLayout = compactLayout)
             }
         }
         item {
@@ -66,7 +76,7 @@ fun SettingsScreen(
                     text = if (notificationsGranted) "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5df2\u5f00\u542f" else "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5c1a\u672a\u5f00\u542f",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
                 Button(onClick = onRequestNotificationPermission, enabled = !notificationsGranted) {
                     Text(if (notificationsGranted) "\u5df2\u5f00\u542f\u901a\u77e5" else "\u8bf7\u6c42\u901a\u77e5\u6743\u9650")
                 }
@@ -86,81 +96,112 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ThemeChoiceRow(selected: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ThemeMode.values().forEach { mode ->
-            val selectedMode = selected == mode
-            val title = when (mode) {
-                ThemeMode.LIGHT -> "\u6d45\u8272"
-                ThemeMode.SYSTEM -> "\u8ddf\u968f\u7cfb\u7edf"
-                ThemeMode.DARK -> "\u6df1\u8272"
+private fun ThemeChoiceRow(selected: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit, compactLayout: Boolean) {
+    if (compactLayout) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ThemeMode.values().forEach { mode ->
+                ThemeChoiceCard(
+                    mode = mode,
+                    selected = selected == mode,
+                    compactLayout = true,
+                    onClick = { onThemeModeChange(mode) },
+                )
             }
-            val subtitle = when (mode) {
-                ThemeMode.LIGHT -> "\u6c38\u8fdc\u660e\u4eae\u6e05\u723d"
-                ThemeMode.SYSTEM -> "\u968f\u65f6\u95f4\u81ea\u52a8\u5207\u6362"
-                ThemeMode.DARK -> "\u591c\u95f4\u66f4\u6c89\u9759"
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(
-                        if (selectedMode) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                        },
+        }
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ThemeMode.values().forEach { mode ->
+                Box(modifier = Modifier.weight(1f)) {
+                    ThemeChoiceCard(
+                        mode = mode,
+                        selected = selected == mode,
+                        compactLayout = false,
+                        onClick = { onThemeModeChange(mode) },
                     )
-                    .clickable { onThemeModeChange(mode) }
-                    .padding(horizontal = 14.dp, vertical = 16.dp),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(
-                                if (selectedMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                            )
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                    ) {
-                        Text(
-                            text = if (selectedMode) "\u5df2\u9009\u62e9" else "\u70b9\u51fb\u5207\u6362",
-                            color = if (selectedMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                    }
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (selectedMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        repeat(3) { index ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height((18 + index * 6).dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        if (selectedMode) {
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.28f + index * 0.12f)
-                                        } else {
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.12f + index * 0.08f)
-                                        },
-                                    ),
-                            )
-                        }
-                    }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun ThemeChoiceCard(
+    mode: ThemeMode,
+    selected: Boolean,
+    compactLayout: Boolean,
+    onClick: () -> Unit,
+) {
+    val title = when (mode) {
+        ThemeMode.LIGHT -> "\u6d45\u8272"
+        ThemeMode.SYSTEM -> "\u8ddf\u968f\u7cfb\u7edf"
+        ThemeMode.DARK -> "\u6df1\u8272"
+    }
+    val subtitle = when (mode) {
+        ThemeMode.LIGHT -> "\u6c38\u8fdc\u660e\u4eae\u6e05\u723d"
+        ThemeMode.SYSTEM -> "\u968f\u65f6\u95f4\u81ea\u52a8\u5207\u6362"
+        ThemeMode.DARK -> "\u591c\u95f4\u66f4\u6c89\u9759"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(if (compactLayout) 20.dp else 24.dp))
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = if (compactLayout) 14.dp else 16.dp, vertical = if (compactLayout) 14.dp else 16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 12.dp else 14.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(
+                        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    text = if (selected) "\u5df2\u9009\u62e9" else "\u70b9\u51fb\u5207\u6362",
+                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(3) { index ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height((if (compactLayout) 14 else 18 + index * 6).dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (selected) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.28f + index * 0.12f)
+                                } else {
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.12f + index * 0.08f)
+                                },
+                            ),
+                    )
+                }
+            }
+        }
+    }
+}
+

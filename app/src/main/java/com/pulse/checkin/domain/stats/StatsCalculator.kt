@@ -1,4 +1,4 @@
-package com.pulse.checkin.domain.stats
+﻿package com.pulse.checkin.domain.stats
 
 import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.Habit
@@ -19,12 +19,21 @@ interface StatsCalculator {
     ): MonthSnapshot
 }
 
+data class CheckInRecordItem(
+    val id: Long,
+    val occurredAtEpochMillis: Long,
+    val displayTime: LocalTime,
+)
+
+typealias TodayCheckInRecord = CheckInRecordItem
+
 data class TodayHabitSummary(
     val habit: Habit,
     val todayCount: Int,
     val progress: Float,
     val reachedTarget: Boolean,
     val latestEventAt: Long?,
+    val records: List<CheckInRecordItem>,
 )
 
 data class TodaySnapshot(
@@ -49,7 +58,7 @@ data class HistoryHabitDetail(
     val habit: Habit,
     val count: Int,
     val reachedTarget: Boolean,
-    val eventTimes: List<LocalTime>,
+    val records: List<CheckInRecordItem>,
 )
 
 data class CalendarDaySummary(
@@ -88,8 +97,8 @@ class LocalStatsCalculator : StatsCalculator {
     ): TodaySnapshot {
         val eventsToday = events.filter { it.localDate == today }
         val countsToday = eventsToday.groupingBy { it.habitId }.eachCount()
-        val latestByHabit = eventsToday.groupBy { it.habitId }
-            .mapValues { (_, value) -> value.maxOfOrNull { it.occurredAtEpochMillis } }
+        val recordsByHabit = eventsToday.groupBy { it.habitId }
+            .mapValues { (_, value) -> value.toRecordItems() }
         val dailyCounts = buildDailyCounts(events)
         val targetHabits = habits.filter { it.targetEnabled }
         val summaries = habits.sortedBy { it.sortOrder }.map { habit ->
@@ -101,12 +110,14 @@ class LocalStatsCalculator : StatsCalculator {
                 count > 0 -> 1f
                 else -> 0f
             }
+            val records = recordsByHabit[habit.id].orEmpty()
             TodayHabitSummary(
                 habit = habit,
                 todayCount = count,
                 progress = progress,
                 reachedTarget = reachedTarget,
-                latestEventAt = latestByHabit[habit.id],
+                latestEventAt = records.firstOrNull()?.occurredAtEpochMillis,
+                records = records,
             )
         }
         val bestCurrentStreak = targetHabits.maxOfOrNull { habit ->
@@ -152,13 +163,7 @@ class LocalStatsCalculator : StatsCalculator {
                 habit = habit,
                 count = eventsForHabit.size,
                 reachedTarget = target != null && eventsForHabit.size >= target,
-                eventTimes = eventsForHabit
-                    .sortedByDescending { it.occurredAtEpochMillis }
-                    .map { event ->
-                        Instant.ofEpochMilli(event.occurredAtEpochMillis)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalTime()
-                    },
+                records = eventsForHabit.toRecordItems(),
             )
         }
         val targetHabits = habits.filter { it.targetEnabled }
@@ -202,5 +207,18 @@ class LocalStatsCalculator : StatsCalculator {
             currentDate = currentDate.minusDays(1)
         }
         return streak
+    }
+
+    private fun List<CheckInEvent>.toRecordItems(): List<CheckInRecordItem> {
+        return sortedByDescending { it.occurredAtEpochMillis }
+            .map { event ->
+                CheckInRecordItem(
+                    id = event.id,
+                    occurredAtEpochMillis = event.occurredAtEpochMillis,
+                    displayTime = Instant.ofEpochMilli(event.occurredAtEpochMillis)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalTime(),
+                )
+            }
     }
 }

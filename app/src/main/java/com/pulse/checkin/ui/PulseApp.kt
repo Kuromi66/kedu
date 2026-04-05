@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,6 +41,7 @@ import com.pulse.checkin.ui.screen.HistoryScreen
 import com.pulse.checkin.ui.screen.SettingsScreen
 import com.pulse.checkin.ui.screen.TodayScreen
 import com.pulse.checkin.ui.theme.PulseTheme
+import java.time.LocalDate
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
@@ -87,16 +89,20 @@ fun PulseApp(viewModel: AppViewModel) {
                                 snapshot = uiState.todaySnapshot,
                                 onAddHabit = { editorDraft = HabitDraft() },
                                 onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
-                                onIncrementHabit = viewModel::incrementHabit,
-                                onDecrementHabit = viewModel::decrementHabit,
+                                onCheckInHabit = viewModel::checkInHabit,
+                                onDeleteRecord = viewModel::deleteCheckInRecord,
                             )
                             AppTab.HISTORY -> HistoryScreen(
                                 snapshot = uiState.historySnapshot,
+                                habits = uiState.habits,
+                                selectedHabitId = uiState.selectedHistoryHabitId,
                                 selectedDate = uiState.selectedDate,
                                 onPreviousMonth = { viewModel.shiftMonth(-1) },
                                 onNextMonth = { viewModel.shiftMonth(1) },
                                 onSelectDate = viewModel::selectDate,
-                                onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
+                                onSelectHabit = viewModel::selectHistoryHabit,
+                                onBackToCurrentMonth = { viewModel.selectDate(LocalDate.now()) },
+                                onDeleteRecord = viewModel::deleteCheckInRecord,
                             )
                             AppTab.SETTINGS -> SettingsScreen(
                                 themeMode = uiState.preferences.themeMode,
@@ -134,8 +140,13 @@ fun PulseApp(viewModel: AppViewModel) {
 
 @Composable
 private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit) {
-    GlassCard(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
+    val horizontalPadding = if (compactLayout) 12.dp else 16.dp
+    val verticalPadding = if (compactLayout) 10.dp else 12.dp
+    val itemSpacing = if (compactLayout) 6.dp else 8.dp
+
+    GlassCard(modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(itemSpacing)) {
             AppTab.values().forEach { tab ->
                 val selected = tab == selectedTab
                 val label = when (tab) {
@@ -170,3 +181,6 @@ private fun checkNotificationsGranted(context: Context): Boolean {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 }
+
+
+
