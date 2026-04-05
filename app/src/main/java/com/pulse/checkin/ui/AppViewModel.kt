@@ -172,7 +172,8 @@ class AppViewModel(
 
     fun shiftMonth(delta: Long) {
         val current = YearMonth.from(selectedDate.value)
-        val next = current.plusMonths(delta)
+        val maxMonth = YearMonth.now()
+        val next = current.plusMonths(delta).coerceAtMost(maxMonth)
         val targetDay = selectedDate.value.dayOfMonth.coerceAtMost(next.lengthOfMonth())
         selectedDate.value = next.atDay(targetDay)
     }
@@ -182,7 +183,7 @@ class AppViewModel(
     }
 
     fun shiftStatsYear(delta: Int) {
-        selectedStatsYear.value += delta
+        selectedStatsYear.value = (selectedStatsYear.value + delta).coerceAtMost(LocalDate.now().year)
     }
 
     fun backToCurrentStatsYear() {

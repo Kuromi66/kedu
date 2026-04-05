@@ -5,13 +5,16 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -41,6 +44,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -75,6 +80,8 @@ fun StatsScreen(
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    val currentYear = YearMonth.now().year
+    val canGoToNextYear = snapshot.year < currentYear
 
     Column(modifier = Modifier.fillMaxSize()) {
         ScreenHeader(
@@ -111,7 +118,7 @@ fun StatsScreen(
                     }
                 }
             } else {
-                item {
+                item(key = "stats-filters") {
                     AnimatedVisibility(
                         visible = showFilters,
                         enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(180)),
@@ -134,16 +141,17 @@ fun StatsScreen(
                         }
                     }
                 }
-                item {
+                item(key = "stats-year-switcher") {
                     YearSwitcherCard(
                         year = snapshot.year,
                         compactLayout = compactLayout,
                         onPreviousYear = onPreviousYear,
                         onNextYear = onNextYear,
+                        canGoToNextYear = canGoToNextYear,
                         onBackToCurrentYear = onBackToCurrentYear,
                     )
                 }
-                item {
+                item(key = "stats-summary-metrics") {
                     Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
                         StatsMetricCard("\u6253\u5361\u5929\u6570", snapshot.summaryMetrics.activeDayCount.toString(), Modifier.weight(1f), compactLayout)
                         StatsMetricCard("\u6253\u5361\u6b21\u6570", snapshot.summaryMetrics.totalCount.toString(), Modifier.weight(1f), compactLayout)
@@ -155,29 +163,13 @@ fun StatsScreen(
                         )
                     }
                 }
-                if (!snapshot.hasRecords) {
-                    item {
-                        GlassCard {
-                            Text(
-                                text = "\u8be5\u4e60\u60ef\u5728 ${snapshot.year} \u5e74\u6682\u65e0\u6253\u5361\u8bb0\u5f55",
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "\u4f60\u4ecd\u53ef\u4ee5\u9884\u89c8\u5168\u5e74\u7684\u6708\u5ea6\u7edf\u8ba1\u6846\u67b6\u3002",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                }
-                item {
+                item(key = "stats-trend-chart") {
                     TrendChartCard(snapshot.trendPoints, compactLayout)
                 }
-                item {
+                item(key = "stats-hourly-chart") {
                     HourlyDistributionCard(snapshot.hourlyDistribution, compactLayout)
                 }
-                item {
+                item(key = "stats-monthly-detail") {
                     MonthlyDetailCard(snapshot.monthlyDetails, compactLayout)
                 }
             }
@@ -191,6 +183,7 @@ private fun YearSwitcherCard(
     compactLayout: Boolean,
     onPreviousYear: () -> Unit,
     onNextYear: () -> Unit,
+    canGoToNextYear: Boolean,
     onBackToCurrentYear: () -> Unit,
 ) {
     GlassCard {
@@ -211,7 +204,12 @@ private fun YearSwitcherCard(
                     enabled = year != YearMonth.now().year,
                     onClick = onBackToCurrentYear,
                 )
-                YearSwitchButton(type = YearSwitchType.Next, compactLayout = compactLayout, onClick = onNextYear)
+                YearSwitchButton(
+                    type = YearSwitchType.Next,
+                    compactLayout = compactLayout,
+                    enabled = canGoToNextYear,
+                    onClick = onNextYear,
+                )
             }
         }
     }
@@ -281,73 +279,170 @@ private fun StatsMetricCard(title: String, value: String, modifier: Modifier = M
 }
 
 @Composable
-private fun TrendChartCard(points: List<MonthlyTrendPoint>, compactLayout: Boolean) {
-    GlassCard {
-        Text("\u6708\u5ea6\u6253\u5361\u8d8b\u52bf", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = "\u6309\u6708\u5c55\u793a\u6253\u5361\u6b21\u6570\u53d8\u5316",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(if (compactLayout) 16.dp else 18.dp))
-        TrendLineChart(points = points, compactLayout = compactLayout)
+private fun ChartHeader(
+    title: String,
+    value: String?,
+    compactLayout: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = MaterialTheme.typography.titleLarge)
+        value?.let {
+            Text(
+                text = it,
+                style = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 
 @Composable
-private fun TrendLineChart(points: List<MonthlyTrendPoint>, compactLayout: Boolean) {
-    val maxValue = (points.maxOfOrNull { it.totalCount } ?: 0).coerceAtLeast(1)
+private fun TrendChartCard(points: List<MonthlyTrendPoint>, compactLayout: Boolean) {
+    var previewIndex by rememberSaveable(points.hashCode(), points.firstOrNull()?.month?.year) { mutableStateOf<Int?>(null) }
+    val previewPoint = previewIndex?.let { index -> points.getOrNull(index) }
+    val previewText = previewPoint?.let { point ->
+        "${point.month.format(statsMonthFormatter)}  ${point.totalCount}次"
+    }
+
+    GlassCard {
+        ChartHeader(
+            title = "月度打卡趋势",
+            value = previewText,
+            compactLayout = compactLayout,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        TrendLineChart(
+            points = points,
+            compactLayout = compactLayout,
+            previewIndex = previewIndex,
+            onPreviewIndexChange = { previewIndex = it },
+        )
+    }
+}
+
+@Composable
+private fun TrendLineChart(
+    points: List<MonthlyTrendPoint>,
+    compactLayout: Boolean,
+    previewIndex: Int?,
+    onPreviewIndexChange: (Int?) -> Unit,
+) {
+    val targetMaxValue = (points.maxOfOrNull { it.totalCount } ?: 0).coerceAtLeast(1)
+    val animatedRatios = points.mapIndexed { index, point ->
+        animateFloatAsState(
+            targetValue = point.totalCount.toFloat() / targetMaxValue.toFloat(),
+            animationSpec = tween(durationMillis = 480),
+            label = "trend-point-$index",
+        ).value
+    }
     val chartHeight = if (compactLayout) 168.dp else 184.dp
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)
     val lineColor = MaterialTheme.colorScheme.primary
     val pointFillColor = MaterialTheme.colorScheme.surface
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Canvas(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(chartHeight),
         ) {
-            val leftPadding = 8.dp.toPx()
-            val rightPadding = 8.dp.toPx()
-            val topPadding = 12.dp.toPx()
-            val bottomPadding = 18.dp.toPx()
-            val chartWidth = size.width - leftPadding - rightPadding
-            val chartHeightPx = size.height - topPadding - bottomPadding
-            val stepX = if (points.size <= 1) 0f else chartWidth / (points.size - 1)
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val leftPadding = 8.dp.toPx()
+                val rightPadding = 8.dp.toPx()
+                val topPadding = 12.dp.toPx()
+                val bottomPadding = 18.dp.toPx()
+                val chartWidth = size.width - leftPadding - rightPadding
+                val chartHeightPx = size.height - topPadding - bottomPadding
+                val stepX = if (points.size <= 1) 0f else chartWidth / (points.size - 1)
 
-            repeat(4) { index ->
-                val y = topPadding + chartHeightPx * index / 3f
-                drawLine(
-                    color = gridColor,
-                    start = Offset(leftPadding, y),
-                    end = Offset(size.width - rightPadding, y),
-                    strokeWidth = 1.dp.toPx(),
-                )
-            }
-
-            val path = Path()
-            points.forEachIndexed { index, point ->
-                val ratio = point.totalCount.toFloat() / maxValue.toFloat()
-                val x = leftPadding + stepX * index
-                val y = topPadding + chartHeightPx * (1f - ratio)
-                if (index == 0) {
-                    path.moveTo(x, y)
-                } else {
-                    path.lineTo(x, y)
+                repeat(4) { index ->
+                    val y = topPadding + chartHeightPx * index / 3f
+                    drawLine(
+                        color = gridColor,
+                        start = Offset(leftPadding, y),
+                        end = Offset(size.width - rightPadding, y),
+                        strokeWidth = 1.dp.toPx(),
+                    )
                 }
-            }
-            if (points.isNotEmpty()) {
-                drawPath(path = path, color = lineColor, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
-                points.forEachIndexed { index, point ->
-                    val ratio = point.totalCount.toFloat() / maxValue.toFloat()
+
+                val chartPoints = points.mapIndexed { index, _ ->
+                    val ratio = animatedRatios[index]
                     val x = leftPadding + stepX * index
                     val y = topPadding + chartHeightPx * (1f - ratio)
-                    drawCircle(color = pointFillColor, radius = 5.dp.toPx(), center = Offset(x, y))
-                    drawCircle(color = lineColor, radius = 3.dp.toPx(), center = Offset(x, y))
+                    Offset(x, y)
+                }
+                if (chartPoints.isNotEmpty()) {
+                    val smoothPath = Path().apply {
+                        moveTo(chartPoints.first().x, chartPoints.first().y)
+                        for (index in 1 until chartPoints.size) {
+                            val previous = chartPoints[index - 1]
+                            val current = chartPoints[index]
+                            val controlX = previous.x + (current.x - previous.x) / 2f
+                            cubicTo(controlX, previous.y, controlX, current.y, current.x, current.y)
+                        }
+                    }
+                    val baselineY = topPadding + chartHeightPx
+                    val areaPath = Path().apply {
+                        addPath(smoothPath)
+                        lineTo(chartPoints.last().x, baselineY)
+                        lineTo(chartPoints.first().x, baselineY)
+                        close()
+                    }
+                    drawPath(
+                        path = areaPath,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(lineColor.copy(alpha = 0.22f), lineColor.copy(alpha = 0.03f)),
+                            startY = topPadding,
+                            endY = baselineY,
+                        ),
+                    )
+                    drawPath(
+                        path = smoothPath,
+                        color = lineColor,
+                        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round),
+                    )
+                    previewIndex?.takeIf { it in chartPoints.indices }?.let { activeIndex ->
+                        val selectedPoint = chartPoints[activeIndex]
+                        drawLine(
+                            color = lineColor.copy(alpha = 0.18f),
+                            start = Offset(selectedPoint.x, topPadding),
+                            end = Offset(selectedPoint.x, baselineY),
+                            strokeWidth = 1.dp.toPx(),
+                        )
+                    }
+                    chartPoints.forEachIndexed { index, point ->
+                        val selected = index == previewIndex
+                        drawCircle(color = pointFillColor, radius = if (selected) 7.dp.toPx() else 5.dp.toPx(), center = point)
+                        drawCircle(color = lineColor, radius = if (selected) 4.dp.toPx() else 3.dp.toPx(), center = point)
+                    }
                 }
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(points.hashCode(), points.firstOrNull()?.month?.year) {
+                        if (points.isEmpty()) return@pointerInput
+                        detectHorizontalDragGestures(
+                            onDragStart = { offset ->
+                                val widthPerItem = size.width.toFloat() / points.size.toFloat()
+                                val index = (offset.x / widthPerItem).toInt().coerceIn(0, points.lastIndex)
+                                onPreviewIndexChange(index)
+                            },
+                            onHorizontalDrag = { change, _ ->
+                                val widthPerItem = size.width.toFloat() / points.size.toFloat()
+                                val index = (change.position.x / widthPerItem).toInt().coerceIn(0, points.lastIndex)
+                                onPreviewIndexChange(index)
+                            },
+                            onDragEnd = { onPreviewIndexChange(null) },
+                            onDragCancel = { onPreviewIndexChange(null) },
+                        )
+                    },
+            )
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             points.forEachIndexed { index, point ->
@@ -355,7 +450,8 @@ private fun TrendLineChart(points: List<MonthlyTrendPoint>, compactLayout: Boole
                     Text(
                         text = point.month.format(statsMonthFormatter),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (index == previewIndex) lineColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (index == previewIndex) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 } else {
                     Spacer(modifier = Modifier.width(0.dp))
@@ -367,57 +463,110 @@ private fun TrendLineChart(points: List<MonthlyTrendPoint>, compactLayout: Boole
 
 @Composable
 private fun HourlyDistributionCard(buckets: List<HourlyDistributionBucket>, compactLayout: Boolean) {
+    var previewHour by rememberSaveable(buckets.hashCode(), buckets.sumOf { it.count }) { mutableStateOf<Int?>(null) }
+    val previewBucket = previewHour?.let { hour -> buckets.firstOrNull { it.hour == hour } }
+    val previewText = previewBucket?.let { bucket ->
+        "${bucket.hour.toString().padStart(2, '0')}:00  ${bucket.count}次"
+    }
+
     GlassCard {
-        Text("24 \u5c0f\u65f6\u6253\u5361\u5206\u5e03", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = "\u770b\u770b\u4f60\u66f4\u5e38\u5728\u4ec0\u4e48\u65f6\u95f4\u6253\u5361",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        ChartHeader(
+            title = "24 小时打卡分布",
+            value = previewText,
+            compactLayout = compactLayout,
         )
-        Spacer(modifier = Modifier.height(if (compactLayout) 16.dp else 18.dp))
-        HourlyBarChart(buckets = buckets, compactLayout = compactLayout)
+        Spacer(modifier = Modifier.height(10.dp))
+        HourlyBarChart(
+            buckets = buckets,
+            compactLayout = compactLayout,
+            previewHour = previewHour,
+            onPreviewHourChange = { previewHour = it },
+        )
     }
 }
 
 @Composable
-private fun HourlyBarChart(buckets: List<HourlyDistributionBucket>, compactLayout: Boolean) {
-    val maxValue = (buckets.maxOfOrNull { it.count } ?: 0).coerceAtLeast(1)
+private fun HourlyBarChart(
+    buckets: List<HourlyDistributionBucket>,
+    compactLayout: Boolean,
+    previewHour: Int?,
+    onPreviewHourChange: (Int?) -> Unit,
+) {
+    val targetMaxValue = (buckets.maxOfOrNull { it.count } ?: 0).coerceAtLeast(1)
+    val animatedRatios = buckets.mapIndexed { index, bucket ->
+        animateFloatAsState(
+            targetValue = bucket.count.toFloat() / targetMaxValue.toFloat(),
+            animationSpec = tween(durationMillis = 480),
+            label = "hourly-bar-$index",
+        ).value
+    }
     val barColor = MaterialTheme.colorScheme.primary
     val mutedBarColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
     val chartHeight = if (compactLayout) 132.dp else 146.dp
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(chartHeight),
-            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 3.dp else 4.dp),
-            verticalAlignment = Alignment.Bottom,
-        ) {
-            buckets.forEach { bucket ->
-                val ratio = bucket.count.toFloat() / maxValue.toFloat()
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.BottomCenter,
-                ) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(buckets.hashCode(), buckets.sumOf { it.count }) {
+                if (buckets.isEmpty()) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        val widthPerItem = size.width.toFloat() / buckets.size.toFloat()
+                        val index = (offset.x / widthPerItem).toInt().coerceIn(0, buckets.lastIndex)
+                        onPreviewHourChange(buckets[index].hour)
+                    },
+                    onHorizontalDrag = { change, _ ->
+                        val widthPerItem = size.width.toFloat() / buckets.size.toFloat()
+                        val index = (change.position.x / widthPerItem).toInt().coerceIn(0, buckets.lastIndex)
+                        onPreviewHourChange(buckets[index].hour)
+                    },
+                    onDragEnd = { onPreviewHourChange(null) },
+                    onDragCancel = { onPreviewHourChange(null) },
+                )
+            },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(chartHeight),
+                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 3.dp else 4.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                buckets.forEachIndexed { index, bucket ->
+                    val ratio = animatedRatios[index]
+                    val selected = bucket.hour == previewHour
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height((chartHeight * ratio).coerceAtLeast(6.dp))
-                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                            .background(if (bucket.count == 0) mutedBarColor else barColor),
-                    )
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height((chartHeight * ratio).coerceAtLeast(6.dp))
+                                .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                                .background(
+                                    when {
+                                        bucket.count == 0 -> mutedBarColor
+                                        selected -> barColor
+                                        else -> barColor.copy(alpha = 0.42f)
+                                    },
+                                ),
+                        )
+                    }
                 }
             }
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            listOf(0, 6, 12, 18, 23).forEach { hour ->
-                Text(
-                    text = hour.toString().padStart(2, '0'),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                listOf(0, 6, 12, 18, 23).forEach { hour ->
+                    Text(
+                        text = hour.toString().padStart(2, '0'),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (hour == previewHour) barColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (hour == previewHour) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                }
             }
         }
     }
@@ -427,12 +576,6 @@ private fun HourlyBarChart(buckets: List<HourlyDistributionBucket>, compactLayou
 private fun MonthlyDetailCard(rows: List<MonthlyDetailRow>, compactLayout: Boolean) {
     GlassCard {
         Text("\u6708\u5ea6\u8be6\u7ec6\u6570\u636e", style = MaterialTheme.typography.titleLarge)
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            text = "\u6309\u6708\u67e5\u770b\u6253\u5361\u5929\u6570\u3001\u6b21\u6570\u548c\u6700\u957f\u8fde\u7eed",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
         DetailTableHeader()
         Spacer(modifier = Modifier.height(8.dp))

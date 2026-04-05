@@ -93,6 +93,7 @@ fun HistoryScreen(
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     val currentMonth = YearMonth.now()
+    val canGoToNextMonth = snapshot.month < currentMonth
     var selectedDetailHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     val selectedDetail = snapshot.selectedDateDetails.firstOrNull { it.habit.id == selectedDetailHabitId }
     var showFilters by rememberSaveable { mutableStateOf(selectedHabitId != null) }
@@ -163,7 +164,7 @@ fun HistoryScreen(
                             onDragEnd = {
                                 when {
                                     totalDrag >= 48f -> onPreviousMonth()
-                                    totalDrag <= -48f -> onNextMonth()
+                                    totalDrag <= -48f && canGoToNextMonth -> onNextMonth()
                                 }
                                 totalDrag = 0f
                             },
@@ -196,6 +197,7 @@ fun HistoryScreen(
                             compactLayout = compactLayout,
                             onPreviousMonth = onPreviousMonth,
                             onNextMonth = onNextMonth,
+                            canGoToNextMonth = canGoToNextMonth,
                             onBackToCurrentMonth = onBackToCurrentMonth,
                             onSelectDate = onSelectDate,
                         )
@@ -254,6 +256,7 @@ private fun MonthCalendarSection(
     compactLayout: Boolean,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
+    canGoToNextMonth: Boolean,
     onBackToCurrentMonth: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
 ) {
@@ -282,6 +285,7 @@ private fun MonthCalendarSection(
                 MonthSwitchButton(
                     type = MonthSwitchType.Next,
                     compactLayout = compactLayout,
+                    enabled = canGoToNextMonth,
                     onClick = onNextMonth,
                 )
             }
