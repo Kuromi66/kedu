@@ -1,4 +1,4 @@
-﻿package com.pulse.checkin.domain.stats
+package com.pulse.checkin.domain.stats
 
 import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.Habit
@@ -17,6 +17,14 @@ interface StatsCalculator {
         selectedDate: LocalDate,
         today: LocalDate,
     ): MonthSnapshot
+
+    fun buildYearSnapshot(
+        habits: List<Habit>,
+        events: List<CheckInEvent>,
+        year: Int,
+        selectedHabitId: Long?,
+        today: LocalDate,
+    ): YearSnapshot
 }
 
 data class CheckInRecordItem(
@@ -85,6 +93,71 @@ data class MonthSnapshot(
             targetHabitDays = 0,
             bestCurrentStreak = 0,
             selectedDateDetails = emptyList(),
+        )
+    }
+}
+
+data class YearHabitOption(
+    val habit: Habit,
+    val yearCount: Int,
+    val activeDayCount: Int,
+)
+
+data class YearSummaryMetrics(
+    val activeDayCount: Int,
+    val totalCount: Int,
+    val longestStreak: Int,
+) {
+    companion object {
+        val Empty = YearSummaryMetrics(
+            activeDayCount = 0,
+            totalCount = 0,
+            longestStreak = 0,
+        )
+    }
+}
+
+data class MonthlyTrendPoint(
+    val month: YearMonth,
+    val totalCount: Int,
+    val activeDayCount: Int,
+    val longestStreak: Int,
+)
+
+data class HourlyDistributionBucket(
+    val hour: Int,
+    val count: Int,
+)
+
+data class MonthlyDetailRow(
+    val month: YearMonth,
+    val activeDayCount: Int,
+    val totalCount: Int,
+    val longestStreak: Int,
+)
+
+data class YearSnapshot(
+    val year: Int,
+    val habitOptions: List<YearHabitOption>,
+    val selectedHabitId: Long?,
+    val selectedHabit: Habit?,
+    val summaryMetrics: YearSummaryMetrics,
+    val trendPoints: List<MonthlyTrendPoint>,
+    val hourlyDistribution: List<HourlyDistributionBucket>,
+    val monthlyDetails: List<MonthlyDetailRow>,
+    val hasRecords: Boolean,
+) {
+    companion object {
+        val Empty = YearSnapshot(
+            year = LocalDate.now().year,
+            habitOptions = emptyList(),
+            selectedHabitId = null,
+            selectedHabit = null,
+            summaryMetrics = YearSummaryMetrics.Empty,
+            trendPoints = emptyList(),
+            hourlyDistribution = emptyList(),
+            monthlyDetails = emptyList(),
+            hasRecords = false,
         )
     }
 }
@@ -189,6 +262,75 @@ class LocalStatsCalculator : StatsCalculator {
         )
     }
 
+    override fun buildYearSnapshot(
+        habits: List<Habit>,
+        events: List<CheckInEvent>,
+        year: Int,
+        selectedHabitId: Long?,
+        today: LocalDate,
+    ): YearSnapshot {
+        val sortedHabits = habits.sortedBy { it.sortOrder }
+        val yearEvents = events.filter { it.localDate.year == year }
+        val habitOptions = sortedHabits.map { habit ->
+            val eventsForHabit = yearEvents.filter { it.habitId == habit.id }
+            YearHabitOption(
+                habit = habit,
+                yearCount = eventsForHabit.size,
+                activeDayCount = eventsForHabit.map { it.localDate }.distinct().size,
+            )
+        }
+        val selectedHabit = sortedHabits.firstOrNull { it.id == selectedHabitId } ?: sortedHabits.firstOrNull()
+        if (selectedHabit == null) {
+            return YearSnapshot.Empty.copy(year = year)
+        }
+        val selectedEvents = yearEvents.filter { it.habitId == selectedHabit.id }
+        val trendPoints = (1..12).map { monthValue ->
+            val month = YearMonth.of(year, monthValue)
+            val monthEvents = selectedEvents.filter { YearMonth.from(it.localDate) == month }
+            val activeDates = monthEvents.map { it.localDate }.distinct()
+            MonthlyTrendPoint(
+                month = month,
+                totalCount = monthEvents.size,
+                activeDayCount = activeDates.size,
+                longestStreak = computeLongestStreak(activeDates),
+            )
+        }
+        val hourlyDistribution = (0..23).map { hour ->
+            HourlyDistributionBucket(
+                hour = hour,
+                count = selectedEvents.count { event ->
+                    Instant.ofEpochMilli(event.occurredAtEpochMillis)
+                        .atZone(ZoneId.systemDefault())
+                        .hour == hour
+                },
+            )
+        }
+        val metrics = YearSummaryMetrics(
+            activeDayCount = selectedEvents.map { it.localDate }.distinct().size,
+            totalCount = selectedEvents.size,
+            longestStreak = computeLongestStreak(selectedEvents.map { it.localDate }.distinct()),
+        )
+        val monthlyDetails = trendPoints.map { point ->
+            MonthlyDetailRow(
+                month = point.month,
+                activeDayCount = point.activeDayCount,
+                totalCount = point.totalCount,
+                longestStreak = point.longestStreak,
+            )
+        }
+        return YearSnapshot(
+            year = year,
+            habitOptions = habitOptions,
+            selectedHabitId = selectedHabit.id,
+            selectedHabit = selectedHabit,
+            summaryMetrics = metrics,
+            trendPoints = trendPoints,
+            hourlyDistribution = hourlyDistribution,
+            monthlyDetails = monthlyDetails,
+            hasRecords = selectedEvents.isNotEmpty(),
+        )
+    }
+
     private fun buildDailyCounts(events: List<CheckInEvent>): Map<Long, Map<LocalDate, Int>> {
         return events.groupBy { it.habitId }
             .mapValues { (_, value) -> value.groupingBy { it.localDate }.eachCount() }
@@ -207,6 +349,22 @@ class LocalStatsCalculator : StatsCalculator {
             currentDate = currentDate.minusDays(1)
         }
         return streak
+    }
+
+    private fun computeLongestStreak(dates: Collection<LocalDate>): Int {
+        if (dates.isEmpty()) return 0
+        val sortedDates = dates.distinct().sorted()
+        var best = 1
+        var current = 1
+        for (index in 1 until sortedDates.size) {
+            current = if (sortedDates[index - 1].plusDays(1) == sortedDates[index]) {
+                current + 1
+            } else {
+                1
+            }
+            if (current > best) best = current
+        }
+        return best
     }
 
     private fun List<CheckInEvent>.toRecordItems(): List<CheckInRecordItem> {

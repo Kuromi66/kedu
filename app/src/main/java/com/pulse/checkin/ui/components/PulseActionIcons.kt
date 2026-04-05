@@ -1,11 +1,10 @@
-﻿package com.pulse.checkin.ui.components
+package com.pulse.checkin.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,10 +14,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 enum class PulseIconKind {
     Add,
@@ -26,6 +31,10 @@ enum class PulseIconKind {
     Check,
     Records,
     Collapse,
+    TodayTab,
+    HistoryTab,
+    StatsTab,
+    SettingsTab,
 }
 
 @Composable
@@ -104,8 +113,14 @@ fun PulseActionIcon(
     compactLayout: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier = modifier.size(if (compactLayout) 18.dp else 20.dp).padding(1.dp)) {
-        val stroke = size.minDimension * 0.12f
+    Canvas(modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp).then(modifier)) {
+        val stroke = when (kind) {
+            PulseIconKind.TodayTab,
+            PulseIconKind.HistoryTab,
+            PulseIconKind.StatsTab,
+            PulseIconKind.SettingsTab -> size.minDimension * 0.14f
+            else -> size.minDimension * 0.12f
+        }
         val centerX = size.width / 2f
         val centerY = size.height / 2f
         when (kind) {
@@ -134,6 +149,50 @@ fun PulseActionIcon(
             PulseIconKind.Collapse -> {
                 drawLine(color, Offset(size.width * 0.24f, size.height * 0.62f), Offset(centerX, size.height * 0.38f), stroke, cap = StrokeCap.Round)
                 drawLine(color, Offset(centerX, size.height * 0.38f), Offset(size.width * 0.76f, size.height * 0.62f), stroke, cap = StrokeCap.Round)
+            }
+            PulseIconKind.TodayTab -> {
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(size.width * 0.12f, size.height * 0.14f),
+                    size = Size(size.width * 0.76f, size.height * 0.74f),
+                    cornerRadius = CornerRadius(size.width * 0.17f, size.width * 0.17f),
+                    style = Stroke(width = stroke),
+                )
+                drawLine(color, Offset(size.width * 0.12f, size.height * 0.34f), Offset(size.width * 0.88f, size.height * 0.34f), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.28f, size.height * 0.10f), Offset(size.width * 0.28f, size.height * 0.22f), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.72f, size.height * 0.10f), Offset(size.width * 0.72f, size.height * 0.22f), stroke, cap = StrokeCap.Round)
+                drawCircle(color, radius = stroke * 0.9f, center = Offset(centerX, size.height * 0.60f))
+            }
+            PulseIconKind.HistoryTab -> {
+                drawCircle(color, radius = size.minDimension * 0.35f, center = Offset(centerX, centerY), style = Stroke(width = stroke))
+                drawLine(color, Offset(centerX, centerY), Offset(centerX, size.height * 0.28f), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(centerX, centerY), Offset(size.width * 0.70f, size.height * 0.55f), stroke, cap = StrokeCap.Round)
+                drawCircle(color, radius = stroke * 0.65f, center = Offset(centerX, centerY))
+            }
+            PulseIconKind.StatsTab -> {
+                val barWidth = size.width * 0.14f
+                val bottom = size.height * 0.82f
+                val corners = CornerRadius(barWidth, barWidth)
+                drawRoundRect(color, topLeft = Offset(size.width * 0.18f, size.height * 0.46f), size = Size(barWidth, bottom - size.height * 0.46f), cornerRadius = corners)
+                drawRoundRect(color, topLeft = Offset(size.width * 0.43f, size.height * 0.28f), size = Size(barWidth, bottom - size.height * 0.28f), cornerRadius = corners)
+                drawRoundRect(color, topLeft = Offset(size.width * 0.68f, size.height * 0.16f), size = Size(barWidth, bottom - size.height * 0.16f), cornerRadius = corners)
+            }
+            PulseIconKind.SettingsTab -> {
+                drawCircle(color, radius = size.minDimension * 0.18f, center = Offset(centerX, centerY), style = Stroke(width = stroke))
+                repeat(8) { index ->
+                    val angle = (PI / 4.0 * index) - PI / 2.0
+                    val innerRadius = size.minDimension * 0.29f
+                    val outerRadius = size.minDimension * 0.43f
+                    val start = Offset(
+                        x = centerX + (cos(angle) * innerRadius).toFloat(),
+                        y = centerY + (sin(angle) * innerRadius).toFloat(),
+                    )
+                    val end = Offset(
+                        x = centerX + (cos(angle) * outerRadius).toFloat(),
+                        y = centerY + (sin(angle) * outerRadius).toFloat(),
+                    )
+                    drawLine(color, start, end, stroke, cap = StrokeCap.Round)
+                }
             }
         }
     }

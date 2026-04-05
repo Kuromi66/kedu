@@ -1,4 +1,4 @@
-﻿package com.pulse.checkin.ui
+package com.pulse.checkin.ui
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pulse.checkin.AppContainer
 import com.pulse.checkin.data.backup.BackupManager
 import com.pulse.checkin.data.preferences.AppPreferences
+import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.domain.model.UserPreferences
@@ -17,6 +18,7 @@ import com.pulse.checkin.domain.repository.HabitRepository
 import com.pulse.checkin.domain.stats.MonthSnapshot
 import com.pulse.checkin.domain.stats.StatsCalculator
 import com.pulse.checkin.domain.stats.TodaySnapshot
+import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.reminder.ReminderScheduler
 import java.time.LocalDate
 import java.time.YearMonth
@@ -30,6 +32,7 @@ import kotlinx.coroutines.launch
 enum class AppTab {
     TODAY,
     HISTORY,
+    STATS,
     SETTINGS,
 }
 
@@ -63,21 +66,22 @@ data class AppUiState(
     val selectedTab: AppTab = AppTab.TODAY,
     val selectedDate: LocalDate = LocalDate.now(),
     val selectedHistoryHabitId: Long? = null,
+    val selectedStatsYear: Int = LocalDate.now().year,
+    val selectedStatsHabitId: Long? = null,
     val preferences: UserPreferences = UserPreferences(),
     val habits: List<Habit> = emptyList(),
     val todaySnapshot: TodaySnapshot = TodaySnapshot.Empty,
     val historySnapshot: MonthSnapshot = MonthSnapshot.Empty,
+    val yearSnapshot: YearSnapshot = YearSnapshot.Empty,
     val isLoading: Boolean = true,
 )
 
 private data class BaseUiInputs(
     val habits: List<Habit>,
+    val events: List<CheckInEvent>,
     val preferences: UserPreferences,
     val selectedTab: AppTab,
     val selectedDate: LocalDate,
-    val todaySnapshot: TodaySnapshot,
-    val selectedMonth: YearMonth,
-    val allEvents: List<com.pulse.checkin.domain.model.CheckInEvent>,
 )
 
 class AppViewModel(
@@ -91,6 +95,8 @@ class AppViewModel(
     private val selectedTab = MutableStateFlow(AppTab.TODAY)
     private val selectedDate = MutableStateFlow(LocalDate.now())
     private val selectedHistoryHabitId = MutableStateFlow<Long?>(null)
+    private val selectedStatsYear = MutableStateFlow(LocalDate.now().year)
+    private val selectedStatsHabitId = MutableStateFlow<Long?>(null)
 
     val uiState: StateFlow<AppUiState> = combine(
         habitRepository.observeHabits(),
@@ -99,39 +105,49 @@ class AppViewModel(
         selectedTab,
         selectedDate,
     ) { habits, events, preferences, tab, date ->
-        val today = LocalDate.now()
         BaseUiInputs(
             habits = habits,
+            events = events,
             preferences = preferences,
             selectedTab = tab,
             selectedDate = date,
-            todaySnapshot = statsCalculator.buildTodaySnapshot(habits, events, today),
-            selectedMonth = YearMonth.from(date),
-            allEvents = events,
         )
-    }.combine(selectedHistoryHabitId) { base, rawSelectedHistoryHabitId ->
+    }.combine(selectedHistoryHabitId) { base, rawHistoryHabitId ->
+        base to rawHistoryHabitId
+    }.combine(selectedStatsYear) { (base, rawHistoryHabitId), statsYear ->
+        Triple(base, rawHistoryHabitId, statsYear)
+    }.combine(selectedStatsHabitId) { (base, rawHistoryHabitId, statsYear), rawStatsHabitId ->
         val today = LocalDate.now()
-        val effectiveHistoryHabitId = rawSelectedHistoryHabitId?.takeIf { id ->
-            base.habits.any { it.id == id }
-        }
+        val effectiveHistoryHabitId = rawHistoryHabitId?.takeIf { id -> base.habits.any { habit -> habit.id == id } }
+        val effectiveStatsHabitId = rawStatsHabitId?.takeIf { id -> base.habits.any { habit -> habit.id == id } }
+            ?: base.habits.minByOrNull { it.sortOrder }?.id
         val historyHabits = effectiveHistoryHabitId?.let { filterId ->
             base.habits.filter { it.id == filterId }
         } ?: base.habits
         val historyEvents = effectiveHistoryHabitId?.let { filterId ->
-            base.allEvents.filter { it.habitId == filterId }
-        } ?: base.allEvents
+            base.events.filter { it.habitId == filterId }
+        } ?: base.events
         AppUiState(
             selectedTab = base.selectedTab,
             selectedDate = base.selectedDate,
             selectedHistoryHabitId = effectiveHistoryHabitId,
+            selectedStatsYear = statsYear,
+            selectedStatsHabitId = effectiveStatsHabitId,
             preferences = base.preferences,
             habits = base.habits,
-            todaySnapshot = base.todaySnapshot,
+            todaySnapshot = statsCalculator.buildTodaySnapshot(base.habits, base.events, today),
             historySnapshot = statsCalculator.buildMonthSnapshot(
                 habits = historyHabits,
                 events = historyEvents,
-                month = base.selectedMonth,
+                month = YearMonth.from(base.selectedDate),
                 selectedDate = base.selectedDate,
+                today = today,
+            ),
+            yearSnapshot = statsCalculator.buildYearSnapshot(
+                habits = base.habits,
+                events = base.events,
+                year = statsYear,
+                selectedHabitId = effectiveStatsHabitId,
                 today = today,
             ),
             isLoading = false,
@@ -159,6 +175,18 @@ class AppViewModel(
         val next = current.plusMonths(delta)
         val targetDay = selectedDate.value.dayOfMonth.coerceAtMost(next.lengthOfMonth())
         selectedDate.value = next.atDay(targetDay)
+    }
+
+    fun selectStatsHabit(habitId: Long) {
+        selectedStatsHabitId.value = habitId
+    }
+
+    fun shiftStatsYear(delta: Int) {
+        selectedStatsYear.value += delta
+    }
+
+    fun backToCurrentStatsYear() {
+        selectedStatsYear.value = LocalDate.now().year
     }
 
     fun checkInHabit(habitId: Long) {
@@ -204,7 +232,7 @@ class AppViewModel(
 
     suspend fun exportBackup(uri: Uri): Result<String> {
         return backupManager.exportToUri(uri).map { summary ->
-            "已导出 ${summary.habitCount} 个习惯、${summary.eventCount} 条记录"
+            "\u5df2\u5bfc\u51fa ${summary.habitCount} \u4e2a\u4e60\u60ef\u3001${summary.eventCount} \u6761\u8bb0\u5f55"
         }
     }
 
@@ -213,11 +241,13 @@ class AppViewModel(
         val result = backupManager.importFromUri(uri)
         if (result.isSuccess) {
             selectedHistoryHabitId.value = null
+            selectedStatsHabitId.value = null
             selectedDate.value = LocalDate.now()
+            selectedStatsYear.value = LocalDate.now().year
             reminderScheduler.syncAll(habitRepository.getActiveReminderHabits())
         }
         return result.map { summary ->
-            "已导入 ${summary.habitCount} 个习惯、${summary.eventCount} 条记录"
+            "\u5df2\u5bfc\u5165 ${summary.habitCount} \u4e2a\u4e60\u60ef\u3001${summary.eventCount} \u6761\u8bb0\u5f55"
         }
     }
 
