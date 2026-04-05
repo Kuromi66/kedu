@@ -27,7 +27,8 @@ class StatsCalculatorTest {
 
         assertEquals(3, snapshot.totalCount)
         assertEquals(3, snapshot.habits.single().todayCount)
-        assertFalse(snapshot.habits.single().reachedTarget)
+        assertTrue(snapshot.habits.single().reachedTarget)
+        assertEquals(1, snapshot.completedHabits)
     }
 
     @Test

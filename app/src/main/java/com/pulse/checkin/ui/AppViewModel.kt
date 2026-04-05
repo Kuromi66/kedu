@@ -119,14 +119,15 @@ class AppViewModel(
     }.combine(selectedStatsHabitId) { (base, rawHistoryHabitId, statsYear), rawStatsHabitId ->
         val today = LocalDate.now()
         val effectiveHistoryHabitId = rawHistoryHabitId?.takeIf { id -> base.habits.any { habit -> habit.id == id } }
+            ?: base.habits.minByOrNull { it.sortOrder }?.id
         val effectiveStatsHabitId = rawStatsHabitId?.takeIf { id -> base.habits.any { habit -> habit.id == id } }
             ?: base.habits.minByOrNull { it.sortOrder }?.id
         val historyHabits = effectiveHistoryHabitId?.let { filterId ->
             base.habits.filter { it.id == filterId }
-        } ?: base.habits
+        }.orEmpty()
         val historyEvents = effectiveHistoryHabitId?.let { filterId ->
             base.events.filter { it.habitId == filterId }
-        } ?: base.events
+        }.orEmpty()
         AppUiState(
             selectedTab = base.selectedTab,
             selectedDate = base.selectedDate,

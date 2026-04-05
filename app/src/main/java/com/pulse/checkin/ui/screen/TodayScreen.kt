@@ -63,12 +63,13 @@ fun TodayScreen(
     onEditHabit: (Habit) -> Unit,
     onCheckInHabit: (Long) -> Unit,
     onDeleteRecord: (Long) -> Unit,
+    onDeleteHabit: (Long) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
-    val bottomPadding = if (compactLayout) 108.dp else 120.dp
+    val bottomPadding = if (compactLayout) 84.dp else 92.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
         ScreenHeader(title = "\u4eca\u65e5", compactLayout = compactLayout)
@@ -125,6 +126,7 @@ fun TodayScreen(
                             onCheckInHabit(item.habit.id)
                         },
                         onDeleteRecord = onDeleteRecord,
+                        onDeleteHabit = onDeleteHabit,
                     )
                 }
             }
@@ -144,6 +146,7 @@ private fun OverviewMetric(title: String, value: String, modifier: Modifier = Mo
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HabitCard(
     item: TodayHabitSummary,
@@ -151,12 +154,20 @@ private fun HabitCard(
     onEdit: () -> Unit,
     onCheckIn: () -> Unit,
     onDeleteRecord: (Long) -> Unit,
+    onDeleteHabit: (Long) -> Unit,
 ) {
     var expanded by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<Long?>(null) }
+    var pendingDeleteHabit by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     val progress = animateFloatAsState(targetValue = item.progress, label = "progress").value
+    val cardShape = RoundedCornerShape(if (compactLayout) 24.dp else 28.dp)
 
-    GlassCard(modifier = Modifier.animateContentSize()) {
+    GlassCard(
+        modifier = Modifier
+            .animateContentSize()
+            .clip(cardShape)
+            .combinedClickable(onClick = {}, onLongClick = { pendingDeleteHabit = true }),
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -281,6 +292,29 @@ private fun HabitCard(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteRecord = null }) {
+                    Text("\u53d6\u6d88")
+                }
+            },
+        )
+    }
+
+    if (pendingDeleteHabit) {
+        AlertDialog(
+            onDismissRequest = { pendingDeleteHabit = false },
+            title = { Text("\u5220\u9664\u4e60\u60ef") },
+            text = { Text("\u786e\u5b9a\u5220\u9664 ${item.habit.name} \u5417\uff1f\n\u5220\u9664\u540e\u5bf9\u5e94\u7684\u6253\u5361\u8bb0\u5f55\u4e5f\u4f1a\u4e00\u8d77\u9690\u85cf\u3002") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteHabit(item.habit.id)
+                        pendingDeleteHabit = false
+                    },
+                ) {
+                    Text("\u786e\u8ba4\u5220\u9664")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteHabit = false }) {
                     Text("\u53d6\u6d88")
                 }
             },

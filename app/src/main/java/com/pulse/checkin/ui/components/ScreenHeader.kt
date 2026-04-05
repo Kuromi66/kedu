@@ -66,7 +66,7 @@ fun HeaderFilterButton(
 
     Box(
         modifier = modifier
-            .size(if (compactLayout) 34.dp else 38.dp)
+            .size(if (compactLayout) 38.dp else 42.dp)
             .background(color = containerColor, shape = CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -75,7 +75,7 @@ fun HeaderFilterButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(9.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(if (compactLayout) 9.dp else 10.dp)) {
             val stroke = size.minDimension * 0.12f
             val y1 = size.height * 0.25f
             val y2 = size.height * 0.5f

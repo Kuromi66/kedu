@@ -173,11 +173,10 @@ class LocalStatsCalculator : StatsCalculator {
         val recordsByHabit = eventsToday.groupBy { it.habitId }
             .mapValues { (_, value) -> value.toRecordItems() }
         val dailyCounts = buildDailyCounts(events)
-        val targetHabits = habits.filter { it.targetEnabled }
         val summaries = habits.sortedBy { it.sortOrder }.map { habit ->
             val count = countsToday[habit.id] ?: 0
             val target = habit.targetCountOrDefault()
-            val reachedTarget = target != null && count >= target
+            val reachedTarget = reachedGoal(habit, count)
             val progress = when {
                 target != null -> (count.toFloat() / target.toFloat()).coerceIn(0f, 1f)
                 count > 0 -> 1f
@@ -193,14 +192,14 @@ class LocalStatsCalculator : StatsCalculator {
                 records = records,
             )
         }
-        val bestCurrentStreak = targetHabits.maxOfOrNull { habit ->
+        val bestCurrentStreak = habits.maxOfOrNull { habit ->
             computeCurrentStreak(habit, dailyCounts[habit.id].orEmpty(), today)
         } ?: 0
         return TodaySnapshot(
             habits = summaries,
             totalCount = eventsToday.size,
             completedHabits = summaries.count { it.reachedTarget },
-            targetHabitCount = targetHabits.size,
+            targetHabitCount = habits.size,
             bestCurrentStreak = bestCurrentStreak,
         )
     }
@@ -223,32 +222,29 @@ class LocalStatsCalculator : StatsCalculator {
                 date = date,
                 totalCount = eventsForDay.size,
                 completedHabitCount = habits.count { habit ->
-                    val target = habit.targetCountOrDefault()
-                    target != null && (counts[habit.id] ?: 0) >= target
+                    reachedGoal(habit, counts[habit.id] ?: 0)
                 },
             )
         }
         val selectedEvents = groupedByDate[selectedDate].orEmpty()
         val selectedDetails = habits.sortedBy { it.sortOrder }.map { habit ->
             val eventsForHabit = selectedEvents.filter { it.habitId == habit.id }
-            val target = habit.targetCountOrDefault()
             HistoryHabitDetail(
                 habit = habit,
                 count = eventsForHabit.size,
-                reachedTarget = target != null && eventsForHabit.size >= target,
+                reachedTarget = reachedGoal(habit, eventsForHabit.size),
                 records = eventsForHabit.toRecordItems(),
             )
         }
-        val targetHabits = habits.filter { it.targetEnabled }
         val completionDays = calendarDays.sumOf { it.completedHabitCount }
         val dayUpperBound = when {
             month.isAfter(YearMonth.from(today)) -> month.lengthOfMonth()
             month == YearMonth.from(today) -> today.dayOfMonth
             else -> month.lengthOfMonth()
         }
-        val trackedHabitDays = targetHabits.size * dayUpperBound
+        val trackedHabitDays = habits.size * dayUpperBound
         val anchor = if (selectedDate.isAfter(today)) today else selectedDate
-        val bestCurrentStreak = targetHabits.maxOfOrNull { habit ->
+        val bestCurrentStreak = habits.maxOfOrNull { habit ->
             computeCurrentStreak(habit, dailyCounts[habit.id].orEmpty(), anchor)
         } ?: 0
         return MonthSnapshot(
@@ -341,14 +337,18 @@ class LocalStatsCalculator : StatsCalculator {
         countsByDate: Map<LocalDate, Int>,
         anchor: LocalDate,
     ): Int {
-        val target = habit.targetCountOrDefault() ?: return 0
         var streak = 0
         var currentDate = anchor
-        while ((countsByDate[currentDate] ?: 0) >= target) {
+        while (reachedGoal(habit, countsByDate[currentDate] ?: 0)) {
             streak += 1
             currentDate = currentDate.minusDays(1)
         }
         return streak
+    }
+
+    private fun reachedGoal(habit: Habit, count: Int): Boolean {
+        val target = habit.targetCountOrDefault()
+        return if (target != null) count >= target else count > 0
     }
 
     private fun computeLongestStreak(dates: Collection<LocalDate>): Int {

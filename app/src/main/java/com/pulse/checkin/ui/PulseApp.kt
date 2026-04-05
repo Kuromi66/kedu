@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -129,6 +130,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                 onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
                                 onCheckInHabit = viewModel::checkInHabit,
                                 onDeleteRecord = viewModel::deleteCheckInRecord,
+                                onDeleteHabit = viewModel::archiveHabit,
                             )
                             AppTab.HISTORY -> HistoryScreen(
                                 snapshot = uiState.historySnapshot,
@@ -231,7 +233,12 @@ private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit) {
                             kind = icon,
                             color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             compactLayout = compactLayout,
-                            modifier = Modifier.size(if (compactLayout) 30.dp else 32.dp),
+                            modifier = Modifier
+                                .size(if (compactLayout) 26.dp else 28.dp)
+                                .graphicsLayer(
+                                    scaleX = if (selected) 1.28f else 1f,
+                                    scaleY = if (selected) 1.28f else 1f,
+                                ),
                         )
                         Text(
                             text = label,

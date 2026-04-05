@@ -53,7 +53,7 @@ fun SettingsScreen(
                 start = horizontalPadding,
                 end = horizontalPadding,
                 top = contentSpacing,
-                bottom = if (compactLayout) 108.dp else 120.dp,
+                bottom = if (compactLayout) 84.dp else 92.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {

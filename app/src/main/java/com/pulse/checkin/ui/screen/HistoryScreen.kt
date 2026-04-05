@@ -96,7 +96,7 @@ fun HistoryScreen(
     val canGoToNextMonth = snapshot.month < currentMonth
     var selectedDetailHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
     val selectedDetail = snapshot.selectedDateDetails.firstOrNull { it.habit.id == selectedDetailHabitId }
-    var showFilters by rememberSaveable { mutableStateOf(selectedHabitId != null) }
+    var showFilters by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ScreenHeader(
@@ -104,7 +104,7 @@ fun HistoryScreen(
             compactLayout = compactLayout,
             action = {
                 HeaderFilterButton(
-                    active = showFilters || selectedHabitId != null,
+                    active = showFilters,
                     compactLayout = compactLayout,
                     onClick = { showFilters = !showFilters },
                 )
@@ -116,7 +116,7 @@ fun HistoryScreen(
                 start = horizontalPadding,
                 end = horizontalPadding,
                 top = contentSpacing,
-                bottom = if (compactLayout) 108.dp else 120.dp,
+                bottom = if (compactLayout) 84.dp else 92.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {
@@ -132,14 +132,6 @@ fun HistoryScreen(
                             horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                             contentPadding = PaddingValues(end = 4.dp),
                         ) {
-                            item {
-                                HistoryFilterChip(
-                                    label = "\u5168\u90e8",
-                                    selected = selectedHabitId == null,
-                                    accentColor = MaterialTheme.colorScheme.primary,
-                                    onClick = { onSelectHabit(null) },
-                                )
-                            }
                             items(habits, key = { it.id }) { habit ->
                                 HistoryFilterChip(
                                     label = habit.name,
@@ -175,9 +167,9 @@ fun HistoryScreen(
                     },
                 ) {
                     AnimatedContent(
-                        targetState = snapshot,
+                        targetState = snapshot.month,
                         transitionSpec = {
-                            val forward = targetState.month > initialState.month
+                            val forward = targetState > initialState
                             (
                                 slideInHorizontally(animationSpec = tween(280)) { fullWidth ->
                                     if (forward) fullWidth else -fullWidth / 3
@@ -189,9 +181,9 @@ fun HistoryScreen(
                             )
                         },
                         label = "monthChange",
-                    ) { animatedSnapshot ->
+                    ) {
                         MonthCalendarSection(
-                            snapshot = animatedSnapshot,
+                            snapshot = snapshot,
                             selectedDate = selectedDate,
                             currentMonth = currentMonth,
                             compactLayout = compactLayout,
@@ -502,8 +494,9 @@ private fun CalendarCell(
     } else {
         0f
     }
+    val selectedBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
     val backgroundColor = when {
-        selected -> MaterialTheme.colorScheme.primary
+        selected -> selectedBackground
         density > 0f -> lerp(
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
@@ -512,7 +505,7 @@ private fun CalendarCell(
         else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.45f)
     }
     val contentColor = when {
-        selected -> MaterialTheme.colorScheme.onPrimary
+        selected -> MaterialTheme.colorScheme.onTertiary
         density > 0.58f -> MaterialTheme.colorScheme.onPrimary
         else -> MaterialTheme.colorScheme.onSurface
     }
@@ -540,7 +533,8 @@ private fun CalendarCell(
 
 @Composable
 private fun DayDetailCard(detail: HistoryHabitDetail, compactLayout: Boolean, onClick: () -> Unit) {
-    GlassCard(modifier = Modifier.clickable(onClick = onClick)) {
+    val cardShape = RoundedCornerShape(if (compactLayout) 24.dp else 28.dp)
+    GlassCard(modifier = Modifier.clip(cardShape).clickable(onClick = onClick)) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
@@ -616,7 +610,7 @@ private fun HistoryRecordSheet(
                         text = if (detail.count == 0) {
                             "\u5f53\u65e5\u6682\u65e0\u6253\u5361\u8bb0\u5f55"
                         } else {
-                            "\u5171 ${detail.count} \u6b21\u6253\u5361\uff0c\u957f\u6309\u53ef\u5220\u9664\u5355\u6761"
+                            "\u5171 ${detail.count} \u6b21\u6253\u5361"
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -686,7 +680,6 @@ private fun HistoryRecordRow(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
             Text("\u7b2c ${index + 1} \u6b21", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text("\u957f\u6309\u540e\u786e\u8ba4\u5220\u9664", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
