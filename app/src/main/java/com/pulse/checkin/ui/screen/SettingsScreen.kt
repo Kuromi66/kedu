@@ -12,11 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,6 +38,8 @@ fun SettingsScreen(
     notificationsGranted: Boolean,
     onThemeModeChange: (ThemeMode) -> Unit,
     onRequestNotificationPermission: () -> Unit,
+    onExportData: () -> Unit,
+    onImportData: () -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
@@ -62,7 +67,41 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
-                    ThemeChoiceRow(selected = themeMode, onThemeModeChange = onThemeModeChange, compactLayout = compactLayout)
+                    ThemeChoiceGroup(selected = themeMode, onThemeModeChange = onThemeModeChange, compactLayout = compactLayout)
+                }
+            }
+            item {
+                GlassCard {
+                    Text("\u6570\u636e", style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "\u5c06\u4e60\u60ef\u3001\u6253\u5361\u8bb0\u5f55\u548c\u57fa\u672c\u8bbe\u7f6e\u5bfc\u51fa\u4e3a\u672c\u5730\u5907\u4efd\u6587\u4ef6\uff0c\u4e5f\u53ef\u4ece\u5907\u4efd\u6062\u590d\u3002",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(
+                            onClick = onExportData,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("\u5bfc\u51fa\u6570\u636e")
+                        }
+                        Button(
+                            onClick = onImportData,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text("\u5bfc\u5165\u6570\u636e")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "\u5bfc\u5165\u4f1a\u8986\u76d6\u5f53\u524d\u672c\u5730\u6570\u636e\uff0c\u5efa\u8bae\u5148\u5bfc\u51fa\u518d\u64cd\u4f5c\u3002",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
             item {
@@ -94,36 +133,36 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun ThemeChoiceRow(selected: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit, compactLayout: Boolean) {
-    if (compactLayout) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            ThemeMode.values().forEach { mode ->
-                ThemeChoiceCard(
-                    mode = mode,
-                    selected = selected == mode,
-                    compactLayout = true,
-                    onClick = { onThemeModeChange(mode) },
+private fun ThemeChoiceGroup(
+    selected: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    compactLayout: Boolean,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(if (compactLayout) 22.dp else 24.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+    ) {
+        ThemeMode.values().forEachIndexed { index, mode ->
+            ThemeChoiceItem(
+                mode = mode,
+                selected = selected == mode,
+                compactLayout = compactLayout,
+                onClick = { onThemeModeChange(mode) },
+            )
+            if (index != ThemeMode.values().lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = if (compactLayout) 14.dp else 16.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
                 )
-            }
-        }
-    } else {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ThemeMode.values().forEach { mode ->
-                Box(modifier = Modifier.weight(1f)) {
-                    ThemeChoiceCard(
-                        mode = mode,
-                        selected = selected == mode,
-                        compactLayout = false,
-                        onClick = { onThemeModeChange(mode) },
-                    )
-                }
             }
         }
     }
 }
 
 @Composable
-private fun ThemeChoiceCard(
+private fun ThemeChoiceItem(
     mode: ThemeMode,
     selected: Boolean,
     compactLayout: Boolean,
@@ -140,75 +179,46 @@ private fun ThemeChoiceCard(
         ThemeMode.DARK -> "\u591c\u95f4\u66f4\u6c89\u9759"
     }
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(if (compactLayout) 20.dp else 24.dp))
-            .background(
-                if (selected) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                },
-            )
             .clickable(onClick = onClick)
             .padding(horizontal = if (compactLayout) 14.dp else 16.dp, vertical = if (compactLayout) 14.dp else 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 12.dp else 14.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(modifier = Modifier.padding(horizontal = 6.dp))
+        Box(
+            modifier = Modifier
+                .size(if (compactLayout) 20.dp else 22.dp)
+                .clip(CircleShape)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    else MaterialTheme.colorScheme.surface,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
             Box(
                 modifier = Modifier
+                    .size(if (selected) 10.dp else 8.dp)
                     .clip(CircleShape)
                     .background(
-                        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                    )
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-            ) {
-                Text(
-                    text = if (selected) "\u5df2\u9009\u62e9" else "\u70b9\u51fb\u5207\u6362",
-                    color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge,
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(3) { index ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height((if (compactLayout) 14 else 18 + index * 6).dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (selected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.28f + index * 0.12f)
-                                } else {
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.12f + index * 0.08f)
-                                },
-                            ),
-                    )
-                }
-            }
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
+                    ),
+            )
         }
     }
 }
-
-
-
-
-
-
-
-
-
-

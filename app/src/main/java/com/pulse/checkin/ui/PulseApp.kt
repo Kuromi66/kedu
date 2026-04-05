@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -45,16 +47,34 @@ import com.pulse.checkin.ui.screen.SettingsScreen
 import com.pulse.checkin.ui.screen.TodayScreen
 import com.pulse.checkin.ui.theme.PulseTheme
 import java.time.LocalDate
+import kotlinx.coroutines.launch
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun PulseApp(viewModel: AppViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var editorDraft by remember { mutableStateOf<HabitDraft?>(null) }
     var notificationsGranted by remember { mutableStateOf(checkNotificationsGranted(context)) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+    val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notificationsGranted = checkNotificationsGranted(context)
+    }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = viewModel.exportBackup(uri)
+                Toast.makeText(context, result.getOrElse { it.message ?: "导出失败" }, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = viewModel.importBackup(uri)
+                Toast.makeText(context, result.getOrElse { it.message ?: "导入失败" }, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     PulseTheme(themeMode = uiState.preferences.themeMode) {
@@ -123,8 +143,14 @@ fun PulseApp(viewModel: AppViewModel) {
                                 onThemeModeChange = viewModel::setThemeMode,
                                 onRequestNotificationPermission = {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     }
+                                },
+                                onExportData = {
+                                    exportLauncher.launch("pulse-backup-${LocalDate.now()}.json")
+                                },
+                                onImportData = {
+                                    importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
                                 },
                             )
                         }
@@ -137,7 +163,7 @@ fun PulseApp(viewModel: AppViewModel) {
                     notificationsGranted = notificationsGranted,
                     onRequestNotificationPermission = {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     },
                     onDismiss = { editorDraft = null },
@@ -194,11 +220,3 @@ private fun checkNotificationsGranted(context: Context): Boolean {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 }
-
-
-
-
-
-
-
-

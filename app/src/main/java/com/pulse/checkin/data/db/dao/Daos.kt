@@ -1,4 +1,4 @@
-package com.pulse.checkin.data.db.dao
+﻿package com.pulse.checkin.data.db.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -14,6 +14,9 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE archived = 0 ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     fun observeActiveHabits(): Flow<List<HabitEntity>>
 
+    @Query("SELECT * FROM habits ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
+    suspend fun getAll(): List<HabitEntity>
+
     @Query("SELECT * FROM habits WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): HabitEntity?
 
@@ -22,6 +25,12 @@ interface HabitDao {
 
     @Upsert
     suspend fun upsert(habit: HabitEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(habits: List<HabitEntity>)
+
+    @Query("DELETE FROM habits")
+    suspend fun clearAll()
 
     @Query("UPDATE habits SET archived = :archived WHERE id = :id")
     suspend fun setArchived(id: Long, archived: Boolean)
@@ -32,8 +41,17 @@ interface CheckInEventDao {
     @Query("SELECT * FROM check_in_events ORDER BY occurredAtEpochMillis DESC")
     fun observeAllEvents(): Flow<List<CheckInEventEntity>>
 
+    @Query("SELECT * FROM check_in_events ORDER BY occurredAtEpochMillis DESC")
+    suspend fun getAll(): List<CheckInEventEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(event: CheckInEventEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(events: List<CheckInEventEntity>)
+
+    @Query("DELETE FROM check_in_events")
+    suspend fun clearAll()
 
     @Query("SELECT * FROM check_in_events WHERE habitId = :habitId AND localDate = :localDate ORDER BY occurredAtEpochMillis DESC LIMIT 1")
     suspend fun getLatestForDay(habitId: Long, localDate: String): CheckInEventEntity?

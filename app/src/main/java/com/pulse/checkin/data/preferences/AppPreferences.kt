@@ -1,4 +1,4 @@
-package com.pulse.checkin.data.preferences
+﻿package com.pulse.checkin.data.preferences
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -9,6 +9,7 @@ import com.pulse.checkin.domain.model.SortMode
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.domain.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "pulse_preferences")
@@ -32,6 +33,17 @@ class AppPreferences(private val context: Context) {
             onboardingSeen = preferences[Keys.onboardingSeen] ?: false,
             notificationPromptSeen = preferences[Keys.notificationPromptSeen] ?: false,
         )
+    }
+
+    suspend fun currentPreferences(): UserPreferences = userPreferences.first()
+
+    suspend fun replaceAll(userPreferences: UserPreferences) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.themeMode] = userPreferences.themeMode.name
+            preferences[Keys.sortMode] = userPreferences.sortMode.name
+            preferences[Keys.onboardingSeen] = userPreferences.onboardingSeen
+            preferences[Keys.notificationPromptSeen] = userPreferences.notificationPromptSeen
+        }
     }
 
     suspend fun setThemeMode(themeMode: ThemeMode) {

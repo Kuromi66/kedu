@@ -1,7 +1,8 @@
-package com.pulse.checkin
+﻿package com.pulse.checkin
 
 import android.app.Application
 import android.content.Context
+import com.pulse.checkin.data.backup.BackupManager
 import com.pulse.checkin.data.db.PulseDatabase
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.data.repository.CheckInRepositoryImpl
@@ -30,6 +31,7 @@ class AppContainer(context: Context) {
     val habitRepository: HabitRepository = HabitRepositoryImpl(database.habitDao())
     val checkInRepository: CheckInRepository = CheckInRepositoryImpl(database.checkInEventDao())
     val preferences = AppPreferences(appContext)
+    val backupManager = BackupManager(appContext, database, preferences)
     val statsCalculator: StatsCalculator = LocalStatsCalculator()
     val reminderScheduler: ReminderScheduler = ReminderSchedulerImpl(appContext)
 }

@@ -1,11 +1,13 @@
 ﻿package com.pulse.checkin.ui
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pulse.checkin.AppContainer
+import com.pulse.checkin.data.backup.BackupManager
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.model.ThemeMode
@@ -82,6 +84,7 @@ class AppViewModel(
     private val habitRepository: HabitRepository,
     private val checkInRepository: CheckInRepository,
     private val appPreferences: AppPreferences,
+    private val backupManager: BackupManager,
     private val statsCalculator: StatsCalculator,
     private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
@@ -199,6 +202,25 @@ class AppViewModel(
         }
     }
 
+    suspend fun exportBackup(uri: Uri): Result<String> {
+        return backupManager.exportToUri(uri).map { summary ->
+            "已导出 ${summary.habitCount} 个习惯、${summary.eventCount} 条记录"
+        }
+    }
+
+    suspend fun importBackup(uri: Uri): Result<String> {
+        uiState.value.habits.forEach { reminderScheduler.cancelForHabit(it.id) }
+        val result = backupManager.importFromUri(uri)
+        if (result.isSuccess) {
+            selectedHistoryHabitId.value = null
+            selectedDate.value = LocalDate.now()
+            reminderScheduler.syncAll(habitRepository.getActiveReminderHabits())
+        }
+        return result.map { summary ->
+            "已导入 ${summary.habitCount} 个习惯、${summary.eventCount} 条记录"
+        }
+    }
+
     fun archiveHabit(habitId: Long) {
         viewModelScope.launch {
             habitRepository.setArchived(habitId, true)
@@ -219,6 +241,7 @@ class AppViewModel(
                     habitRepository = container.habitRepository,
                     checkInRepository = container.checkInRepository,
                     appPreferences = container.preferences,
+                    backupManager = container.backupManager,
                     statsCalculator = container.statsCalculator,
                     reminderScheduler = container.reminderScheduler,
                 )
