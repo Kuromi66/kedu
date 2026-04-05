@@ -125,7 +125,7 @@ fun StatsScreen(
                         exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("\u4e60\u60ef\u7b5b\u9009", style = MaterialTheme.typography.titleLarge)
+                            Text("\u4e60\u60ef\u7b5b\u9009", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                                 contentPadding = PaddingValues(end = 4.dp),

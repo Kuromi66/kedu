@@ -41,6 +41,7 @@ fun ScreenHeader(
         Text(
             text = title,
             style = if (compactLayout) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.onBackground,
         )
         if (action != null) {
             Box(modifier = Modifier.align(Alignment.CenterEnd)) {

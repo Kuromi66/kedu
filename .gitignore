@@ -3,6 +3,9 @@
 .idea/
 build/
 local.properties
+release-signing.properties
+*.jks
+*.keystore
 app/build/
 captures/
 .cxx/

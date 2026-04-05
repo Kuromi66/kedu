@@ -123,7 +123,7 @@ fun SettingsScreen(
                     Text("\u5e94\u7528\u8bf4\u660e", style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Pulse \u662f\u4e00\u4e2a\u5b8c\u5168\u672c\u5730\u7684\u6b21\u6570\u578b\u4e60\u60ef\u6253\u5361\u5e94\u7528\u3002\u4f60\u53ef\u4ee5\u4e3a\u6bcf\u4e2a\u4e60\u60ef\u914d\u7f6e\u53ef\u9009\u76ee\u6807\u548c\u6bcf\u65e5\u63d0\u9192\uff0c\u5e76\u5728\u5386\u53f2\u9875\u67e5\u770b\u6708\u5386\u4e0e\u5f53\u5929\u660e\u7ec6\u3002",
+                        text = "刻度是一个完全本地的次数型习惯打卡应用。你可以为每个习惯配置可选目标和每日提醒，并在历史页查看月历与当天明细。",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

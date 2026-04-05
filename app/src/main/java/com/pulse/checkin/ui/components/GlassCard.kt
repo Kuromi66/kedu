@@ -31,6 +31,7 @@ fun GlassCard(
                 shape = RoundedCornerShape(cornerRadius),
             ),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(cornerRadius),
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
