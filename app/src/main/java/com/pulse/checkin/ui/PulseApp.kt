@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.PulseActionIcon
+import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.HabitEditorSheet
 import com.pulse.checkin.ui.screen.HistoryScreen
 import com.pulse.checkin.ui.screen.SettingsScreen
@@ -73,8 +76,18 @@ fun PulseApp(viewModel: AppViewModel) {
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
                 floatingActionButton = {
                     if (uiState.selectedTab == AppTab.TODAY) {
-                        FloatingActionButton(onClick = { editorDraft = HabitDraft() }, shape = RoundedCornerShape(22.dp)) {
-                            Text("\u65b0\u5efa")
+                        FloatingActionButton(
+                            onClick = { editorDraft = HabitDraft() },
+                            shape = RoundedCornerShape(22.dp),
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp, pressedElevation = 10.dp),
+                        ) {
+                            PulseActionIcon(
+                                kind = PulseIconKind.Add,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                compactLayout = LocalConfiguration.current.screenWidthDp <= 360,
+                            )
                         }
                     }
                 },
@@ -181,6 +194,11 @@ private fun checkNotificationsGranted(context: Context): Boolean {
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     }
 }
+
+
+
+
+
 
 
 

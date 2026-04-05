@@ -71,7 +71,11 @@ fun HabitEditorSheet(
     var targetEnabled by remember(initialDraft.id) { mutableStateOf(initialDraft.targetEnabled) }
     var targetCount by remember(initialDraft.id) { mutableIntStateOf(initialDraft.targetCount.coerceAtLeast(1)) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -253,3 +257,5 @@ fun HabitEditorSheet(
         }
     }
 }
+
+

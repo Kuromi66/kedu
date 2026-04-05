@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -263,7 +264,7 @@ private fun MonthCalendarSection(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             MonthSwitchButton(
-                symbol = "\u2039",
+                type = MonthSwitchType.Previous,
                 compactLayout = compactLayout,
                 onClick = onPreviousMonth,
             )
@@ -273,13 +274,13 @@ private fun MonthCalendarSection(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 MonthSwitchButton(
-                    symbol = "\u25ce",
+                    type = MonthSwitchType.Current,
                     compactLayout = compactLayout,
                     enabled = snapshot.month != currentMonth,
                     onClick = onBackToCurrentMonth,
                 )
                 MonthSwitchButton(
-                    symbol = "\u203a",
+                    type = MonthSwitchType.Next,
                     compactLayout = compactLayout,
                     onClick = onNextMonth,
                 )
@@ -354,24 +355,83 @@ private fun HistoryMetric(title: String, value: String, modifier: Modifier = Mod
     }
 }
 
+private enum class MonthSwitchType {
+    Previous,
+    Current,
+    Next,
+}
+
 @Composable
 private fun MonthSwitchButton(
-    symbol: String,
+    type: MonthSwitchType,
     compactLayout: Boolean,
     onClick: () -> Unit,
     enabled: Boolean = true,
 ) {
+    val buttonSize = if (compactLayout) 40.dp else 44.dp
+    val iconColor = if (enabled) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    }
+
     IconButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.size(if (compactLayout) 34.dp else 38.dp),
+        modifier = Modifier.size(buttonSize),
     ) {
-        Text(
-            text = symbol,
-            style = if (compactLayout) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
-            color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-            fontWeight = FontWeight.SemiBold,
-        )
+        Canvas(modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp)) {
+            val stroke = size.minDimension * 0.12f
+            val centerX = size.width / 2f
+            val centerY = size.height / 2f
+            when (type) {
+                MonthSwitchType.Previous -> {
+                    drawLine(
+                        color = iconColor,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.22f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.36f, centerY),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = iconColor,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.36f, centerY),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.78f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                }
+                MonthSwitchType.Next -> {
+                    drawLine(
+                        color = iconColor,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.38f, size.height * 0.22f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.64f, centerY),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = iconColor,
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.64f, centerY),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.38f, size.height * 0.78f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                    )
+                }
+                MonthSwitchType.Current -> {
+                    drawCircle(
+                        color = iconColor,
+                        radius = size.minDimension * 0.28f,
+                        center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                    )
+                    drawCircle(
+                        color = iconColor,
+                        radius = size.minDimension * 0.07f,
+                        center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -628,6 +688,7 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
+
 
 
 

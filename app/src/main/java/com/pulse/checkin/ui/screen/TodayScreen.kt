@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,6 +45,9 @@ import com.pulse.checkin.domain.stats.TodayCheckInRecord
 import com.pulse.checkin.domain.stats.TodayHabitSummary
 import com.pulse.checkin.domain.stats.TodaySnapshot
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.PulseIconButton
+import com.pulse.checkin.ui.components.PulseIconKind
+import com.pulse.checkin.ui.components.PulsePrimaryActionButton
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.Instant
@@ -107,7 +109,9 @@ fun TodayScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
-                        Button(onClick = onAddHabit) { Text("\u5f00\u59cb\u6dfb\u52a0") }
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            PulsePrimaryActionButton(icon = PulseIconKind.Add, onClick = onAddHabit, compactLayout = compactLayout)
+                        }
                     }
                 }
             } else {
@@ -172,7 +176,7 @@ private fun HabitCard(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            TextButton(onClick = onEdit) { Text("\u7f16\u8f91") }
+            PulseIconButton(kind = PulseIconKind.Edit, onClick = onEdit, compactLayout = compactLayout)
         }
         Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
         Row(
@@ -195,9 +199,12 @@ private fun HabitCard(
                 Text(trailing, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(modifier = Modifier.size(12.dp))
-            Button(onClick = onCheckIn, shape = RoundedCornerShape(999.dp)) {
-                Text("\u6253\u5361")
-            }
+            PulsePrimaryActionButton(
+                onClick = onCheckIn,
+                compactLayout = compactLayout,
+                label = if (!item.habit.targetEnabled || !item.reachedTarget) "\u6253\u5361" else null,
+                icon = if (item.habit.targetEnabled && item.reachedTarget) PulseIconKind.Check else null,
+            )
         }
         Spacer(modifier = Modifier.height(14.dp))
         Crossfade(targetState = item.habit.targetEnabled, label = "targetMode") { targetEnabled ->
@@ -239,9 +246,13 @@ private fun HabitCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(onClick = { expanded = !expanded }, enabled = item.records.isNotEmpty()) {
-                Text(if (expanded) "\u6536\u8d77\u8bb0\u5f55" else "\u67e5\u770b\u8bb0\u5f55")
-            }
+            PulseIconButton(
+                kind = if (expanded) PulseIconKind.Collapse else PulseIconKind.Records,
+                onClick = { expanded = !expanded },
+                enabled = item.records.isNotEmpty(),
+                compactLayout = compactLayout,
+                highlighted = expanded,
+            )
         }
         if (expanded && item.records.isNotEmpty()) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -305,6 +316,12 @@ private fun CheckInRecordRow(
         )
     }
 }
+
+
+
+
+
+
 
 
 
