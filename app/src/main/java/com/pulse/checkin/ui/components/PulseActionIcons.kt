@@ -35,6 +35,15 @@ enum class PulseIconKind {
     ArrowLeft,
     ArrowRight,
     CurrentTime,
+    Theme,
+    Data,
+    Bell,
+    Info,
+    Download,
+    Upload,
+    LightMode,
+    DarkMode,
+    SystemMode,
     TodayTab,
     HistoryTab,
     StatsTab,
@@ -224,6 +233,7 @@ fun PulseActionIcon(
                     drawLine(color, start, end, stroke, cap = StrokeCap.Round)
                 }
             }
+            else -> Unit
         }
     }
 }

@@ -1,5 +1,6 @@
-﻿package com.pulse.checkin.ui.screen
+package com.pulse.checkin.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -25,11 +27,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.PulseActionIcon
+import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
 
 @Composable
@@ -59,46 +64,60 @@ fun SettingsScreen(
         ) {
             item {
                 GlassCard {
-                    Text("\u5916\u89c2", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "\u9009\u4e00\u4e2a\u66f4\u9002\u5408\u73af\u5883\u7684\u663e\u793a\u65b9\u5f0f",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
+                    SettingsSectionHeader(
+                        title = "\u5916\u89c2",
+                        icon = PulseIconKind.Theme,
+                        compactLayout = compactLayout,
                     )
-                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
-                    ThemeChoiceGroup(selected = themeMode, onThemeModeChange = onThemeModeChange, compactLayout = compactLayout)
+                    Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
+                    ThemeChoiceGroup(
+                        selected = themeMode,
+                        onThemeModeChange = onThemeModeChange,
+                        compactLayout = compactLayout,
+                    )
                 }
             }
             item {
                 GlassCard {
-                    Text("\u6570\u636e", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "\u5c06\u4e60\u60ef\u3001\u6253\u5361\u8bb0\u5f55\u548c\u57fa\u672c\u8bbe\u7f6e\u5bfc\u51fa\u4e3a\u672c\u5730\u5907\u4efd\u6587\u4ef6\uff0c\u4e5f\u53ef\u4ece\u5907\u4efd\u6062\u590d\u3002",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium,
+                    SettingsSectionHeader(
+                        title = "\u6570\u636e",
+                        icon = PulseIconKind.Data,
+                        compactLayout = compactLayout,
                     )
-                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
+                    Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedButton(
                             onClick = onExportData,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
                         ) {
-                            Text("\u5bfc\u51fa\u6570\u636e")
+                            SettingsButtonContent(
+                                text = "\u5bfc\u51fa",
+                                icon = PulseIconKind.Upload,
+                                color = MaterialTheme.colorScheme.primary,
+                                compactLayout = compactLayout,
+                            )
                         }
                         Button(
                             onClick = onImportData,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                            ),
                         ) {
-                            Text("\u5bfc\u5165\u6570\u636e")
+                            SettingsButtonContent(
+                                text = "\u5bfc\u5165",
+                                icon = PulseIconKind.Download,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                compactLayout = compactLayout,
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        "\u5bfc\u5165\u4f1a\u8986\u76d6\u5f53\u524d\u672c\u5730\u6570\u636e\uff0c\u5efa\u8bae\u5148\u5bfc\u51fa\u518d\u64cd\u4f5c\u3002",
+                        text = "\u5bfc\u5165\u4f1a\u8986\u76d6\u5f53\u524d\u672c\u5730\u6570\u636e",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -106,29 +125,108 @@ fun SettingsScreen(
             }
             item {
                 GlassCard {
-                    Text("\u901a\u77e5", style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = if (notificationsGranted) "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5df2\u5f00\u542f" else "\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5c1a\u672a\u5f00\u542f",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    SettingsSectionHeader(
+                        title = "\u901a\u77e5",
+                        icon = PulseIconKind.Bell,
+                        compactLayout = compactLayout,
+                        trailing = {
+                            Text(
+                                text = if (notificationsGranted) "\u5df2\u5f00\u542f" else "\u672a\u5f00\u542f",
+                                color = if (notificationsGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        },
                     )
-                    Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
-                    Button(onClick = onRequestNotificationPermission, enabled = !notificationsGranted) {
-                        Text(if (notificationsGranted) "\u5df2\u5f00\u542f\u901a\u77e5" else "\u8bf7\u6c42\u901a\u77e5\u6743\u9650")
+                    Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
+                    Button(
+                        onClick = onRequestNotificationPermission,
+                        enabled = !notificationsGranted,
+                        shape = RoundedCornerShape(18.dp),
+                    ) {
+                        SettingsButtonContent(
+                            text = if (notificationsGranted) "\u5df2\u5f00\u542f" else "\u5f00\u542f\u901a\u77e5",
+                            icon = PulseIconKind.Bell,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            compactLayout = compactLayout,
+                        )
                     }
                 }
             }
             item {
                 GlassCard {
-                    Text("\u5e94\u7528\u8bf4\u660e", style = MaterialTheme.typography.titleLarge)
+                    SettingsSectionHeader(
+                        title = "\u5173\u4e8e",
+                        icon = PulseIconKind.Info,
+                        compactLayout = compactLayout,
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "刻度是一个完全本地的次数型习惯打卡应用。你可以为每个习惯配置可选目标和每日提醒，并在历史页查看月历与当天明细。",
+                        text = "\u523b\u5ea6\u662f\u4e00\u4e2a\u5b8c\u5168\u672c\u5730\u7684\u4e60\u60ef\u6253\u5361\u5e94\u7528",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsSectionHeader(
+    title: String,
+    icon: PulseIconKind,
+    compactLayout: Boolean,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(if (compactLayout) 34.dp else 38.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                PulseActionIcon(
+                    kind = icon,
+                    color = MaterialTheme.colorScheme.primary,
+                    compactLayout = compactLayout,
+                    modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp),
+                )
+            }
+            Text(title, style = MaterialTheme.typography.titleLarge)
+        }
+        trailing?.invoke()
+    }
+}
+
+@Composable
+private fun SettingsButtonContent(
+    text: String,
+    icon: PulseIconKind,
+    color: Color,
+    compactLayout: Boolean,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        PulseActionIcon(
+            kind = icon,
+            color = color,
+            compactLayout = compactLayout,
+            modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp),
+        )
+        Text(
+            text = text,
+            color = color,
+            fontWeight = FontWeight.SemiBold,
+        )
     }
 }
 
@@ -173,10 +271,10 @@ private fun ThemeChoiceItem(
         ThemeMode.SYSTEM -> "\u8ddf\u968f\u7cfb\u7edf"
         ThemeMode.DARK -> "\u6df1\u8272"
     }
-    val subtitle = when (mode) {
-        ThemeMode.LIGHT -> "\u6c38\u8fdc\u660e\u4eae\u6e05\u723d"
-        ThemeMode.SYSTEM -> "\u968f\u65f6\u95f4\u81ea\u52a8\u5207\u6362"
-        ThemeMode.DARK -> "\u591c\u95f4\u66f4\u6c89\u9759"
+    val icon = when (mode) {
+        ThemeMode.LIGHT -> PulseIconKind.LightMode
+        ThemeMode.SYSTEM -> PulseIconKind.SystemMode
+        ThemeMode.DARK -> PulseIconKind.DarkMode
     }
 
     Row(
@@ -186,20 +284,31 @@ private fun ThemeChoiceItem(
             .padding(horizontal = if (compactLayout) 14.dp else 16.dp, vertical = if (compactLayout) 14.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Box(
+            modifier = Modifier
+                .size(if (compactLayout) 34.dp else 38.dp)
+                .clip(CircleShape)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    else MaterialTheme.colorScheme.surface,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            PulseActionIcon(
+                kind = icon,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                compactLayout = compactLayout,
+                modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp),
             )
         }
-        Spacer(modifier = Modifier.padding(horizontal = 6.dp))
+        Spacer(modifier = Modifier.size(12.dp))
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleMedium,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+        )
         Box(
             modifier = Modifier
                 .size(if (compactLayout) 20.dp else 22.dp)
