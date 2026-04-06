@@ -41,11 +41,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.ui.HabitDraft
 import com.pulse.checkin.ui.util.habitColorOptions
 import com.pulse.checkin.ui.util.habitGlyphOptions
+import com.pulse.checkin.ui.util.habitIconOptions
+import com.pulse.checkin.ui.util.isPresetHabitIcon
 import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.toPulseColor
 
@@ -61,9 +65,18 @@ fun HabitEditorSheet(
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val sheetMaxHeight = configuration.screenHeightDp.dp * 0.84f
+    val compactLayout = configuration.screenWidthDp <= 360
     val actionAreaHeight = 88.dp
     var name by remember(initialDraft.id) { mutableStateOf(initialDraft.name) }
-    var glyph by remember(initialDraft.id) { mutableStateOf(initialDraft.glyph) }
+    var glyphInputMode by remember(initialDraft.id) {
+        mutableStateOf(if (isPresetHabitIcon(initialDraft.glyph)) HabitGlyphInputMode.ICON else HabitGlyphInputMode.LETTER)
+    }
+    var selectedIconGlyph by remember(initialDraft.id) {
+        mutableStateOf(initialDraft.glyph.takeIf(::isPresetHabitIcon) ?: habitIconOptions.first())
+    }
+    var letterGlyph by remember(initialDraft.id) {
+        mutableStateOf(normalizeLetterGlyph(initialDraft.glyph).ifBlank { habitGlyphOptions.first() })
+    }
     var colorArgb by remember(initialDraft.id) { mutableLongStateOf(initialDraft.colorArgb) }
     var reminderEnabled by remember(initialDraft.id) { mutableStateOf(initialDraft.reminderEnabled) }
     var reminderHour by remember(initialDraft.id) { mutableIntStateOf(initialDraft.reminderHour) }
@@ -104,14 +117,57 @@ fun HabitEditorSheet(
                     singleLine = true,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("\u56fe\u6807\u5b57\u6bcd", style = MaterialTheme.typography.titleLarge)
+                    Text("\u4e60\u60ef\u6807\u8bc6", style = MaterialTheme.typography.titleLarge)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        items(habitGlyphOptions) { option ->
+                        item {
                             FilterChip(
-                                selected = glyph == option,
-                                onClick = { glyph = option },
-                                label = { Text(option, fontWeight = FontWeight.SemiBold) },
+                                selected = glyphInputMode == HabitGlyphInputMode.ICON,
+                                onClick = { glyphInputMode = HabitGlyphInputMode.ICON },
+                                label = { Text("\u5e38\u7528\u56fe\u6807") },
                             )
+                        }
+                        item {
+                            FilterChip(
+                                selected = glyphInputMode == HabitGlyphInputMode.LETTER,
+                                onClick = { glyphInputMode = HabitGlyphInputMode.LETTER },
+                                label = { Text("\u5b57\u6bcd") },
+                            )
+                        }
+                    }
+                    if (glyphInputMode == HabitGlyphInputMode.ICON) {
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            habitIconOptions.chunked(if (compactLayout) 5 else 6).forEach { rowOptions ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    rowOptions.forEach { option ->
+                                        FilterChip(
+                                            selected = selectedIconGlyph == option,
+                                            onClick = { selectedIconGlyph = option },
+                                            label = { Text(option, fontWeight = FontWeight.SemiBold) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = letterGlyph,
+                            onValueChange = { letterGlyph = normalizeLetterGlyph(it) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            label = { Text("\u56fe\u6807\u5b57\u6bcd") },
+                            placeholder = { Text("P / W / R") },
+                            supportingText = { Text("\u652f\u6301 1-2 \u4e2a\u5b57\u6bcd\u6216\u6570\u5b57") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items(habitGlyphOptions) { option ->
+                                FilterChip(
+                                    selected = letterGlyph == option,
+                                    onClick = { letterGlyph = option },
+                                    label = { Text(option, fontWeight = FontWeight.SemiBold) },
+                                )
+                            }
                         }
                     }
                 }
@@ -235,7 +291,11 @@ fun HabitEditorSheet(
                                 HabitDraft(
                                     id = initialDraft.id,
                                     name = name,
-                                    glyph = glyph,
+                                    glyph = if (glyphInputMode == HabitGlyphInputMode.ICON) {
+                                        selectedIconGlyph
+                                    } else {
+                                        letterGlyph.ifBlank { habitGlyphOptions.first() }
+                                    },
                                     colorArgb = colorArgb,
                                     reminderEnabled = reminderEnabled,
                                     reminderHour = reminderHour,
@@ -258,4 +318,16 @@ fun HabitEditorSheet(
     }
 }
 
+private enum class HabitGlyphInputMode {
+    ICON,
+    LETTER,
+}
 
+private fun normalizeLetterGlyph(input: String): String {
+    val normalized = buildString {
+        input.uppercase().forEach { char ->
+            if (char.isLetterOrDigit() && length < 2) append(char)
+        }
+    }
+    return normalized
+}

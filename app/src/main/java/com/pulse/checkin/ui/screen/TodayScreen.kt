@@ -157,6 +157,7 @@ private fun HabitCard(
     onDeleteHabit: (Long) -> Unit,
 ) {
     var expanded by rememberSaveable(item.habit.id) { mutableStateOf(false) }
+    var pendingCheckIn by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<Long?>(null) }
     var pendingDeleteHabit by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     val progress = animateFloatAsState(targetValue = item.progress, label = "progress").value
@@ -211,7 +212,7 @@ private fun HabitCard(
             }
             Spacer(modifier = Modifier.size(12.dp))
             PulsePrimaryActionButton(
-                onClick = onCheckIn,
+                onClick = { pendingCheckIn = true },
                 compactLayout = compactLayout,
                 label = if (!item.habit.targetEnabled || !item.reachedTarget) "\u6253\u5361" else null,
                 icon = if (item.habit.targetEnabled && item.reachedTarget) PulseIconKind.Check else null,
@@ -292,6 +293,29 @@ private fun HabitCard(
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteRecord = null }) {
+                    Text("\u53d6\u6d88")
+                }
+            },
+        )
+    }
+
+    if (pendingCheckIn) {
+        AlertDialog(
+            onDismissRequest = { pendingCheckIn = false },
+            title = { Text("\u786e\u8ba4\u6253\u5361") },
+            text = { Text("\u786e\u5b9a\u4e3a ${item.habit.name} \u65b0\u589e\u4e00\u6b21\u6253\u5361\u8bb0\u5f55\u5417\uff1f") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onCheckIn()
+                        pendingCheckIn = false
+                    },
+                ) {
+                    Text("\u786e\u8ba4\u6253\u5361")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingCheckIn = false }) {
                     Text("\u53d6\u6d88")
                 }
             },
