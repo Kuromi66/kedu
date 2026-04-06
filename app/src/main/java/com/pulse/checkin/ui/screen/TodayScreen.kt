@@ -1,6 +1,5 @@
 ﻿package com.pulse.checkin.ui.screen
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -23,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -220,20 +220,18 @@ private fun HabitCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                AnimatedContent(targetState = item.todayCount, label = "count") { count ->
-                    Text(
-                        count.toString(),
-                        style = if (compactLayout) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                val trailing = item.latestEventAt?.let {
-                    strings.latestCheckIn(formatElapsedSince(it, strings))
-                } ?: strings.noCheckInToday
-                Text(trailing, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
-            }
-            Spacer(modifier = Modifier.size(12.dp))
+            val trailing = item.latestEventAt?.let {
+                strings.latestCheckIn(formatElapsedSince(it, strings))
+            } ?: strings.noCheckInToday
+            Text(
+                text = trailing,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.size(16.dp))
             PulsePrimaryActionButton(
                 onClick = { pendingCheckIn = true },
                 compactLayout = compactLayout,
@@ -260,27 +258,42 @@ private fun HabitCard(
                         },
                         color = if (item.reachedTarget) item.habit.colorArgb.toPulseColor() else MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-            } else {
+            } else if (item.todayCount == 0) {
                 Text(
-                    text = if (item.todayCount == 0) strings.notStartedToday else strings.canExpandTodayRecords,
+                    text = strings.notStartedToday,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
+        Spacer(modifier = Modifier.height(14.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
         Spacer(modifier = Modifier.height(12.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f))
+                .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = if (item.records.isEmpty()) strings.noRecordsToday else strings.todayRecordsCount(item.records.size),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (item.records.isEmpty()) strings.noRecordsToday else strings.todayRecordsCount(item.records.size),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(modifier = Modifier.size(12.dp))
             PulseIconButton(
                 kind = if (expanded) PulseIconKind.Collapse else PulseIconKind.Records,
                 onClick = { expanded = !expanded },
