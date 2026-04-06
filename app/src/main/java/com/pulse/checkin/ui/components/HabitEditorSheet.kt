@@ -2,11 +2,14 @@
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -46,13 +49,16 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.ui.HabitDraft
+import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.util.habitColorOptions
 import com.pulse.checkin.ui.util.habitGlyphOptions
-import com.pulse.checkin.ui.util.habitIconOptions
-import com.pulse.checkin.ui.util.isPresetHabitIcon
+import com.pulse.checkin.ui.components.habitIconOptions
+import com.pulse.checkin.ui.components.isPresetHabitIcon
+import com.pulse.checkin.ui.components.resolveHabitIconToken
 import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.toPulseColor
 
+@OptIn(ExperimentalLayoutApi::class)
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun HabitEditorSheet(
@@ -72,7 +78,7 @@ fun HabitEditorSheet(
         mutableStateOf(if (isPresetHabitIcon(initialDraft.glyph)) HabitGlyphInputMode.ICON else HabitGlyphInputMode.LETTER)
     }
     var selectedIconGlyph by remember(initialDraft.id) {
-        mutableStateOf(initialDraft.glyph.takeIf(::isPresetHabitIcon) ?: habitIconOptions.first())
+        mutableStateOf(resolveInitialIconToken(initialDraft.glyph))
     }
     var letterGlyph by remember(initialDraft.id) {
         mutableStateOf(normalizeLetterGlyph(initialDraft.glyph).ifBlank { habitGlyphOptions.first() })
@@ -135,17 +141,30 @@ fun HabitEditorSheet(
                         }
                     }
                     if (glyphInputMode == HabitGlyphInputMode.ICON) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            habitIconOptions.chunked(if (compactLayout) 5 else 6).forEach { rowOptions ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    rowOptions.forEach { option ->
-                                        FilterChip(
-                                            selected = selectedIconGlyph == option,
-                                            onClick = { selectedIconGlyph = option },
-                                            label = { Text(option, fontWeight = FontWeight.SemiBold) },
-                                        )
-                                    }
-                                }
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            maxItemsInEachRow = if (compactLayout) 3 else 4,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            habitIconOptions.forEach { option ->
+                                FilterChip(
+                                    selected = selectedIconGlyph == option.token,
+                                    onClick = { selectedIconGlyph = option.token },
+                                    label = {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Box(modifier = Modifier.size(16.dp), contentAlignment = Alignment.Center) {
+                                                HabitGlyph(
+                                                    glyph = option.token,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier.size(16.dp),
+                                                    compactLayout = true,
+                                                )
+                                            }
+                                            Text(option.label, fontWeight = FontWeight.SemiBold)
+                                        }
+                                    },
+                                )
                             }
                         }
                     } else {
@@ -322,6 +341,8 @@ private enum class HabitGlyphInputMode {
     ICON,
     LETTER,
 }
+
+private fun resolveInitialIconToken(glyph: String): String = resolveHabitIconToken(glyph) ?: habitIconOptions.first().token
 
 private fun normalizeLetterGlyph(input: String): String {
     val normalized = buildString {

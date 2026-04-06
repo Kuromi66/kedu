@@ -59,6 +59,7 @@ import com.pulse.checkin.domain.stats.MonthlyTrendPoint
 import com.pulse.checkin.domain.stats.YearHabitOption
 import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
@@ -234,11 +235,12 @@ private fun StatsHabitChip(
                         .background(if (selected) Color.White.copy(alpha = 0.24f) else accentColor.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = option.habit.glyph,
-                        style = MaterialTheme.typography.labelMedium,
+                    HabitGlyph(
+                        glyph = option.habit.glyph,
                         color = if (selected) Color.White else accentColor,
-                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.size(12.dp),
+                        compactLayout = true,
+                        textStyle = MaterialTheme.typography.labelMedium,
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))

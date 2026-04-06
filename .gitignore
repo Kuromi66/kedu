@@ -13,3 +13,6 @@ captures/
 *.iml
 /data.json
 /data_pulse_import.json
+/AGENTS.md
+*.codex
+Designhabiticons-main

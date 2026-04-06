@@ -64,6 +64,7 @@ import com.pulse.checkin.domain.stats.CheckInRecordItem
 import com.pulse.checkin.domain.stats.HistoryHabitDetail
 import com.pulse.checkin.domain.stats.MonthSnapshot
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
@@ -137,7 +138,7 @@ fun HistoryScreen(
                                     label = habit.name,
                                     selected = selectedHabitId == habit.id,
                                     accentColor = habit.colorArgb.toPulseColor(),
-                                    prefix = habit.glyph,
+                                    glyph = habit.glyph,
                                     onClick = { onSelectHabit(habit.id) },
                                 )
                             }
@@ -298,14 +299,14 @@ private fun HistoryFilterChip(
     selected: Boolean,
     accentColor: Color,
     onClick: () -> Unit,
-    prefix: String? = null,
+    glyph: String? = null,
 ) {
     FilterChip(
         selected = selected,
         onClick = onClick,
         label = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (prefix != null) {
+                if (glyph != null) {
                     Box(
                         modifier = Modifier
                             .size(22.dp)
@@ -313,11 +314,12 @@ private fun HistoryFilterChip(
                             .background(if (selected) Color.White.copy(alpha = 0.24f) else accentColor.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = prefix,
-                            style = MaterialTheme.typography.labelMedium,
+                        HabitGlyph(
+                            glyph = glyph,
                             color = if (selected) Color.White else accentColor,
-                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.size(12.dp),
+                            compactLayout = true,
+                            textStyle = MaterialTheme.typography.labelMedium,
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -543,7 +545,12 @@ private fun DayDetailCard(detail: HistoryHabitDetail, compactLayout: Boolean, on
                     .background(detail.habit.colorArgb.toPulseColor().copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(detail.habit.glyph, color = detail.habit.colorArgb.toPulseColor(), fontWeight = FontWeight.SemiBold)
+                HabitGlyph(
+                    glyph = detail.habit.glyph,
+                    color = detail.habit.colorArgb.toPulseColor(),
+                    modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp),
+                    compactLayout = compactLayout,
+                )
             }
             Spacer(modifier = Modifier.size(if (compactLayout) 10.dp else 12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -596,11 +603,12 @@ private fun HistoryRecordSheet(
                         .background(detail.habit.colorArgb.toPulseColor().copy(alpha = 0.18f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = detail.habit.glyph,
+                    HabitGlyph(
+                        glyph = detail.habit.glyph,
                         color = detail.habit.colorArgb.toPulseColor(),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.size(if (compactLayout) 20.dp else 22.dp),
+                        compactLayout = compactLayout,
+                        textStyle = MaterialTheme.typography.titleLarge,
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))

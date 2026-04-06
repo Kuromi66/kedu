@@ -45,6 +45,7 @@ import com.pulse.checkin.domain.stats.TodayCheckInRecord
 import com.pulse.checkin.domain.stats.TodayHabitSummary
 import com.pulse.checkin.domain.stats.TodaySnapshot
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.PulsePrimaryActionButton
@@ -177,7 +178,13 @@ private fun HabitCard(
                     .background(item.habit.colorArgb.toPulseColor().copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(item.habit.glyph, style = MaterialTheme.typography.titleLarge, color = item.habit.colorArgb.toPulseColor())
+                HabitGlyph(
+                    glyph = item.habit.glyph,
+                    color = item.habit.colorArgb.toPulseColor(),
+                    modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp),
+                    compactLayout = compactLayout,
+                    textStyle = MaterialTheme.typography.titleLarge,
+                )
             }
             Spacer(modifier = Modifier.size(if (compactLayout) 10.dp else 14.dp))
             Column(modifier = Modifier.weight(1f)) {
