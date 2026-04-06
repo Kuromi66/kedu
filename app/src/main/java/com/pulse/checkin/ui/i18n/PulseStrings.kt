@@ -124,6 +124,7 @@ class PulseStrings(private val context: Context) {
     val disabled: String get() = context.getString(R.string.disabled)
     val enableNotifications: String get() = context.getString(R.string.enable_notifications)
     val aboutText: String get() = context.getString(R.string.about_text)
+    fun versionName(version: String): String = context.getString(R.string.version_name, version)
     val lightMode: String get() = context.getString(R.string.light_mode)
     val systemMode: String get() = context.getString(R.string.system_mode)
     val darkMode: String get() = context.getString(R.string.dark_mode)

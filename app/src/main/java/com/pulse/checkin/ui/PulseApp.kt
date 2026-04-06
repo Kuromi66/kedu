@@ -73,12 +73,12 @@ fun PulseApp(viewModel: AppViewModel) {
     val editorVisible = editorDraft != null
     val backgroundBlur by animateDpAsState(
         targetValue = if (editorVisible) 14.dp else 0.dp,
-        animationSpec = tween(durationMillis = if (editorVisible) 260 else 150),
+        animationSpec = tween(durationMillis = 260),
         label = "editor-background-blur",
     )
     val backgroundScrimAlpha by animateFloatAsState(
         targetValue = if (editorVisible) 0.16f else 0f,
-        animationSpec = tween(durationMillis = if (editorVisible) 240 else 140),
+        animationSpec = tween(durationMillis = 240),
         label = "editor-background-scrim",
     )
     var notificationsGranted by remember { mutableStateOf(checkNotificationsGranted(context)) }

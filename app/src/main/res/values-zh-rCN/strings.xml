@@ -163,4 +163,5 @@
     <string name="elapsed_minutes">%1$d分钟</string>
     <string name="elapsed_hours">%1$d小时</string>
     <string name="elapsed_days">%1$d天</string>
+    <string name="version_name">版本 %1$s</string>
 </resources>

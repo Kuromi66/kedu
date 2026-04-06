@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pulse.checkin.BuildConfig
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.ui.components.GlassCard
@@ -165,6 +166,13 @@ fun SettingsScreen(
                         text = strings.aboutText,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = strings.versionName(BuildConfig.VERSION_NAME),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
                     )
                 }
             }
