@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,8 +35,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -98,27 +98,15 @@ fun PulseApp(viewModel: AppViewModel) {
                 ),
         ) {
             Scaffold(
+                modifier = Modifier.blur(if (editorDraft != null) 14.dp else 0.dp),
                 containerColor = Color.Transparent,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                floatingActionButton = {
-                    if (uiState.selectedTab == AppTab.TODAY) {
-                        FloatingActionButton(
-                            onClick = { editorDraft = HabitDraft() },
-                            shape = RoundedCornerShape(22.dp),
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp, pressedElevation = 10.dp),
-                        ) {
-                            PulseActionIcon(
-                                kind = PulseIconKind.Add,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                compactLayout = LocalConfiguration.current.screenWidthDp <= 360,
-                            )
-                        }
-                    }
-                },
                 bottomBar = {
-                    PulseBottomBar(selectedTab = uiState.selectedTab, onSelect = viewModel::selectTab)
+                    PulseBottomBar(
+                        selectedTab = uiState.selectedTab,
+                        onSelect = viewModel::selectTab,
+                        onAddHabit = { editorDraft = HabitDraft() },
+                    )
                 },
             ) { paddingValues ->
                 Box(modifier = Modifier.padding(paddingValues)) {
@@ -126,7 +114,6 @@ fun PulseApp(viewModel: AppViewModel) {
                         when (tab) {
                             AppTab.TODAY -> TodayScreen(
                                 snapshot = uiState.todaySnapshot,
-                                onAddHabit = { editorDraft = HabitDraft() },
                                 onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
                                 onCheckInHabit = viewModel::checkInHabit,
                                 onDeleteRecord = viewModel::deleteCheckInRecord,
@@ -192,63 +179,146 @@ fun PulseApp(viewModel: AppViewModel) {
 }
 
 @Composable
-private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit) {
+private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit, onAddHabit: () -> Unit) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 12.dp else 16.dp
     val verticalPadding = if (compactLayout) 10.dp else 12.dp
     val itemSpacing = if (compactLayout) 6.dp else 8.dp
 
     GlassCard(modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(itemSpacing), modifier = Modifier.fillMaxWidth()) {
-            AppTab.values().forEach { tab ->
-                val selected = tab == selectedTab
-                val label = when (tab) {
-                    AppTab.TODAY -> "\u4eca\u65e5"
-                    AppTab.HISTORY -> "\u5386\u53f2"
-                    AppTab.STATS -> "\u7edf\u8ba1"
-                    AppTab.SETTINGS -> "\u8bbe\u7f6e"
-                }
-                val icon = when (tab) {
-                    AppTab.TODAY -> PulseIconKind.TodayTab
-                    AppTab.HISTORY -> PulseIconKind.HistoryTab
-                    AppTab.STATS -> PulseIconKind.StatsTab
-                    AppTab.SETTINGS -> PulseIconKind.SettingsTab
-                }
-                TextButton(
-                    onClick = { onSelect(tab) },
-                    contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
-                            shape = RoundedCornerShape(18.dp),
-                        ),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = if (compactLayout) 3.dp else 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(1.dp),
-                    ) {
-                        PulseActionIcon(
-                            kind = icon,
-                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            compactLayout = compactLayout,
-                            modifier = Modifier
-                                .size(if (compactLayout) 26.dp else 28.dp)
-                                .graphicsLayer(
-                                    scaleX = if (selected) 1.28f else 1f,
-                                    scaleY = if (selected) 1.28f else 1f,
-                                ),
-                        )
-                        Text(
-                            text = label,
-                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                }
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PulseBottomTab(
+                tab = AppTab.TODAY,
+                selectedTab = selectedTab,
+                compactLayout = compactLayout,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+            PulseBottomTab(
+                tab = AppTab.HISTORY,
+                selectedTab = selectedTab,
+                compactLayout = compactLayout,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+            PulseBottomAddButton(
+                compactLayout = compactLayout,
+                onClick = onAddHabit,
+            )
+            PulseBottomTab(
+                tab = AppTab.STATS,
+                selectedTab = selectedTab,
+                compactLayout = compactLayout,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+            PulseBottomTab(
+                tab = AppTab.SETTINGS,
+                selectedTab = selectedTab,
+                compactLayout = compactLayout,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PulseBottomTab(
+    tab: AppTab,
+    selectedTab: AppTab,
+    compactLayout: Boolean,
+    onSelect: (AppTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val selected = tab == selectedTab
+    val label = when (tab) {
+        AppTab.TODAY -> "\u4eca\u65e5"
+        AppTab.HISTORY -> "\u5386\u53f2"
+        AppTab.STATS -> "\u7edf\u8ba1"
+        AppTab.SETTINGS -> "\u8bbe\u7f6e"
+    }
+    val icon = when (tab) {
+        AppTab.TODAY -> PulseIconKind.TodayTab
+        AppTab.HISTORY -> PulseIconKind.HistoryTab
+        AppTab.STATS -> PulseIconKind.StatsTab
+        AppTab.SETTINGS -> PulseIconKind.SettingsTab
+    }
+
+    TextButton(
+        onClick = { onSelect(tab) },
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 0.dp),
+        modifier = modifier
+            .background(
+                color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent,
+                shape = RoundedCornerShape(18.dp),
+            ),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = if (compactLayout) 3.dp else 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            PulseActionIcon(
+                kind = icon,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                compactLayout = compactLayout,
+                modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp),
+            )
+            Text(
+                text = label,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PulseBottomAddButton(
+    compactLayout: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val buttonWidth = if (compactLayout) 68.dp else 78.dp
+    val buttonHeight = if (compactLayout) 50.dp else 56.dp
+
+    Box(
+        modifier = modifier
+            .size(width = buttonWidth, height = buttonHeight)
+            .clip(RoundedCornerShape(999.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.34f),
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
+                    ),
+                ),
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(1.dp),
+        ) {
+            PulseActionIcon(
+                kind = PulseIconKind.Add,
+                color = MaterialTheme.colorScheme.primary,
+                compactLayout = compactLayout,
+                modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp),
+            )
+            Text(
+                text = "\u6dfb\u52a0",
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelSmall,
+            )
         }
     }
 }

@@ -31,6 +31,7 @@ enum class PulseIconKind {
     Check,
     Records,
     Collapse,
+    Filter,
     TodayTab,
     HistoryTab,
     StatsTab,
@@ -113,12 +114,18 @@ fun PulseActionIcon(
     compactLayout: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    if (kind in pulseLibraryIconKinds) {
+        PulseLibraryIcon(kind = kind, color = color, compactLayout = compactLayout, modifier = modifier)
+        return
+    }
+
     Canvas(modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp).then(modifier)) {
         val stroke = when (kind) {
             PulseIconKind.TodayTab,
             PulseIconKind.HistoryTab,
             PulseIconKind.StatsTab,
             PulseIconKind.SettingsTab -> size.minDimension * 0.14f
+            PulseIconKind.Filter -> size.minDimension * 0.12f
             else -> size.minDimension * 0.12f
         }
         val centerX = size.width / 2f
@@ -149,6 +156,14 @@ fun PulseActionIcon(
             PulseIconKind.Collapse -> {
                 drawLine(color, Offset(size.width * 0.24f, size.height * 0.62f), Offset(centerX, size.height * 0.38f), stroke, cap = StrokeCap.Round)
                 drawLine(color, Offset(centerX, size.height * 0.38f), Offset(size.width * 0.76f, size.height * 0.62f), stroke, cap = StrokeCap.Round)
+            }
+            PulseIconKind.Filter -> {
+                val ys = listOf(size.height * 0.24f, centerY, size.height * 0.76f)
+                val knobs = listOf(size.width * 0.68f, size.width * 0.38f, size.width * 0.58f)
+                ys.zip(knobs).forEach { (y, knobX) ->
+                    drawLine(color, Offset(size.width * 0.18f, y), Offset(size.width * 0.82f, y), stroke, cap = StrokeCap.Round)
+                    drawCircle(color, radius = stroke * 0.7f, center = Offset(knobX, y))
+                }
             }
             PulseIconKind.TodayTab -> {
                 drawRoundRect(

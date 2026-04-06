@@ -1,11 +1,9 @@
 ﻿package com.pulse.checkin.ui.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -18,9 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -76,30 +71,11 @@ fun HeaderFilterButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(if (compactLayout) 9.dp else 10.dp)) {
-            val stroke = size.minDimension * 0.12f
-            val y1 = size.height * 0.25f
-            val y2 = size.height * 0.5f
-            val y3 = size.height * 0.75f
-            drawFilterLine(accentColor, y1, stroke, size.width * 0.34f)
-            drawFilterLine(accentColor, y2, stroke, size.width * 0.68f)
-            drawFilterLine(accentColor, y3, stroke, size.width * 0.46f)
-        }
+        PulseActionIcon(
+            kind = PulseIconKind.Filter,
+            color = accentColor,
+            compactLayout = compactLayout,
+            modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp),
+        )
     }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFilterLine(
-    color: Color,
-    y: Float,
-    stroke: Float,
-    knobX: Float,
-) {
-    drawLine(
-        color = color,
-        start = Offset(size.width * 0.12f, y),
-        end = Offset(size.width * 0.88f, y),
-        strokeWidth = stroke,
-        cap = StrokeCap.Round,
-    )
-    drawCircle(color = color, radius = stroke * 1.2f, center = Offset(knobX, y))
 }

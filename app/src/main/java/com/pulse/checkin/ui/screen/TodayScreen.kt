@@ -46,9 +46,9 @@ import com.pulse.checkin.domain.stats.TodayHabitSummary
 import com.pulse.checkin.domain.stats.TodaySnapshot
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
-import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.PulsePrimaryActionButton
+import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.Instant
@@ -60,7 +60,6 @@ private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:m
 @Composable
 fun TodayScreen(
     snapshot: TodaySnapshot,
-    onAddHabit: () -> Unit,
     onEditHabit: (Habit) -> Unit,
     onCheckInHabit: (Long) -> Unit,
     onDeleteRecord: (Long) -> Unit,
@@ -107,13 +106,9 @@ fun TodayScreen(
                         Text("\u5148\u521b\u5efa\u4f60\u7684\u7b2c\u4e00\u4e2a\u4e60\u60ef", style = MaterialTheme.typography.titleLarge)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "\u6bcf\u4e2a\u4e60\u60ef\u73b0\u5728\u90fd\u53ef\u4ee5\u7528\u4e00\u4e2a\u6253\u5361\u6309\u94ae\u8ffd\u52a0\u8bb0\u5f55\uff0c\u5e76\u67e5\u770b\u5f53\u5929\u660e\u7ec6\u3002",
+                            text = "\u53ef\u4ee5\u4ece\u5e95\u90e8\u5bfc\u822a\u4e2d\u95f4\u7684\u6dfb\u52a0\u6309\u94ae\u521b\u5efa\u65b0\u4e60\u60ef\uff0c\u4e4b\u540e\u5c31\u80fd\u5728\u8fd9\u91cc\u5feb\u901f\u6253\u5361\u548c\u67e5\u770b\u5f53\u5929\u660e\u7ec6\u3002",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 18.dp))
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            PulsePrimaryActionButton(icon = PulseIconKind.Add, onClick = onAddHabit, compactLayout = compactLayout)
-                        }
                     }
                 }
             } else {
