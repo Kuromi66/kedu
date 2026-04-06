@@ -66,6 +66,8 @@ import com.pulse.checkin.domain.stats.MonthSnapshot
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
+import com.pulse.checkin.ui.components.PulseActionIcon
+import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.LocalDate
@@ -372,64 +374,23 @@ private fun MonthSwitchButton(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
     }
+    val iconKind = when (type) {
+        MonthSwitchType.Previous -> PulseIconKind.ArrowLeft
+        MonthSwitchType.Next -> PulseIconKind.ArrowRight
+        MonthSwitchType.Current -> PulseIconKind.CurrentTime
+    }
 
     IconButton(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.size(buttonSize),
     ) {
-        Canvas(modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp)) {
-            val stroke = size.minDimension * 0.12f
-            val centerX = size.width / 2f
-            val centerY = size.height / 2f
-            when (type) {
-                MonthSwitchType.Previous -> {
-                    drawLine(
-                        color = iconColor,
-                        start = androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.22f),
-                        end = androidx.compose.ui.geometry.Offset(size.width * 0.36f, centerY),
-                        strokeWidth = stroke,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    )
-                    drawLine(
-                        color = iconColor,
-                        start = androidx.compose.ui.geometry.Offset(size.width * 0.36f, centerY),
-                        end = androidx.compose.ui.geometry.Offset(size.width * 0.62f, size.height * 0.78f),
-                        strokeWidth = stroke,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    )
-                }
-                MonthSwitchType.Next -> {
-                    drawLine(
-                        color = iconColor,
-                        start = androidx.compose.ui.geometry.Offset(size.width * 0.38f, size.height * 0.22f),
-                        end = androidx.compose.ui.geometry.Offset(size.width * 0.64f, centerY),
-                        strokeWidth = stroke,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    )
-                    drawLine(
-                        color = iconColor,
-                        start = androidx.compose.ui.geometry.Offset(size.width * 0.64f, centerY),
-                        end = androidx.compose.ui.geometry.Offset(size.width * 0.38f, size.height * 0.78f),
-                        strokeWidth = stroke,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    )
-                }
-                MonthSwitchType.Current -> {
-                    drawCircle(
-                        color = iconColor,
-                        radius = size.minDimension * 0.28f,
-                        center = androidx.compose.ui.geometry.Offset(centerX, centerY),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
-                    )
-                    drawCircle(
-                        color = iconColor,
-                        radius = size.minDimension * 0.07f,
-                        center = androidx.compose.ui.geometry.Offset(centerX, centerY),
-                    )
-                }
-            }
-        }
+        PulseActionIcon(
+            kind = iconKind,
+            color = iconColor,
+            compactLayout = compactLayout,
+            modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp),
+        )
     }
 }
 

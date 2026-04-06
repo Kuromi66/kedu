@@ -32,6 +32,9 @@ enum class PulseIconKind {
     Records,
     Collapse,
     Filter,
+    ArrowLeft,
+    ArrowRight,
+    CurrentTime,
     TodayTab,
     HistoryTab,
     StatsTab,
@@ -164,6 +167,18 @@ fun PulseActionIcon(
                     drawLine(color, Offset(size.width * 0.18f, y), Offset(size.width * 0.82f, y), stroke, cap = StrokeCap.Round)
                     drawCircle(color, radius = stroke * 0.7f, center = Offset(knobX, y))
                 }
+            }
+            PulseIconKind.ArrowLeft -> {
+                drawLine(color, Offset(size.width * 0.62f, size.height * 0.22f), Offset(size.width * 0.36f, centerY), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.36f, centerY), Offset(size.width * 0.62f, size.height * 0.78f), stroke, cap = StrokeCap.Round)
+            }
+            PulseIconKind.ArrowRight -> {
+                drawLine(color, Offset(size.width * 0.38f, size.height * 0.22f), Offset(size.width * 0.64f, centerY), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.64f, centerY), Offset(size.width * 0.38f, size.height * 0.78f), stroke, cap = StrokeCap.Round)
+            }
+            PulseIconKind.CurrentTime -> {
+                drawCircle(color, radius = size.minDimension * 0.28f, center = Offset(centerX, centerY), style = Stroke(width = stroke))
+                drawCircle(color, radius = size.minDimension * 0.07f, center = Offset(centerX, centerY))
             }
             PulseIconKind.TodayTab -> {
                 drawRoundRect(

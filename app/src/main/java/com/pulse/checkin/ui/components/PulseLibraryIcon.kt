@@ -24,6 +24,9 @@ internal val pulseLibraryIconKinds = setOf(
     PulseIconKind.Records,
     PulseIconKind.Collapse,
     PulseIconKind.Filter,
+    PulseIconKind.ArrowLeft,
+    PulseIconKind.ArrowRight,
+    PulseIconKind.CurrentTime,
     PulseIconKind.TodayTab,
     PulseIconKind.HistoryTab,
     PulseIconKind.StatsTab,
@@ -62,6 +65,16 @@ private val pulseLibraryIconNodes = mapOf(
         LucideLineNode(x1 = 14f, y1 = 2f, x2 = 14f, y2 = 6f),
         LucideLineNode(x1 = 8f, y1 = 10f, x2 = 8f, y2 = 14f),
         LucideLineNode(x1 = 16f, y1 = 18f, x2 = 16f, y2 = 22f),
+    ),
+    PulseIconKind.ArrowLeft to listOf(
+        LucidePathNode("m15 18-6-6 6-6"),
+    ),
+    PulseIconKind.ArrowRight to listOf(
+        LucidePathNode("m9 18 6-6-6-6"),
+    ),
+    PulseIconKind.CurrentTime to listOf(
+        LucideCircleNode(cx = 12f, cy = 12f, r = 10f),
+        LucidePolylineNode(points = listOf(LucidePoint(12f, 6f), LucidePoint(12f, 12f), LucidePoint(16.5f, 12f))),
     ),
     PulseIconKind.TodayTab to listOf(
         LucidePathNode("M8 2v4"),
