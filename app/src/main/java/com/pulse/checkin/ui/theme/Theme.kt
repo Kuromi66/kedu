@@ -1,7 +1,11 @@
 package com.pulse.checkin.ui.theme
 
 import android.app.Activity
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
@@ -56,7 +60,8 @@ fun PulseTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.DARK -> true
     }
-    val colorScheme = if (darkTheme) DarkScheme else LightScheme
+    val targetScheme = if (darkTheme) DarkScheme else LightScheme
+    val colorScheme = animatePulseColorScheme(targetScheme)
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -72,5 +77,28 @@ fun PulseTheme(
         typography = PulseTypography,
         shapes = PulseShapes,
         content = content,
+    )
+}
+
+
+@Composable
+private fun animatePulseColorScheme(target: ColorScheme): ColorScheme {
+    val animationSpec = spring<Color>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow,
+    )
+    return target.copy(
+        primary = animateColorAsState(target.primary, animationSpec = animationSpec, label = "theme-primary").value,
+        secondary = animateColorAsState(target.secondary, animationSpec = animationSpec, label = "theme-secondary").value,
+        tertiary = animateColorAsState(target.tertiary, animationSpec = animationSpec, label = "theme-tertiary").value,
+        background = animateColorAsState(target.background, animationSpec = animationSpec, label = "theme-background").value,
+        surface = animateColorAsState(target.surface, animationSpec = animationSpec, label = "theme-surface").value,
+        surfaceVariant = animateColorAsState(target.surfaceVariant, animationSpec = animationSpec, label = "theme-surface-variant").value,
+        onPrimary = animateColorAsState(target.onPrimary, animationSpec = animationSpec, label = "theme-on-primary").value,
+        onSecondary = animateColorAsState(target.onSecondary, animationSpec = animationSpec, label = "theme-on-secondary").value,
+        onBackground = animateColorAsState(target.onBackground, animationSpec = animationSpec, label = "theme-on-background").value,
+        onSurface = animateColorAsState(target.onSurface, animationSpec = animationSpec, label = "theme-on-surface").value,
+        onSurfaceVariant = animateColorAsState(target.onSurfaceVariant, animationSpec = animationSpec, label = "theme-on-surface-variant").value,
+        outline = animateColorAsState(target.outline, animationSpec = animationSpec, label = "theme-outline").value,
     )
 }

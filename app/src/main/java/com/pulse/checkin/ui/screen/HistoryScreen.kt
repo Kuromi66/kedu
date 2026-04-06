@@ -35,7 +35,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -65,6 +64,7 @@ import com.pulse.checkin.domain.stats.CalendarDaySummary
 import com.pulse.checkin.domain.stats.CheckInRecordItem
 import com.pulse.checkin.domain.stats.HistoryHabitDetail
 import com.pulse.checkin.domain.stats.MonthSnapshot
+import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
@@ -617,25 +617,15 @@ private fun HistoryRecordSheet(
     }
 
     pendingDeleteRecord?.let { record ->
-        AlertDialog(
-            onDismissRequest = { pendingDeleteRecord = null },
-            title = { Text(strings.deleteRecordTitle) },
-            text = { Text(strings.deleteRecordAt(record.displayTime.format(recordTimeFormatter))) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteRecord(record.id)
-                        pendingDeleteRecord = null
-                    },
-                ) {
-                    Text(strings.confirmDelete)
-                }
+        DestructiveConfirmDialog(
+            message = strings.deleteRecordAt(record.displayTime.format(recordTimeFormatter)),
+            confirmLabel = strings.confirmDelete,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                onDeleteRecord(record.id)
+                pendingDeleteRecord = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteRecord = null }) {
-                    Text(strings.cancel)
-                }
-            },
+            onDismiss = { pendingDeleteRecord = null },
         )
     }
 }

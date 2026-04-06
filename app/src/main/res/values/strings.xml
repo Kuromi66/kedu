@@ -19,8 +19,8 @@
     <string name="streak_days">%1$d d</string>
     <string name="target_times">Target %1$d</string>
     <string name="record_only">Record only</string>
-    <string name="latest_check_in">Latest %1$s</string>
-    <string name="no_check_in_today">No record yet today</string>
+    <string name="latest_check_in">Last check-in %1$s ago</string>
+    <string name="no_check_in_today">No check-ins yet</string>
     <string name="check_in">Check in</string>
     <string name="reached_today">Goal reached today</string>
     <string name="remaining_to_goal">%1$d to go</string>
@@ -167,4 +167,8 @@
     <string name="history_month_pattern">MMM yyyy</string>
     <string name="history_detail_date_pattern">MMM d</string>
     <string name="stats_month_pattern">MMM</string>
+    <string name="elapsed_just_now">just now</string>
+    <string name="elapsed_minutes">%1$d min</string>
+    <string name="elapsed_hours">%1$d h</string>
+    <string name="elapsed_days">%1$d d</string>
 </resources>

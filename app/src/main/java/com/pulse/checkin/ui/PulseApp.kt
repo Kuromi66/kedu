@@ -8,6 +8,9 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +44,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
@@ -66,6 +70,17 @@ fun PulseApp(viewModel: AppViewModel) {
     val coroutineScope = rememberCoroutineScope()
     val strings = rememberPulseStrings(uiState.preferences.appLanguage)
     var editorDraft by remember { mutableStateOf<HabitDraft?>(null) }
+    val editorVisible = editorDraft != null
+    val backgroundBlur by animateDpAsState(
+        targetValue = if (editorVisible) 14.dp else 0.dp,
+        animationSpec = tween(durationMillis = if (editorVisible) 260 else 150),
+        label = "editor-background-blur",
+    )
+    val backgroundScrimAlpha by animateFloatAsState(
+        targetValue = if (editorVisible) 0.16f else 0f,
+        animationSpec = tween(durationMillis = if (editorVisible) 240 else 140),
+        label = "editor-background-scrim",
+    )
     var notificationsGranted by remember { mutableStateOf(checkNotificationsGranted(context)) }
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notificationsGranted = checkNotificationsGranted(context)
@@ -111,7 +126,7 @@ fun PulseApp(viewModel: AppViewModel) {
                     ),
             ) {
                 Scaffold(
-                    modifier = Modifier.blur(if (editorDraft != null) 14.dp else 0.dp),
+                    modifier = Modifier.blur(backgroundBlur),
                     containerColor = Color.Transparent,
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
                     bottomBar = {
@@ -171,6 +186,12 @@ fun PulseApp(viewModel: AppViewModel) {
                                 )
                             }
                         }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = backgroundScrimAlpha))
+                                .zIndex(1f),
+                        )
                     }
                 }
                 editorDraft?.let { draft ->

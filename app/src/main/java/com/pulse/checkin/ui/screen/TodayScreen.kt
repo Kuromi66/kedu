@@ -23,11 +23,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +44,7 @@ import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.stats.TodayCheckInRecord
 import com.pulse.checkin.domain.stats.TodayHabitSummary
 import com.pulse.checkin.domain.stats.TodaySnapshot
+import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.PulseIconKind
@@ -54,11 +53,22 @@ import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.toPulseColor
-import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.max
 
 private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+
+private fun formatElapsedSince(epochMillis: Long, strings: com.pulse.checkin.ui.i18n.PulseStrings): String {
+    val elapsedMillis = max(0L, System.currentTimeMillis() - epochMillis)
+    val elapsedMinutes = elapsedMillis / 60_000L
+    return when {
+        elapsedMinutes <= 0L -> strings.elapsedJustNow
+        elapsedMinutes < 60L -> strings.elapsedMinutes(elapsedMinutes.toInt())
+        elapsedMinutes < 1_440L -> strings.elapsedHours((elapsedMinutes / 60L).toInt())
+        else -> strings.elapsedDays((elapsedMinutes / 1_440L).toInt())
+    }
+}
 
 @Composable
 fun TodayScreen(
@@ -219,8 +229,7 @@ private fun HabitCard(
                     )
                 }
                 val trailing = item.latestEventAt?.let {
-                    val time = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
-                    strings.latestCheckIn(time.format(timeFormatter))
+                    strings.latestCheckIn(formatElapsedSince(it, strings))
                 } ?: strings.noCheckInToday
                 Text(trailing, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
             }
@@ -291,71 +300,42 @@ private fun HabitCard(
     }
 
     if (pendingDeleteRecord != null) {
-        AlertDialog(
-            onDismissRequest = { pendingDeleteRecord = null },
-            title = { Text(strings.deleteRecordTitle) },
-            text = { Text(strings.confirmDeleteRecord) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        pendingDeleteRecord?.let(onDeleteRecord)
-                        pendingDeleteRecord = null
-                    },
-                ) {
-                    Text(strings.confirmDelete)
-                }
+        DestructiveConfirmDialog(
+            message = strings.confirmDeleteRecord,
+            confirmLabel = strings.confirmDelete,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                pendingDeleteRecord?.let(onDeleteRecord)
+                pendingDeleteRecord = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteRecord = null }) {
-                    Text(strings.cancel)
-                }
-            },
+            onDismiss = { pendingDeleteRecord = null },
         )
     }
 
     if (pendingCheckIn) {
-        AlertDialog(
-            onDismissRequest = { pendingCheckIn = false },
-            title = { Text(strings.confirmCheckInTitle) },
-            text = { Text(strings.confirmCheckInText(item.habit.name)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onCheckIn()
-                        pendingCheckIn = false
-                    },
-                ) {
-                    Text(strings.confirmCheckIn)
-                }
+        DestructiveConfirmDialog(
+            message = strings.confirmCheckInText(item.habit.name),
+            confirmLabel = strings.confirmCheckIn,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                onCheckIn()
+                pendingCheckIn = false
             },
-            dismissButton = {
-                TextButton(onClick = { pendingCheckIn = false }) {
-                    Text(strings.cancel)
-                }
-            },
+            onDismiss = { pendingCheckIn = false },
+            confirmColor = MaterialTheme.colorScheme.primary,
         )
     }
 
     if (pendingDeleteHabit) {
-        AlertDialog(
-            onDismissRequest = { pendingDeleteHabit = false },
-            title = { Text(strings.deleteHabitTitle) },
-            text = { Text(strings.confirmDeleteHabit(item.habit.name)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteHabit(item.habit.id)
-                        pendingDeleteHabit = false
-                    },
-                ) {
-                    Text(strings.confirmDelete)
-                }
+        DestructiveConfirmDialog(
+            message = strings.confirmDeleteHabit(item.habit.name),
+            confirmLabel = strings.confirmDelete,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                onDeleteHabit(item.habit.id)
+                pendingDeleteHabit = false
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteHabit = false }) {
-                    Text(strings.cancel)
-                }
-            },
+            onDismiss = { pendingDeleteHabit = false },
         )
     }
 }

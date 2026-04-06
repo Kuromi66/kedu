@@ -17,8 +17,8 @@
     <string name="streak_days">%1$d 天</string>
     <string name="target_times">目标 %1$d 次</string>
     <string name="record_only">仅记录</string>
-    <string name="latest_check_in">最近 %1$s</string>
-    <string name="no_check_in_today">今天还没有记录</string>
+    <string name="latest_check_in">距上次打卡 %1$s</string>
+    <string name="no_check_in_today">还没有打卡记录</string>
     <string name="check_in">打卡</string>
     <string name="reached_today">今日已达标</string>
     <string name="remaining_to_goal">还差 %1$d 次</string>
@@ -159,4 +159,8 @@
     <string name="history_month_pattern">yyyy年 M月</string>
     <string name="history_detail_date_pattern">M月d日</string>
     <string name="stats_month_pattern">M月</string>
+    <string name="elapsed_just_now">刚刚</string>
+    <string name="elapsed_minutes">%1$d分钟</string>
+    <string name="elapsed_hours">%1$d小时</string>
+    <string name="elapsed_days">%1$d天</string>
 </resources>

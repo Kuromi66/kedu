@@ -172,6 +172,9 @@ class LocalStatsCalculator : StatsCalculator {
         val countsToday = eventsToday.groupingBy { it.habitId }.eachCount()
         val recordsByHabit = eventsToday.groupBy { it.habitId }
             .mapValues { (_, value) -> value.toRecordItems() }
+        val latestEventAtByHabit = events
+            .groupBy { it.habitId }
+            .mapValues { (_, value) -> value.maxOfOrNull { event -> event.occurredAtEpochMillis } }
         val dailyCounts = buildDailyCounts(events)
         val summaries = habits.sortedBy { it.sortOrder }.map { habit ->
             val count = countsToday[habit.id] ?: 0
@@ -188,7 +191,7 @@ class LocalStatsCalculator : StatsCalculator {
                 todayCount = count,
                 progress = progress,
                 reachedTarget = reachedTarget,
-                latestEventAt = records.firstOrNull()?.occurredAtEpochMillis,
+                latestEventAt = latestEventAtByHabit[habit.id],
                 records = records,
             )
         }
