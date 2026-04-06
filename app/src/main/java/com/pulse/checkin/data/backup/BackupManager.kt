@@ -7,6 +7,7 @@ import com.pulse.checkin.data.db.PulseDatabase
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import com.pulse.checkin.data.preferences.AppPreferences
+import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.SortMode
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.domain.model.UserPreferences
@@ -75,12 +76,14 @@ class BackupManager(
 
 private fun UserPreferences.toJson(): JSONObject = JSONObject()
     .put("themeMode", themeMode.name)
+    .put("appLanguage", appLanguage.name)
     .put("sortMode", sortMode.name)
     .put("onboardingSeen", onboardingSeen)
     .put("notificationPromptSeen", notificationPromptSeen)
 
 private fun JSONObject.toUserPreferences(): UserPreferences = UserPreferences(
     themeMode = optString("themeMode").takeIf { it.isNotBlank() }?.let(ThemeMode::valueOf) ?: ThemeMode.LIGHT,
+    appLanguage = optString("appLanguage").takeIf { it.isNotBlank() }?.let(AppLanguage::valueOf) ?: AppLanguage.ZH,
     sortMode = optString("sortMode").takeIf { it.isNotBlank() }?.let(SortMode::valueOf) ?: SortMode.MANUAL,
     onboardingSeen = optBoolean("onboardingSeen", false),
     notificationPromptSeen = optBoolean("notificationPromptSeen", false),

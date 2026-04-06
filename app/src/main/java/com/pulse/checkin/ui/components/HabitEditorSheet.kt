@@ -55,6 +55,7 @@ import com.pulse.checkin.ui.util.habitGlyphOptions
 import com.pulse.checkin.ui.components.habitIconOptions
 import com.pulse.checkin.ui.components.isPresetHabitIcon
 import com.pulse.checkin.ui.components.resolveHabitIconToken
+import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.toPulseColor
 
@@ -69,6 +70,7 @@ fun HabitEditorSheet(
     onSave: (HabitDraft) -> Unit,
 ) {
     val context = LocalContext.current
+    val strings = LocalPulseStrings.current
     val configuration = LocalConfiguration.current
     val sheetMaxHeight = configuration.screenHeightDp.dp * 0.84f
     val compactLayout = configuration.screenWidthDp <= 360
@@ -110,7 +112,7 @@ fun HabitEditorSheet(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 Text(
-                    text = if (initialDraft.id == 0L) "\u65b0\u5efa\u4e60\u60ef" else "\u7f16\u8f91\u4e60\u60ef",
+                    text = if (initialDraft.id == 0L) strings.habitEditorNew else strings.habitEditorEdit,
                     style = MaterialTheme.typography.headlineMedium,
                 )
                 OutlinedTextField(
@@ -118,25 +120,25 @@ fun HabitEditorSheet(
                     onValueChange = { name = it.take(18) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
-                    label = { Text("\u4e60\u60ef\u540d\u79f0") },
-                    placeholder = { Text("\u4f8b\u5982 \u559d\u6c34\u3001\u62c9\u4f38\u3001\u9605\u8bfb") },
+                    label = { Text(strings.habitName) },
+                    placeholder = { Text(strings.habitNamePlaceholder) },
                     singleLine = true,
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("\u4e60\u60ef\u6807\u8bc6", style = MaterialTheme.typography.titleLarge)
+                    Text(strings.habitIdentifier, style = MaterialTheme.typography.titleLarge)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         item {
                             FilterChip(
                                 selected = glyphInputMode == HabitGlyphInputMode.ICON,
                                 onClick = { glyphInputMode = HabitGlyphInputMode.ICON },
-                                label = { Text("\u5e38\u7528\u56fe\u6807") },
+                                label = { Text(strings.commonIcons) },
                             )
                         }
                         item {
                             FilterChip(
                                 selected = glyphInputMode == HabitGlyphInputMode.LETTER,
                                 onClick = { glyphInputMode = HabitGlyphInputMode.LETTER },
-                                label = { Text("\u5b57\u6bcd") },
+                                label = { Text(strings.letters) },
                             )
                         }
                     }
@@ -161,7 +163,7 @@ fun HabitEditorSheet(
                                                     compactLayout = true,
                                                 )
                                             }
-                                            Text(option.label, fontWeight = FontWeight.SemiBold)
+                                            Text(strings.habitIconLabel(option.token, option.label), fontWeight = FontWeight.SemiBold)
                                         }
                                     },
                                 )
@@ -173,9 +175,9 @@ fun HabitEditorSheet(
                             onValueChange = { letterGlyph = normalizeLetterGlyph(it) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(24.dp),
-                            label = { Text("\u56fe\u6807\u5b57\u6bcd") },
+                            label = { Text(strings.iconLetter) },
                             placeholder = { Text("P / W / R") },
-                            supportingText = { Text("\u652f\u6301 1-2 \u4e2a\u5b57\u6bcd\u6216\u6570\u5b57") },
+                            supportingText = { Text(strings.iconLetterSupport) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                         )
@@ -191,7 +193,7 @@ fun HabitEditorSheet(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("\u4e3b\u8272", style = MaterialTheme.typography.titleLarge)
+                    Text(strings.primaryColor, style = MaterialTheme.typography.titleLarge)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(habitColorOptions) { option ->
                             val selected = colorArgb == option
@@ -219,8 +221,8 @@ fun HabitEditorSheet(
                 GlassCard {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("\u6bcf\u65e5\u76ee\u6807", style = MaterialTheme.typography.titleLarge)
-                            Text("\u8fbe\u5230\u6b21\u6570\u540e\u5f53\u5929\u8bb0\u4e3a\u8fbe\u6807", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(strings.dailyTarget, style = MaterialTheme.typography.titleLarge)
+                            Text(strings.dailyTargetDesc, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = targetEnabled, onCheckedChange = { targetEnabled = it })
                     }
@@ -237,12 +239,12 @@ fun HabitEditorSheet(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 TextButton(onClick = { targetCount = (targetCount - 1).coerceAtLeast(1) }) { Text("-1") }
-                                Text(text = "$targetCount \u6b21", style = MaterialTheme.typography.headlineMedium)
+                                Text(text = strings.countTimes(targetCount), style = MaterialTheme.typography.headlineMedium)
                                 TextButton(onClick = { targetCount += 1 }) { Text("+1") }
                             }
                         } else {
                             Text(
-                                text = "\u5f00\u542f\u540e\u53ef\u5728\u8fd9\u91cc\u5feb\u901f\u8bbe\u7f6e\u76ee\u6807\u6b21\u6570",
+                                text = strings.targetQuickSetHint,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium,
                             )
@@ -252,8 +254,8 @@ fun HabitEditorSheet(
                 GlassCard {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("\u672c\u5730\u63d0\u9192", style = MaterialTheme.typography.titleLarge)
-                            Text("\u6bcf\u5929\u56fa\u5b9a\u65f6\u95f4\u63d0\u9192\u4f60\u8865\u4e0a\u6b21\u6570", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(strings.localReminder, style = MaterialTheme.typography.titleLarge)
+                            Text(strings.localReminderDesc, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
                     }
@@ -267,8 +269,8 @@ fun HabitEditorSheet(
                         when {
                             reminderEnabled && !notificationsGranted -> {
                                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    Text("\u7cfb\u7edf\u901a\u77e5\u6743\u9650\u5c1a\u672a\u5f00\u542f", color = MaterialTheme.colorScheme.tertiary)
-                                    TextButton(onClick = onRequestNotificationPermission) { Text("\u53bb\u5f00\u542f\u901a\u77e5") }
+                                    Text(strings.notificationPermissionOff, color = MaterialTheme.colorScheme.tertiary)
+                                    TextButton(onClick = onRequestNotificationPermission) { Text(strings.enableNotificationPermission) }
                                 }
                             }
 
@@ -281,13 +283,13 @@ fun HabitEditorSheet(
                                         }
                                     },
                                 ) {
-                                    Text(String.format("\u63d0\u9192\u65f6\u95f4 %02d:%02d", reminderHour, reminderMinute))
+                                    Text(strings.reminderTime(reminderHour, reminderMinute))
                                 }
                             }
 
                             else -> {
                                 Text(
-                                    text = "\u5f00\u542f\u540e\u53ef\u5728\u8fd9\u91cc\u8bbe\u7f6e\u6bcf\u65e5\u63d0\u9192\u65f6\u95f4",
+                                    text = strings.setReminderHint,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
@@ -329,7 +331,7 @@ fun HabitEditorSheet(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp, vertical = 12.dp),
                     ) {
-                        Text("\u4fdd\u5b58")
+                        Text(strings.save)
                     }
                 }
             }

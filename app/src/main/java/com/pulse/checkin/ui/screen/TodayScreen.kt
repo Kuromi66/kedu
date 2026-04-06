@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,6 +40,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.stats.TodayCheckInRecord
@@ -50,6 +52,7 @@ import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.PulsePrimaryActionButton
 import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.ScreenHeader
+import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.Instant
 import java.time.ZoneId
@@ -66,13 +69,14 @@ fun TodayScreen(
     onDeleteHabit: (Long) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
+    val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     val bottomPadding = if (compactLayout) 84.dp else 92.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        ScreenHeader(title = "\u4eca\u65e5", compactLayout = compactLayout)
+        ScreenHeader(title = strings.todayTitle, compactLayout = compactLayout)
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
@@ -85,16 +89,16 @@ fun TodayScreen(
         ) {
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
-                    OverviewMetric("\u4eca\u65e5\u6b21\u6570", snapshot.totalCount.toString(), Modifier.weight(1f), compactLayout)
+                    OverviewMetric(strings.todayCountMetric, snapshot.totalCount.toString(), Modifier.weight(1f), compactLayout)
                     OverviewMetric(
-                        "\u5df2\u8fbe\u6807",
+                        strings.reachedMetric,
                         if (snapshot.targetHabitCount == 0) "0" else "${snapshot.completedHabits}/${snapshot.targetHabitCount}",
                         Modifier.weight(1f),
                         compactLayout,
                     )
                     OverviewMetric(
-                        "\u6700\u4f73\u8fde\u51fb",
-                        if (snapshot.bestCurrentStreak == 0) "--" else "${snapshot.bestCurrentStreak} \u5929",
+                        strings.bestStreakMetric,
+                        if (snapshot.bestCurrentStreak == 0) "--" else strings.streakDays(snapshot.bestCurrentStreak),
                         Modifier.weight(1f),
                         compactLayout,
                     )
@@ -103,10 +107,10 @@ fun TodayScreen(
             if (snapshot.habits.isEmpty()) {
                 item {
                     GlassCard {
-                        Text("\u5148\u521b\u5efa\u4f60\u7684\u7b2c\u4e00\u4e2a\u4e60\u60ef", style = MaterialTheme.typography.titleLarge)
+                        Text(strings.createFirstHabitTitle, style = MaterialTheme.typography.titleLarge)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "\u53ef\u4ee5\u4ece\u5e95\u90e8\u5bfc\u822a\u4e2d\u95f4\u7684\u6dfb\u52a0\u6309\u94ae\u521b\u5efa\u65b0\u4e60\u60ef\uff0c\u4e4b\u540e\u5c31\u80fd\u5728\u8fd9\u91cc\u5feb\u901f\u6253\u5361\u548c\u67e5\u770b\u5f53\u5929\u660e\u7ec6\u3002",
+                            text = strings.createFirstHabitDesc,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -132,11 +136,18 @@ fun TodayScreen(
 
 @Composable
 private fun OverviewMetric(title: String, value: String, modifier: Modifier = Modifier, compactLayout: Boolean) {
-    GlassCard(modifier = modifier) {
-        Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+    GlassCard(modifier = modifier.heightIn(min = if (compactLayout) 108.dp else 116.dp)) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            minLines = 2,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         Spacer(modifier = Modifier.height(if (compactLayout) 8.dp else 12.dp))
         Text(
-            value,
+            text = value,
             style = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
         )
     }
@@ -156,6 +167,7 @@ private fun HabitCard(
     var pendingCheckIn by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<Long?>(null) }
     var pendingDeleteHabit by rememberSaveable(item.habit.id) { mutableStateOf(false) }
+    val strings = LocalPulseStrings.current
     val progress = animateFloatAsState(targetValue = item.progress, label = "progress").value
     val cardShape = RoundedCornerShape(if (compactLayout) 24.dp else 28.dp)
 
@@ -185,7 +197,7 @@ private fun HabitCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.habit.name, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    text = if (item.habit.targetEnabled) "\u76ee\u6807 ${item.habit.dailyTargetCount ?: 1} \u6b21" else "\u4ec5\u8bb0\u5f55\u6b21\u6570",
+                    text = if (item.habit.targetEnabled) strings.targetTimes(item.habit.dailyTargetCount ?: 1) else strings.recordOnly,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -208,15 +220,15 @@ private fun HabitCard(
                 }
                 val trailing = item.latestEventAt?.let {
                     val time = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
-                    "\u6700\u8fd1\u4e00\u6b21 ${time.format(timeFormatter)}"
-                } ?: "\u4eca\u5929\u8fd8\u6ca1\u6709\u8bb0\u5f55"
+                    strings.latestCheckIn(time.format(timeFormatter))
+                } ?: strings.noCheckInToday
                 Text(trailing, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
             }
             Spacer(modifier = Modifier.size(12.dp))
             PulsePrimaryActionButton(
                 onClick = { pendingCheckIn = true },
                 compactLayout = compactLayout,
-                label = if (!item.habit.targetEnabled || !item.reachedTarget) "\u6253\u5361" else null,
+                label = if (!item.habit.targetEnabled || !item.reachedTarget) strings.checkIn else null,
                 icon = if (item.habit.targetEnabled && item.reachedTarget) PulseIconKind.Check else null,
             )
         }
@@ -233,9 +245,9 @@ private fun HabitCard(
                     )
                     Text(
                         text = if (item.reachedTarget) {
-                            "\u4eca\u65e5\u5df2\u8fbe\u6807"
+                            strings.reachedToday
                         } else {
-                            "\u8ddd\u79bb\u8fbe\u6807\u8fd8\u5dee ${((item.habit.dailyTargetCount ?: 1) - item.todayCount).coerceAtLeast(0)} \u6b21"
+                            strings.remainingToGoal(((item.habit.dailyTargetCount ?: 1) - item.todayCount).coerceAtLeast(0))
                         },
                         color = if (item.reachedTarget) item.habit.colorArgb.toPulseColor() else MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
@@ -243,7 +255,7 @@ private fun HabitCard(
                 }
             } else {
                 Text(
-                    text = if (item.todayCount == 0) "\u4eca\u5929\u8fd8\u6ca1\u6709\u5f00\u59cb\u8bb0\u5f55" else "\u53ef\u4ee5\u5c55\u5f00\u67e5\u770b\u4eca\u5929\u6240\u6709\u6253\u5361\u8bb0\u5f55",
+                    text = if (item.todayCount == 0) strings.notStartedToday else strings.canExpandTodayRecords,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -256,7 +268,7 @@ private fun HabitCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (item.records.isEmpty()) "\u4eca\u5929\u6682\u65e0\u8bb0\u5f55" else "\u4eca\u65e5\u8bb0\u5f55 ${item.records.size} \u6761",
+                text = if (item.records.isEmpty()) strings.noRecordsToday else strings.todayRecordsCount(item.records.size),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -281,8 +293,8 @@ private fun HabitCard(
     if (pendingDeleteRecord != null) {
         AlertDialog(
             onDismissRequest = { pendingDeleteRecord = null },
-            title = { Text("\u5220\u9664\u8bb0\u5f55") },
-            text = { Text("\u786e\u5b9a\u5220\u9664\u8fd9\u6761\u6253\u5361\u8bb0\u5f55\u5417\uff1f") },
+            title = { Text(strings.deleteRecordTitle) },
+            text = { Text(strings.confirmDeleteRecord) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -290,12 +302,12 @@ private fun HabitCard(
                         pendingDeleteRecord = null
                     },
                 ) {
-                    Text("\u786e\u8ba4\u5220\u9664")
+                    Text(strings.confirmDelete)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteRecord = null }) {
-                    Text("\u53d6\u6d88")
+                    Text(strings.cancel)
                 }
             },
         )
@@ -304,8 +316,8 @@ private fun HabitCard(
     if (pendingCheckIn) {
         AlertDialog(
             onDismissRequest = { pendingCheckIn = false },
-            title = { Text("\u786e\u8ba4\u6253\u5361") },
-            text = { Text("\u786e\u5b9a\u4e3a ${item.habit.name} \u65b0\u589e\u4e00\u6b21\u6253\u5361\u8bb0\u5f55\u5417\uff1f") },
+            title = { Text(strings.confirmCheckInTitle) },
+            text = { Text(strings.confirmCheckInText(item.habit.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -313,12 +325,12 @@ private fun HabitCard(
                         pendingCheckIn = false
                     },
                 ) {
-                    Text("\u786e\u8ba4\u6253\u5361")
+                    Text(strings.confirmCheckIn)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingCheckIn = false }) {
-                    Text("\u53d6\u6d88")
+                    Text(strings.cancel)
                 }
             },
         )
@@ -327,8 +339,8 @@ private fun HabitCard(
     if (pendingDeleteHabit) {
         AlertDialog(
             onDismissRequest = { pendingDeleteHabit = false },
-            title = { Text("\u5220\u9664\u4e60\u60ef") },
-            text = { Text("\u786e\u5b9a\u5220\u9664 ${item.habit.name} \u5417\uff1f\n\u5220\u9664\u540e\u5bf9\u5e94\u7684\u6253\u5361\u8bb0\u5f55\u4e5f\u4f1a\u4e00\u8d77\u9690\u85cf\u3002") },
+            title = { Text(strings.deleteHabitTitle) },
+            text = { Text(strings.confirmDeleteHabit(item.habit.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -336,12 +348,12 @@ private fun HabitCard(
                         pendingDeleteHabit = false
                     },
                 ) {
-                    Text("\u786e\u8ba4\u5220\u9664")
+                    Text(strings.confirmDelete)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDeleteHabit = false }) {
-                    Text("\u53d6\u6d88")
+                    Text(strings.cancel)
                 }
             },
         )
@@ -354,6 +366,8 @@ private fun CheckInRecordRow(
     record: TodayCheckInRecord,
     onDelete: () -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -370,7 +384,7 @@ private fun CheckInRecordRow(
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "\u957f\u6309\u540e\u786e\u8ba4\u5220\u9664",
+            text = strings.longPressDeleteHint,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

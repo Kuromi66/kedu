@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.CompositionLocalProvider
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitEditorSheet
 import com.pulse.checkin.ui.components.PulseActionIcon
@@ -51,6 +52,8 @@ import com.pulse.checkin.ui.screen.HistoryScreen
 import com.pulse.checkin.ui.screen.SettingsScreen
 import com.pulse.checkin.ui.screen.StatsScreen
 import com.pulse.checkin.ui.screen.TodayScreen
+import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.i18n.rememberPulseStrings
 import com.pulse.checkin.ui.theme.PulseTheme
 import java.time.LocalDate
 import kotlinx.coroutines.launch
@@ -61,6 +64,7 @@ fun PulseApp(viewModel: AppViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val strings = rememberPulseStrings(uiState.preferences.appLanguage)
     var editorDraft by remember { mutableStateOf<HabitDraft?>(null) }
     var notificationsGranted by remember { mutableStateOf(checkNotificationsGranted(context)) }
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -70,7 +74,11 @@ fun PulseApp(viewModel: AppViewModel) {
         if (uri != null) {
             coroutineScope.launch {
                 val result = viewModel.exportBackup(uri)
-                Toast.makeText(context, result.getOrElse { it.message ?: "\u5bfc\u51fa\u5931\u8d25" }, Toast.LENGTH_SHORT).show()
+                val message = result.fold(
+                    onSuccess = { summary -> strings.exportSuccess(summary.habitCount, summary.eventCount) },
+                    onFailure = { it.message ?: strings.exportFailed },
+                )
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -78,101 +86,109 @@ fun PulseApp(viewModel: AppViewModel) {
         if (uri != null) {
             coroutineScope.launch {
                 val result = viewModel.importBackup(uri)
-                Toast.makeText(context, result.getOrElse { it.message ?: "\u5bfc\u5165\u5931\u8d25" }, Toast.LENGTH_SHORT).show()
+                val message = result.fold(
+                    onSuccess = { summary -> strings.importSuccess(summary.habitCount, summary.eventCount) },
+                    onFailure = { it.message ?: strings.importFailed },
+                )
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    PulseTheme(themeMode = uiState.preferences.themeMode) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                            MaterialTheme.colorScheme.background,
+    CompositionLocalProvider(LocalPulseStrings provides strings) {
+        PulseTheme(themeMode = uiState.preferences.themeMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.background,
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                                MaterialTheme.colorScheme.background,
+                            ),
                         ),
                     ),
-                ),
-        ) {
-            Scaffold(
-                modifier = Modifier.blur(if (editorDraft != null) 14.dp else 0.dp),
-                containerColor = Color.Transparent,
-                contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                bottomBar = {
-                    PulseBottomBar(
-                        selectedTab = uiState.selectedTab,
-                        onSelect = viewModel::selectTab,
-                        onAddHabit = { editorDraft = HabitDraft() },
-                    )
-                },
-            ) { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) {
-                    Crossfade(targetState = uiState.selectedTab, label = "tab") { tab ->
-                        when (tab) {
-                            AppTab.TODAY -> TodayScreen(
-                                snapshot = uiState.todaySnapshot,
-                                onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
-                                onCheckInHabit = viewModel::checkInHabit,
-                                onDeleteRecord = viewModel::deleteCheckInRecord,
-                                onDeleteHabit = viewModel::archiveHabit,
-                            )
-                            AppTab.HISTORY -> HistoryScreen(
-                                snapshot = uiState.historySnapshot,
-                                habits = uiState.habits,
-                                selectedHabitId = uiState.selectedHistoryHabitId,
-                                selectedDate = uiState.selectedDate,
-                                onPreviousMonth = { viewModel.shiftMonth(-1) },
-                                onNextMonth = { viewModel.shiftMonth(1) },
-                                onSelectDate = viewModel::selectDate,
-                                onSelectHabit = viewModel::selectHistoryHabit,
-                                onBackToCurrentMonth = { viewModel.selectDate(LocalDate.now()) },
-                                onDeleteRecord = viewModel::deleteCheckInRecord,
-                            )
-                            AppTab.STATS -> StatsScreen(
-                                snapshot = uiState.yearSnapshot,
-                                onPreviousYear = { viewModel.shiftStatsYear(-1) },
-                                onNextYear = { viewModel.shiftStatsYear(1) },
-                                onBackToCurrentYear = viewModel::backToCurrentStatsYear,
-                                onSelectHabit = viewModel::selectStatsHabit,
-                            )
-                            AppTab.SETTINGS -> SettingsScreen(
-                                themeMode = uiState.preferences.themeMode,
-                                notificationsGranted = notificationsGranted,
-                                onThemeModeChange = viewModel::setThemeMode,
-                                onRequestNotificationPermission = {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                    }
-                                },
-                                onExportData = {
-                                    exportLauncher.launch("pulse-backup-${LocalDate.now()}.json")
-                                },
-                                onImportData = {
-                                    importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
-                                },
-                            )
+            ) {
+                Scaffold(
+                    modifier = Modifier.blur(if (editorDraft != null) 14.dp else 0.dp),
+                    containerColor = Color.Transparent,
+                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                    bottomBar = {
+                        PulseBottomBar(
+                            selectedTab = uiState.selectedTab,
+                            onSelect = viewModel::selectTab,
+                            onAddHabit = { editorDraft = HabitDraft() },
+                        )
+                    },
+                ) { paddingValues ->
+                    Box(modifier = Modifier.padding(paddingValues)) {
+                        Crossfade(targetState = uiState.selectedTab, label = "tab") { tab ->
+                            when (tab) {
+                                AppTab.TODAY -> TodayScreen(
+                                    snapshot = uiState.todaySnapshot,
+                                    onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
+                                    onCheckInHabit = viewModel::checkInHabit,
+                                    onDeleteRecord = viewModel::deleteCheckInRecord,
+                                    onDeleteHabit = viewModel::archiveHabit,
+                                )
+                                AppTab.HISTORY -> HistoryScreen(
+                                    snapshot = uiState.historySnapshot,
+                                    habits = uiState.habits,
+                                    selectedHabitId = uiState.selectedHistoryHabitId,
+                                    selectedDate = uiState.selectedDate,
+                                    onPreviousMonth = { viewModel.shiftMonth(-1) },
+                                    onNextMonth = { viewModel.shiftMonth(1) },
+                                    onSelectDate = viewModel::selectDate,
+                                    onSelectHabit = viewModel::selectHistoryHabit,
+                                    onBackToCurrentMonth = { viewModel.selectDate(LocalDate.now()) },
+                                    onDeleteRecord = viewModel::deleteCheckInRecord,
+                                )
+                                AppTab.STATS -> StatsScreen(
+                                    snapshot = uiState.yearSnapshot,
+                                    onPreviousYear = { viewModel.shiftStatsYear(-1) },
+                                    onNextYear = { viewModel.shiftStatsYear(1) },
+                                    onBackToCurrentYear = viewModel::backToCurrentStatsYear,
+                                    onSelectHabit = viewModel::selectStatsHabit,
+                                )
+                                AppTab.SETTINGS -> SettingsScreen(
+                                    themeMode = uiState.preferences.themeMode,
+                                    appLanguage = uiState.preferences.appLanguage,
+                                    notificationsGranted = notificationsGranted,
+                                    onThemeModeChange = viewModel::setThemeMode,
+                                    onAppLanguageChange = viewModel::setAppLanguage,
+                                    onRequestNotificationPermission = {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        }
+                                    },
+                                    onExportData = {
+                                        exportLauncher.launch("pulse-backup-${LocalDate.now()}.json")
+                                    },
+                                    onImportData = {
+                                        importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                                    },
+                                )
+                            }
                         }
                     }
                 }
-            }
-            editorDraft?.let { draft ->
-                HabitEditorSheet(
-                    initialDraft = draft,
-                    notificationsGranted = notificationsGranted,
-                    onRequestNotificationPermission = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        }
-                    },
-                    onDismiss = { editorDraft = null },
-                    onSave = {
-                        viewModel.saveHabit(it)
-                        editorDraft = null
-                    },
-                )
+                editorDraft?.let { draft ->
+                    HabitEditorSheet(
+                        initialDraft = draft,
+                        notificationsGranted = notificationsGranted,
+                        onRequestNotificationPermission = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        },
+                        onDismiss = { editorDraft = null },
+                        onSave = {
+                            viewModel.saveHabit(it)
+                            editorDraft = null
+                        },
+                    )
+                }
             }
         }
     }
@@ -237,10 +253,10 @@ private fun PulseBottomTab(
 ) {
     val selected = tab == selectedTab
     val label = when (tab) {
-        AppTab.TODAY -> "\u4eca\u65e5"
-        AppTab.HISTORY -> "\u5386\u53f2"
-        AppTab.STATS -> "\u7edf\u8ba1"
-        AppTab.SETTINGS -> "\u8bbe\u7f6e"
+        AppTab.TODAY -> LocalPulseStrings.current.tabToday
+        AppTab.HISTORY -> LocalPulseStrings.current.tabHistory
+        AppTab.STATS -> LocalPulseStrings.current.tabStats
+        AppTab.SETTINGS -> LocalPulseStrings.current.tabSettings
     }
     val icon = when (tab) {
         AppTab.TODAY -> PulseIconKind.TodayTab
@@ -314,7 +330,7 @@ private fun PulseBottomAddButton(
                 modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp),
             )
             Text(
-                text = "\u6dfb\u52a0",
+                text = LocalPulseStrings.current.add,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
                 style = MaterialTheme.typography.labelSmall,

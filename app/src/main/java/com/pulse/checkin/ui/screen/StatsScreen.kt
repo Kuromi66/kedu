@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -52,6 +53,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.stats.HourlyDistributionBucket
 import com.pulse.checkin.domain.stats.MonthlyDetailRow
@@ -64,12 +66,9 @@ import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
+import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-private val statsMonthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("M\u6708", Locale.CHINA)
 
 @Composable
 fun StatsScreen(
@@ -80,6 +79,7 @@ fun StatsScreen(
     onSelectHabit: (Long) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
+    val strings = LocalPulseStrings.current
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     var showFilters by rememberSaveable { mutableStateOf(false) }
@@ -88,7 +88,7 @@ fun StatsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         ScreenHeader(
-            title = "\u7edf\u8ba1",
+            title = strings.statsTitle,
             compactLayout = compactLayout,
             action = {
                 HeaderFilterButton(
@@ -111,10 +111,10 @@ fun StatsScreen(
             if (snapshot.habitOptions.isEmpty()) {
                 item {
                     GlassCard {
-                        Text("\u6682\u65e0\u4e60\u60ef\u6570\u636e", style = MaterialTheme.typography.titleLarge)
+                        Text(strings.noHabitDataTitle, style = MaterialTheme.typography.titleLarge)
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "\u5148\u521b\u5efa\u4e60\u60ef\u5e76\u5f00\u59cb\u6253\u5361\uff0c\u8fd9\u91cc\u4f1a\u663e\u793a\u5168\u5e74\u7edf\u8ba1\u3002",
+                            text = strings.noHabitDataDesc,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium,
                         )
@@ -128,7 +128,7 @@ fun StatsScreen(
                         exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("\u4e60\u60ef\u7b5b\u9009", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                            Text(strings.habitFilterTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
                                 contentPadding = PaddingValues(end = 4.dp),
@@ -156,11 +156,11 @@ fun StatsScreen(
                 }
                 item(key = "stats-summary-metrics") {
                     Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
-                        StatsMetricCard("\u6253\u5361\u5929\u6570", snapshot.summaryMetrics.activeDayCount.toString(), Modifier.weight(1f), compactLayout)
-                        StatsMetricCard("\u6253\u5361\u6b21\u6570", snapshot.summaryMetrics.totalCount.toString(), Modifier.weight(1f), compactLayout)
+                        StatsMetricCard(strings.activeDaysMetric, snapshot.summaryMetrics.activeDayCount.toString(), Modifier.weight(1f), compactLayout)
+                        StatsMetricCard(strings.totalCheckInsMetric, snapshot.summaryMetrics.totalCount.toString(), Modifier.weight(1f), compactLayout)
                         StatsMetricCard(
-                            "\u6700\u957f\u8fde\u7eed",
-                            if (snapshot.summaryMetrics.longestStreak == 0) "--" else "${snapshot.summaryMetrics.longestStreak} \u5929",
+                            strings.longestStreakMetric,
+                            if (snapshot.summaryMetrics.longestStreak == 0) "--" else strings.streakDays(snapshot.summaryMetrics.longestStreak),
                             Modifier.weight(1f),
                             compactLayout,
                         )
@@ -189,6 +189,7 @@ private fun YearSwitcherCard(
     canGoToNextYear: Boolean,
     onBackToCurrentYear: () -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
     GlassCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -197,7 +198,7 @@ private fun YearSwitcherCard(
         ) {
             YearSwitchButton(type = YearSwitchType.Previous, compactLayout = compactLayout, onClick = onPreviousYear)
             Text(
-                text = "$year \u5e74",
+                text = strings.yearText(year),
                 style = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -224,6 +225,7 @@ private fun StatsHabitChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
     val accentColor = option.habit.colorArgb.toPulseColor()
     FilterChip(
         selected = selected,
@@ -249,7 +251,7 @@ private fun StatsHabitChip(
                 Column {
                     Text(option.habit.name, fontWeight = FontWeight.Medium)
                     Text(
-                        text = "${option.yearCount} \u6b21",
+                        text = strings.countTimes(option.yearCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (selected) Color.White.copy(alpha = 0.88f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -275,10 +277,17 @@ private fun StatsHabitChip(
 
 @Composable
 private fun StatsMetricCard(title: String, value: String, modifier: Modifier = Modifier, compactLayout: Boolean) {
-    GlassCard(modifier = modifier) {
-        Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+    GlassCard(modifier = modifier.heightIn(min = if (compactLayout) 108.dp else 116.dp)) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            minLines = 2,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         Spacer(modifier = Modifier.height(if (compactLayout) 8.dp else 10.dp))
-        Text(value, style = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium)
+        Text(text = value, style = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium)
     }
 }
 
@@ -307,15 +316,16 @@ private fun ChartHeader(
 
 @Composable
 private fun TrendChartCard(points: List<MonthlyTrendPoint>, compactLayout: Boolean) {
+    val strings = LocalPulseStrings.current
     var previewIndex by rememberSaveable(points.hashCode(), points.firstOrNull()?.month?.year) { mutableStateOf<Int?>(null) }
     val previewPoint = previewIndex?.let { index -> points.getOrNull(index) }
     val previewText = previewPoint?.let { point ->
-        "${point.month.format(statsMonthFormatter)}  ${point.totalCount}次"
+        strings.trendPreview(point.month, point.totalCount)
     }
 
     GlassCard {
         ChartHeader(
-            title = "月度打卡趋势",
+            title = strings.trendTitle,
             value = previewText,
             compactLayout = compactLayout,
         )
@@ -336,6 +346,7 @@ private fun TrendLineChart(
     previewIndex: Int?,
     onPreviewIndexChange: (Int?) -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
     val targetMaxValue = (points.maxOfOrNull { it.totalCount } ?: 0).coerceAtLeast(1)
     val animatedRatios = points.mapIndexed { index, point ->
         animateFloatAsState(
@@ -452,7 +463,7 @@ private fun TrendLineChart(
             points.forEachIndexed { index, point ->
                 if (index in listOf(0, 2, 4, 6, 8, 10, 11)) {
                     Text(
-                        text = point.month.format(statsMonthFormatter),
+                        text = strings.statsMonthText(point.month),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (index == previewIndex) lineColor else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (index == previewIndex) FontWeight.SemiBold else FontWeight.Normal,
@@ -467,15 +478,16 @@ private fun TrendLineChart(
 
 @Composable
 private fun HourlyDistributionCard(buckets: List<HourlyDistributionBucket>, compactLayout: Boolean) {
+    val strings = LocalPulseStrings.current
     var previewHour by rememberSaveable(buckets.hashCode(), buckets.sumOf { it.count }) { mutableStateOf<Int?>(null) }
     val previewBucket = previewHour?.let { hour -> buckets.firstOrNull { it.hour == hour } }
     val previewText = previewBucket?.let { bucket ->
-        "${bucket.hour.toString().padStart(2, '0')}:00  ${bucket.count}次"
+        strings.hourlyPreview(bucket.hour, bucket.count)
     }
 
     GlassCard {
         ChartHeader(
-            title = "24 小时打卡分布",
+            title = strings.hourlyDistributionTitle,
             value = previewText,
             compactLayout = compactLayout,
         )
@@ -579,7 +591,7 @@ private fun HourlyBarChart(
 @Composable
 private fun MonthlyDetailCard(rows: List<MonthlyDetailRow>, compactLayout: Boolean) {
     GlassCard {
-        Text("\u6708\u5ea6\u8be6\u7ec6\u6570\u636e", style = MaterialTheme.typography.titleLarge)
+        Text(LocalPulseStrings.current.monthlyDetailsTitle, style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
         DetailTableHeader()
         Spacer(modifier = Modifier.height(8.dp))
@@ -594,10 +606,11 @@ private fun MonthlyDetailCard(rows: List<MonthlyDetailRow>, compactLayout: Boole
 @Composable
 private fun DetailTableHeader() {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        DetailCell("\u6708\u4efd", 1.2f, true)
-        DetailCell("\u5929\u6570", 1f, true)
-        DetailCell("\u6b21\u6570", 1f, true)
-        DetailCell("\u8fde\u7eed", 1f, true)
+        val strings = LocalPulseStrings.current
+        DetailCell(strings.detailMonth, 1.2f, true)
+        DetailCell(strings.detailDays, 1f, true)
+        DetailCell(strings.detailCount, 1f, true)
+        DetailCell(strings.detailStreak, 1f, true)
     }
 }
 
@@ -611,10 +624,10 @@ private fun DetailTableRow(row: MonthlyDetailRow, compactLayout: Boolean) {
             .padding(horizontal = if (compactLayout) 12.dp else 14.dp, vertical = if (compactLayout) 10.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DetailCell(row.month.format(statsMonthFormatter), 1.2f, false)
+        DetailCell(LocalPulseStrings.current.statsMonthText(row.month), 1.2f, false)
         DetailCell(row.activeDayCount.toString(), 1f, false)
         DetailCell(row.totalCount.toString(), 1f, false)
-        DetailCell(if (row.longestStreak == 0) "--" else "${row.longestStreak}\u5929", 1f, false)
+        DetailCell(if (row.longestStreak == 0) "--" else LocalPulseStrings.current.streakDays(row.longestStreak), 1f, false)
     }
 }
 

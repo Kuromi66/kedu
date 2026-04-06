@@ -31,27 +31,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
+import com.pulse.checkin.ui.i18n.LocalPulseStrings
 
 @Composable
 fun SettingsScreen(
     themeMode: ThemeMode,
+    appLanguage: AppLanguage,
     notificationsGranted: Boolean,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     onRequestNotificationPermission: () -> Unit,
     onExportData: () -> Unit,
     onImportData: () -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        ScreenHeader(title = "\u8bbe\u7f6e", compactLayout = compactLayout)
+        ScreenHeader(title = strings.settingsTitle, compactLayout = compactLayout)
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
@@ -65,22 +70,29 @@ fun SettingsScreen(
             item {
                 GlassCard {
                     SettingsSectionHeader(
-                        title = "\u5916\u89c2",
+                        title = strings.appearance,
                         icon = PulseIconKind.Theme,
                         compactLayout = compactLayout,
                     )
                     Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
-                    ThemeChoiceGroup(
-                        selected = themeMode,
-                        onThemeModeChange = onThemeModeChange,
-                        compactLayout = compactLayout,
-                    )
+                    ThemeChoiceGroup(themeMode, onThemeModeChange, compactLayout)
                 }
             }
             item {
                 GlassCard {
                     SettingsSectionHeader(
-                        title = "\u6570\u636e",
+                        title = strings.languageTitle,
+                        icon = PulseIconKind.Info,
+                        compactLayout = compactLayout,
+                    )
+                    Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
+                    LanguageChoiceGroup(appLanguage, onAppLanguageChange, compactLayout)
+                }
+            }
+            item {
+                GlassCard {
+                    SettingsSectionHeader(
+                        title = strings.data,
                         icon = PulseIconKind.Data,
                         compactLayout = compactLayout,
                     )
@@ -92,32 +104,20 @@ fun SettingsScreen(
                             shape = RoundedCornerShape(18.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
                         ) {
-                            SettingsButtonContent(
-                                text = "\u5bfc\u51fa",
-                                icon = PulseIconKind.Upload,
-                                color = MaterialTheme.colorScheme.primary,
-                                compactLayout = compactLayout,
-                            )
+                            SettingsButtonContent(strings.export, PulseIconKind.Upload, MaterialTheme.colorScheme.primary, compactLayout)
                         }
                         Button(
                             onClick = onImportData,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(18.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                            ),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         ) {
-                            SettingsButtonContent(
-                                text = "\u5bfc\u5165",
-                                icon = PulseIconKind.Download,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                compactLayout = compactLayout,
-                            )
+                            SettingsButtonContent(strings.import, PulseIconKind.Download, MaterialTheme.colorScheme.onPrimary, compactLayout)
                         }
                     }
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "\u5bfc\u5165\u4f1a\u8986\u76d6\u5f53\u524d\u672c\u5730\u6570\u636e",
+                        text = strings.importOverwriteHint,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -126,12 +126,12 @@ fun SettingsScreen(
             item {
                 GlassCard {
                     SettingsSectionHeader(
-                        title = "\u901a\u77e5",
+                        title = strings.notifications,
                         icon = PulseIconKind.Bell,
                         compactLayout = compactLayout,
                         trailing = {
                             Text(
-                                text = if (notificationsGranted) "\u5df2\u5f00\u542f" else "\u672a\u5f00\u542f",
+                                text = if (notificationsGranted) strings.enabled else strings.disabled,
                                 color = if (notificationsGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
@@ -145,7 +145,7 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         SettingsButtonContent(
-                            text = if (notificationsGranted) "\u5df2\u5f00\u542f" else "\u5f00\u542f\u901a\u77e5",
+                            text = if (notificationsGranted) strings.enabled else strings.enableNotifications,
                             icon = PulseIconKind.Bell,
                             color = MaterialTheme.colorScheme.onPrimary,
                             compactLayout = compactLayout,
@@ -156,13 +156,13 @@ fun SettingsScreen(
             item {
                 GlassCard {
                     SettingsSectionHeader(
-                        title = "\u5173\u4e8e",
+                        title = strings.about,
                         icon = PulseIconKind.Info,
                         compactLayout = compactLayout,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "\u523b\u5ea6\u662f\u4e00\u4e2a\u5b8c\u5168\u672c\u5730\u7684\u4e60\u60ef\u6253\u5361\u5e94\u7528",
+                        text = strings.aboutText,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -184,10 +184,7 @@ private fun SettingsSectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Box(
                 modifier = Modifier
                     .size(if (compactLayout) 34.dp else 38.dp)
@@ -222,11 +219,7 @@ private fun SettingsButtonContent(
             compactLayout = compactLayout,
             modifier = Modifier.size(if (compactLayout) 18.dp else 20.dp),
         )
-        Text(
-            text = text,
-            color = color,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Text(text = text, color = color, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -243,12 +236,7 @@ private fun ThemeChoiceGroup(
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
     ) {
         ThemeMode.values().forEachIndexed { index, mode ->
-            ThemeChoiceItem(
-                mode = mode,
-                selected = selected == mode,
-                compactLayout = compactLayout,
-                onClick = { onThemeModeChange(mode) },
-            )
+            ThemeChoiceItem(mode, selected == mode, compactLayout) { onThemeModeChange(mode) }
             if (index != ThemeMode.values().lastIndex) {
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = if (compactLayout) 14.dp else 16.dp),
@@ -266,10 +254,11 @@ private fun ThemeChoiceItem(
     compactLayout: Boolean,
     onClick: () -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
     val title = when (mode) {
-        ThemeMode.LIGHT -> "\u6d45\u8272"
-        ThemeMode.SYSTEM -> "\u8ddf\u968f\u7cfb\u7edf"
-        ThemeMode.DARK -> "\u6df1\u8272"
+        ThemeMode.LIGHT -> strings.lightMode
+        ThemeMode.SYSTEM -> strings.systemMode
+        ThemeMode.DARK -> strings.darkMode
     }
     val icon = when (mode) {
         ThemeMode.LIGHT -> PulseIconKind.LightMode
@@ -277,6 +266,57 @@ private fun ThemeChoiceItem(
         ThemeMode.DARK -> PulseIconKind.DarkMode
     }
 
+    ChoiceRow(title, icon, selected, compactLayout, onClick)
+}
+
+@Composable
+private fun LanguageChoiceGroup(
+    selected: AppLanguage,
+    onAppLanguageChange: (AppLanguage) -> Unit,
+    compactLayout: Boolean,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(if (compactLayout) 22.dp else 24.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+    ) {
+        AppLanguage.values().forEachIndexed { index, language ->
+            LanguageChoiceItem(language, selected == language, compactLayout) { onAppLanguageChange(language) }
+            if (index != AppLanguage.values().lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = if (compactLayout) 14.dp else 16.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguageChoiceItem(
+    language: AppLanguage,
+    selected: Boolean,
+    compactLayout: Boolean,
+    onClick: () -> Unit,
+) {
+    val strings = LocalPulseStrings.current
+    val title = when (language) {
+        AppLanguage.ZH -> strings.chinese
+        AppLanguage.EN -> strings.english
+    }
+
+    ChoiceRow(title, PulseIconKind.Info, selected, compactLayout, onClick)
+}
+
+@Composable
+private fun ChoiceRow(
+    title: String,
+    icon: PulseIconKind,
+    selected: Boolean,
+    compactLayout: Boolean,
+    onClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.SortMode
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.domain.model.UserPreferences
@@ -17,6 +18,7 @@ private val Context.dataStore by preferencesDataStore(name = "pulse_preferences"
 class AppPreferences(private val context: Context) {
     private object Keys {
         val themeMode = stringPreferencesKey("theme_mode")
+        val appLanguage = stringPreferencesKey("app_language")
         val sortMode = stringPreferencesKey("sort_mode")
         val onboardingSeen = booleanPreferencesKey("onboarding_seen")
         val notificationPromptSeen = booleanPreferencesKey("notification_prompt_seen")
@@ -27,6 +29,9 @@ class AppPreferences(private val context: Context) {
             themeMode = preferences[Keys.themeMode]
                 ?.let { ThemeMode.valueOf(it) }
                 ?: ThemeMode.LIGHT,
+            appLanguage = preferences[Keys.appLanguage]
+                ?.let { AppLanguage.valueOf(it) }
+                ?: AppLanguage.ZH,
             sortMode = preferences[Keys.sortMode]
                 ?.let { SortMode.valueOf(it) }
                 ?: SortMode.MANUAL,
@@ -40,6 +45,7 @@ class AppPreferences(private val context: Context) {
     suspend fun replaceAll(userPreferences: UserPreferences) {
         context.dataStore.edit { preferences ->
             preferences[Keys.themeMode] = userPreferences.themeMode.name
+            preferences[Keys.appLanguage] = userPreferences.appLanguage.name
             preferences[Keys.sortMode] = userPreferences.sortMode.name
             preferences[Keys.onboardingSeen] = userPreferences.onboardingSeen
             preferences[Keys.notificationPromptSeen] = userPreferences.notificationPromptSeen
@@ -49,6 +55,12 @@ class AppPreferences(private val context: Context) {
     suspend fun setThemeMode(themeMode: ThemeMode) {
         context.dataStore.edit { preferences ->
             preferences[Keys.themeMode] = themeMode.name
+        }
+    }
+
+    suspend fun setAppLanguage(appLanguage: AppLanguage) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.appLanguage] = appLanguage.name
         }
     }
 }

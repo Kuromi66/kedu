@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pulse.checkin.AppContainer
 import com.pulse.checkin.data.backup.BackupManager
+import com.pulse.checkin.data.backup.BackupSummary
 import com.pulse.checkin.data.preferences.AppPreferences
+import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.model.ThemeMode
@@ -232,13 +234,11 @@ class AppViewModel(
         }
     }
 
-    suspend fun exportBackup(uri: Uri): Result<String> {
-        return backupManager.exportToUri(uri).map { summary ->
-            "\u5df2\u5bfc\u51fa ${summary.habitCount} \u4e2a\u4e60\u60ef\u3001${summary.eventCount} \u6761\u8bb0\u5f55"
-        }
+    suspend fun exportBackup(uri: Uri): Result<BackupSummary> {
+        return backupManager.exportToUri(uri)
     }
 
-    suspend fun importBackup(uri: Uri): Result<String> {
+    suspend fun importBackup(uri: Uri): Result<BackupSummary> {
         uiState.value.habits.forEach { reminderScheduler.cancelForHabit(it.id) }
         val result = backupManager.importFromUri(uri)
         if (result.isSuccess) {
@@ -248,9 +248,7 @@ class AppViewModel(
             selectedStatsYear.value = LocalDate.now().year
             reminderScheduler.syncAll(habitRepository.getActiveReminderHabits())
         }
-        return result.map { summary ->
-            "\u5df2\u5bfc\u5165 ${summary.habitCount} \u4e2a\u4e60\u60ef\u3001${summary.eventCount} \u6761\u8bb0\u5f55"
-        }
+        return result
     }
 
     fun archiveHabit(habitId: Long) {
@@ -263,6 +261,12 @@ class AppViewModel(
     fun setThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             appPreferences.setThemeMode(themeMode)
+        }
+    }
+
+    fun setAppLanguage(appLanguage: AppLanguage) {
+        viewModelScope.launch {
+            appPreferences.setAppLanguage(appLanguage)
         }
     }
 

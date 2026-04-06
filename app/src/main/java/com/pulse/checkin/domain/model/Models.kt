@@ -13,8 +13,14 @@ enum class SortMode {
     MANUAL,
 }
 
+enum class AppLanguage {
+    ZH,
+    EN,
+}
+
 data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.LIGHT,
+    val appLanguage: AppLanguage = AppLanguage.ZH,
     val sortMode: SortMode = SortMode.MANUAL,
     val onboardingSeen: Boolean = false,
     val notificationPromptSeen: Boolean = false,

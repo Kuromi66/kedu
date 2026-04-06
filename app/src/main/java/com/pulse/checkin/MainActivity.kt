@@ -1,14 +1,14 @@
 package com.pulse.checkin
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.pulse.checkin.ui.AppViewModel
 import com.pulse.checkin.ui.PulseApp
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     private val viewModel by viewModels<AppViewModel> {
         AppViewModel.factory((application as PulseApplication).container)
     }
