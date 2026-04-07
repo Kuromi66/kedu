@@ -157,6 +157,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     onSelectDate = viewModel::selectDate,
                                     onSelectHabit = viewModel::selectHistoryHabit,
                                     onBackToCurrentMonth = { viewModel.selectDate(LocalDate.now()) },
+                                    onBackfillHabit = viewModel::backfillHabit,
                                     onDeleteRecord = viewModel::deleteCheckInRecord,
                                 )
                                 AppTab.STATS -> StatsScreen(

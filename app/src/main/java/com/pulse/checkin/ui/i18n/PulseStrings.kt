@@ -87,6 +87,10 @@ class PulseStrings(private val context: Context) {
     fun countTimes(count: Int): String = context.getString(R.string.count_times, count)
     val noDayRecords: String get() = context.getString(R.string.no_day_records)
     fun totalCheckIns(count: Int): String = context.getString(R.string.total_check_ins, count)
+    val backfill: String get() = context.getString(R.string.backfill)
+    val confirmBackfill: String get() = context.getString(R.string.confirm_backfill)
+    fun confirmBackfillText(date: String, habitName: String): String = context.getString(R.string.confirm_backfill_text, date, habitName)
+    val backfilledRecord: String get() = context.getString(R.string.backfilled_record)
     fun deleteRecordAt(time: String): String = context.getString(R.string.delete_record_at, time)
     fun nthCheckIn(index: Int): String = context.getString(R.string.nth_check_in, index + 1)
 

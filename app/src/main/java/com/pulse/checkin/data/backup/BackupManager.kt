@@ -108,6 +108,7 @@ private fun CheckInEventEntity.toJson(): JSONObject = JSONObject()
     .put("habitId", habitId)
     .put("occurredAtEpochMillis", occurredAtEpochMillis)
     .put("localDate", localDate)
+    .put("isBackfilled", isBackfilled)
 
 private fun JSONArray.toHabitEntities(): List<HabitEntity> = buildList(length()) {
     repeat(length()) { index ->
@@ -140,6 +141,7 @@ private fun JSONArray.toEventEntities(): List<CheckInEventEntity> = buildList(le
                 habitId = item.optLong("habitId"),
                 occurredAtEpochMillis = item.optLong("occurredAtEpochMillis"),
                 localDate = item.optString("localDate"),
+                isBackfilled = item.optBoolean("isBackfilled", false),
             ),
         )
     }

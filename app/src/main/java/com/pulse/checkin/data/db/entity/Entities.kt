@@ -25,4 +25,5 @@ data class CheckInEventEntity(
     val habitId: Long,
     val occurredAtEpochMillis: Long,
     val localDate: String,
+    val isBackfilled: Boolean = false,
 )

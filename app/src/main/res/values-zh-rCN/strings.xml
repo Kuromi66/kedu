@@ -53,6 +53,10 @@
     <string name="count_times">%1$d 次</string>
     <string name="no_day_records">当天暂无打卡记录</string>
     <string name="total_check_ins">共 %1$d 次打卡</string>
+    <string name="backfill">补卡</string>
+    <string name="confirm_backfill">确认补卡</string>
+    <string name="confirm_backfill_text">为 %1$s 的 %2$s 补卡一次？</string>
+    <string name="backfilled_record">补卡</string>
     <string name="delete_record_at">删除 %1$s 的打卡记录？</string>
     <string name="nth_check_in">第 %1$d 次</string>
     <string name="stats_title">统计</string>

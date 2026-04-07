@@ -15,7 +15,12 @@ interface HabitRepository {
 
 interface CheckInRepository {
     fun observeAllEvents(): Flow<List<CheckInEvent>>
-    suspend fun addCheckIn(habitId: Long, occurredAtEpochMillis: Long = System.currentTimeMillis())
+    suspend fun addCheckIn(
+        habitId: Long,
+        occurredAtEpochMillis: Long = System.currentTimeMillis(),
+        localDate: LocalDate? = null,
+        isBackfilled: Boolean = false,
+    )
     suspend fun removeLatestForDay(habitId: Long, date: LocalDate)
     suspend fun deleteCheckIn(eventId: Long)
 }

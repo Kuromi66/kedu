@@ -199,6 +199,18 @@ class AppViewModel(
         }
     }
 
+    fun backfillHabit(habitId: Long, targetDate: LocalDate) {
+        if (!targetDate.isBefore(LocalDate.now())) return
+        viewModelScope.launch {
+            checkInRepository.addCheckIn(
+                habitId = habitId,
+                occurredAtEpochMillis = System.currentTimeMillis(),
+                localDate = targetDate,
+                isBackfilled = true,
+            )
+        }
+    }
+
     fun deleteCheckInRecord(eventId: Long) {
         viewModelScope.launch {
             checkInRepository.deleteCheckIn(eventId)

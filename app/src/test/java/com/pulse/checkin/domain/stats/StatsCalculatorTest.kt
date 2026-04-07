@@ -107,6 +107,49 @@ class StatsCalculatorTest {
         assertEquals(2, snapshot.selectedDateDetails.single().count)
     }
 
+
+    @Test
+    fun `month snapshot keeps backfilled record flag`() {
+        val habit = habit(targetEnabled = false)
+        val month = YearMonth.from(today)
+        val events = listOf(
+            event(1, today, 1, isBackfilled = false),
+            event(1, today, 2, isBackfilled = true),
+        )
+
+        val records = calculator.buildMonthSnapshot(
+            habits = listOf(habit),
+            events = events,
+            month = month,
+            selectedDate = today,
+            today = today,
+        ).selectedDateDetails.single().records
+
+        assertEquals(listOf(true, false), records.map { it.isBackfilled })
+    }
+
+
+    @Test
+    fun `month snapshot marks calendar day with backfilled record`() {
+        val habit = habit(targetEnabled = false)
+        val month = YearMonth.from(today)
+        val events = listOf(
+            event(1, today, 1, isBackfilled = true),
+            event(1, today.minusDays(1), 2, isBackfilled = false),
+        )
+
+        val calendarDays = calculator.buildMonthSnapshot(
+            habits = listOf(habit),
+            events = events,
+            month = month,
+            selectedDate = today,
+            today = today,
+        ).calendarDays
+
+        assertTrue(calendarDays.first { it.date == today }.hasBackfilledRecord)
+        assertFalse(calendarDays.first { it.date == today.minusDays(1) }.hasBackfilledRecord)
+    }
+
     @Test
     fun `year snapshot aggregates monthly totals and active days`() {
         val habit = habit(targetEnabled = false)
@@ -184,6 +227,7 @@ class StatsCalculatorTest {
         millis: Long,
         hour: Int = 0,
         minute: Int = 0,
+        isBackfilled: Boolean = false,
     ): CheckInEvent {
         val epochMillis = date.atTime(hour, minute).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() + millis
         return CheckInEvent(
@@ -191,6 +235,7 @@ class StatsCalculatorTest {
             habitId = habitId,
             occurredAtEpochMillis = epochMillis,
             localDate = date,
+            isBackfilled = isBackfilled,
         )
     }
 }

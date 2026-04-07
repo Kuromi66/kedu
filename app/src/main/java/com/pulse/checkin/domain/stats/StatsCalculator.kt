@@ -31,6 +31,7 @@ data class CheckInRecordItem(
     val id: Long,
     val occurredAtEpochMillis: Long,
     val displayTime: LocalTime,
+    val isBackfilled: Boolean = false,
 )
 
 typealias TodayCheckInRecord = CheckInRecordItem
@@ -73,6 +74,7 @@ data class CalendarDaySummary(
     val date: LocalDate,
     val totalCount: Int,
     val completedHabitCount: Int,
+    val hasBackfilledRecord: Boolean,
 )
 
 data class MonthSnapshot(
@@ -227,6 +229,7 @@ class LocalStatsCalculator : StatsCalculator {
                 completedHabitCount = habits.count { habit ->
                     reachedGoal(habit, counts[habit.id] ?: 0)
                 },
+                hasBackfilledRecord = eventsForDay.any { it.isBackfilled },
             )
         }
         val selectedEvents = groupedByDate[selectedDate].orEmpty()
@@ -379,6 +382,7 @@ class LocalStatsCalculator : StatsCalculator {
                     displayTime = Instant.ofEpochMilli(event.occurredAtEpochMillis)
                         .atZone(ZoneId.systemDefault())
                         .toLocalTime(),
+                    isBackfilled = event.isBackfilled,
                 )
             }
     }

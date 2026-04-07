@@ -56,6 +56,10 @@
     <string name="count_times">%1$d times</string>
     <string name="no_day_records">No check-ins for this day</string>
     <string name="total_check_ins">%1$d check-ins</string>
+    <string name="backfill">Backfill</string>
+    <string name="confirm_backfill">Confirm</string>
+    <string name="confirm_backfill_text">Add one backfill for %2$s on %1$s?</string>
+    <string name="backfilled_record">Backfilled</string>
     <string name="delete_record_at">Delete the %1$s check-in record?</string>
     <string name="nth_check_in">Check-in %1$d</string>
 

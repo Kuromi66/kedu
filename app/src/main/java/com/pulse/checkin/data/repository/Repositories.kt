@@ -41,8 +41,13 @@ class CheckInRepositoryImpl(
         return eventDao.observeAllEvents().map { events -> events.map(CheckInEventEntity::toDomain) }
     }
 
-    override suspend fun addCheckIn(habitId: Long, occurredAtEpochMillis: Long) {
-        val date = Instant.ofEpochMilli(occurredAtEpochMillis)
+    override suspend fun addCheckIn(
+        habitId: Long,
+        occurredAtEpochMillis: Long,
+        localDate: LocalDate?,
+        isBackfilled: Boolean,
+    ) {
+        val date = localDate ?: Instant.ofEpochMilli(occurredAtEpochMillis)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
         eventDao.insert(
@@ -50,6 +55,7 @@ class CheckInRepositoryImpl(
                 habitId = habitId,
                 occurredAtEpochMillis = occurredAtEpochMillis,
                 localDate = date.toString(),
+                isBackfilled = isBackfilled,
             ),
         )
     }
@@ -99,4 +105,5 @@ private fun CheckInEventEntity.toDomain(): CheckInEvent = CheckInEvent(
     habitId = habitId,
     occurredAtEpochMillis = occurredAtEpochMillis,
     localDate = LocalDate.parse(localDate),
+    isBackfilled = isBackfilled,
 )

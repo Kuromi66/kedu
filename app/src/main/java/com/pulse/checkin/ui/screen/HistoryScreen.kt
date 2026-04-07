@@ -98,6 +98,7 @@ fun HistoryScreen(
     onSelectDate: (LocalDate) -> Unit,
     onSelectHabit: (Long?) -> Unit,
     onBackToCurrentMonth: () -> Unit,
+    onBackfillHabit: (Long, LocalDate) -> Unit,
     onDeleteRecord: (Long) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
@@ -209,8 +210,10 @@ fun HistoryScreen(
     selectedDetail?.let { detail ->
         HistoryRecordSheet(
             detail = detail,
+            selectedDate = selectedDate,
             compactLayout = compactLayout,
             onDismiss = { selectedDetailHabitId = null },
+            onBackfillHabit = onBackfillHabit,
             onDeleteRecord = onDeleteRecord,
         )
     }
@@ -686,6 +689,22 @@ private fun CalendarCell(
             style = if (compactLayout) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,
             maxLines = 1,
         )
+        if (!previewMode && summary?.hasBackfilledRecord == true) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = if (compactLayout) 2.dp else 3.dp)
+                    .size(if (compactLayout) 4.dp else 5.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (selected || density > 0.58f) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f)
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                    ),
+            )
+        }
     }
 }
 
@@ -734,12 +753,16 @@ private fun DayDetailCard(detail: HistoryHabitDetail, compactLayout: Boolean, on
 @Composable
 private fun HistoryRecordSheet(
     detail: HistoryHabitDetail,
+    selectedDate: LocalDate,
     compactLayout: Boolean,
     onDismiss: () -> Unit,
+    onBackfillHabit: (Long, LocalDate) -> Unit,
     onDeleteRecord: (Long) -> Unit,
 ) {
-    var pendingDeleteRecord by remember(detail.habit.id) { mutableStateOf<CheckInRecordItem?>(null) }
+    var pendingDeleteRecord by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
+    var pendingBackfill by remember(detail.habit.id, selectedDate) { mutableStateOf(false) }
     val strings = LocalPulseStrings.current
+    val canBackfill = selectedDate.isBefore(LocalDate.now())
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -781,6 +804,15 @@ private fun HistoryRecordSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                if (canBackfill) {
+                    TextButton(onClick = { pendingBackfill = true }) {
+                        Text(
+                            text = strings.backfill,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
             }
 
             if (detail.records.isEmpty()) {
@@ -814,6 +846,20 @@ private fun HistoryRecordSheet(
             onDismiss = { pendingDeleteRecord = null },
         )
     }
+
+    if (pendingBackfill) {
+        DestructiveConfirmDialog(
+            message = strings.confirmBackfillText(strings.historyDetailDate(selectedDate), detail.habit.name),
+            confirmLabel = strings.confirmBackfill,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                onBackfillHabit(detail.habit.id, selectedDate)
+                pendingBackfill = false
+            },
+            onDismiss = { pendingBackfill = false },
+            confirmColor = MaterialTheme.colorScheme.primary,
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -836,8 +882,23 @@ private fun HistoryRecordRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
             Text(strings.nthCheckIn(index), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            if (record.isBackfilled) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = strings.backfilledRecord,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
