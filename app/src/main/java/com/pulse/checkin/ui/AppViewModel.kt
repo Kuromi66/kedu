@@ -24,11 +24,13 @@ import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.reminder.ReminderScheduler
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 enum class AppTab {
@@ -86,6 +88,13 @@ private data class BaseUiInputs(
     val selectedDate: LocalDate,
 )
 
+private data class DerivedUiInputs(
+    val base: BaseUiInputs,
+    val rawHistoryHabitId: Long?,
+    val statsYear: Int,
+    val rawStatsHabitId: Long?,
+)
+
 class AppViewModel(
     private val habitRepository: HabitRepository,
     private val checkInRepository: CheckInRepository,
@@ -99,6 +108,19 @@ class AppViewModel(
     private val selectedHistoryHabitId = MutableStateFlow<Long?>(null)
     private val selectedStatsYear = MutableStateFlow(LocalDate.now().year)
     private val selectedStatsHabitId = MutableStateFlow<Long?>(null)
+    private val currentDate = MutableStateFlow(LocalDate.now())
+
+    init {
+        viewModelScope.launch {
+            while (isActive) {
+                val today = LocalDate.now()
+                if (currentDate.value != today) {
+                    currentDate.value = today
+                }
+                delay(60_000L)
+            }
+        }
+    }
 
     val uiState: StateFlow<AppUiState> = combine(
         habitRepository.observeHabits(),
@@ -117,9 +139,21 @@ class AppViewModel(
     }.combine(selectedHistoryHabitId) { base, rawHistoryHabitId ->
         base to rawHistoryHabitId
     }.combine(selectedStatsYear) { (base, rawHistoryHabitId), statsYear ->
-        Triple(base, rawHistoryHabitId, statsYear)
-    }.combine(selectedStatsHabitId) { (base, rawHistoryHabitId, statsYear), rawStatsHabitId ->
-        val today = LocalDate.now()
+        Pair(base, rawHistoryHabitId) to statsYear
+    }.combine(selectedStatsHabitId) { pairWithYear, rawStatsHabitId ->
+        val (baseAndHistory, statsYear) = pairWithYear
+        val (base, rawHistoryHabitId) = baseAndHistory
+        DerivedUiInputs(
+            base = base,
+            rawHistoryHabitId = rawHistoryHabitId,
+            statsYear = statsYear,
+            rawStatsHabitId = rawStatsHabitId,
+        )
+    }.combine(currentDate) { derived, today ->
+        val base = derived.base
+        val rawHistoryHabitId = derived.rawHistoryHabitId
+        val statsYear = derived.statsYear
+        val rawStatsHabitId = derived.rawStatsHabitId
         val effectiveHistoryHabitId = rawHistoryHabitId?.takeIf { id -> base.habits.any { habit -> habit.id == id } }
             ?: base.habits.minByOrNull { it.sortOrder }?.id
         val effectiveStatsHabitId = rawStatsHabitId?.takeIf { id -> base.habits.any { habit -> habit.id == id } }

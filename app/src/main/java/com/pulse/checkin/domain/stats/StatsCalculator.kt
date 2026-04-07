@@ -106,12 +106,16 @@ data class YearHabitOption(
 )
 
 data class YearSummaryMetrics(
+    val completionDayCount: Int,
+    val trackedDayCount: Int,
     val activeDayCount: Int,
     val totalCount: Int,
     val longestStreak: Int,
 ) {
     companion object {
         val Empty = YearSummaryMetrics(
+            completionDayCount = 0,
+            trackedDayCount = 0,
             activeDayCount = 0,
             totalCount = 0,
             longestStreak = 0,
@@ -273,6 +277,7 @@ class LocalStatsCalculator : StatsCalculator {
     ): YearSnapshot {
         val sortedHabits = habits.sortedBy { it.sortOrder }
         val yearEvents = events.filter { it.localDate.year == year }
+        val dailyCounts = buildDailyCounts(events)
         val habitOptions = sortedHabits.map { habit ->
             val eventsForHabit = yearEvents.filter { it.habitId == habit.id }
             YearHabitOption(
@@ -307,7 +312,19 @@ class LocalStatsCalculator : StatsCalculator {
                 },
             )
         }
+        val selectedDailyCounts = dailyCounts[selectedHabit.id].orEmpty()
+            .filterKeys { date -> date.year == year }
+        val dayUpperBound = LocalDate.of(year, 12, 31).dayOfYear
+        val completionDayCount = if (selectedHabit.targetCountOrDefault() != null) {
+            selectedDailyCounts.values.count { count ->
+                count >= (selectedHabit.targetCountOrDefault() ?: 1)
+            }
+        } else {
+            selectedDailyCounts.size
+        }
         val metrics = YearSummaryMetrics(
+            completionDayCount = completionDayCount,
+            trackedDayCount = dayUpperBound,
             activeDayCount = selectedEvents.map { it.localDate }.distinct().size,
             totalCount = selectedEvents.size,
             longestStreak = computeLongestStreak(selectedEvents.map { it.localDate }.distinct()),

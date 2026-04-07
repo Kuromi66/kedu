@@ -164,9 +164,58 @@ class StatsCalculatorTest {
 
         assertEquals(4, snapshot.summaryMetrics.totalCount)
         assertEquals(3, snapshot.summaryMetrics.activeDayCount)
+        assertEquals(365, snapshot.summaryMetrics.trackedDayCount)
+        assertEquals(3, snapshot.summaryMetrics.completionDayCount)
         assertEquals(2, snapshot.monthlyDetails[0].totalCount)
         assertEquals(2, snapshot.monthlyDetails[1].totalCount)
         assertEquals(2, snapshot.monthlyDetails[1].activeDayCount)
+    }
+
+
+    @Test
+    fun `year completion uses active days for non target habit`() {
+        val habit = habit(targetEnabled = false)
+        val events = listOf(
+            event(1, LocalDate.of(2026, 1, 2), 1),
+            event(1, LocalDate.of(2026, 1, 2), 2),
+            event(1, LocalDate.of(2026, 1, 5), 3),
+        )
+
+        val snapshot = calculator.buildYearSnapshot(listOf(habit), events, 2026, 1, today)
+
+        assertEquals(2, snapshot.summaryMetrics.completionDayCount)
+        assertEquals(365, snapshot.summaryMetrics.trackedDayCount)
+    }
+
+    @Test
+    fun `year completion uses reached days for target habit`() {
+        val habit = habit(targetEnabled = true, targetCount = 2)
+        val events = listOf(
+            event(1, LocalDate.of(2026, 1, 2), 1),
+            event(1, LocalDate.of(2026, 1, 2), 2),
+            event(1, LocalDate.of(2026, 1, 5), 3),
+        )
+
+        val snapshot = calculator.buildYearSnapshot(listOf(habit), events, 2026, 1, today)
+
+        assertEquals(1, snapshot.summaryMetrics.completionDayCount)
+        assertEquals(365, snapshot.summaryMetrics.trackedDayCount)
+    }
+
+
+    @Test
+    fun `year completion only counts days in selected year`() {
+        val habit = habit(targetEnabled = false)
+        val events = listOf(
+            event(1, LocalDate.of(2025, 12, 31), 1),
+            event(1, LocalDate.of(2026, 1, 2), 2),
+            event(1, LocalDate.of(2026, 1, 5), 3),
+        )
+
+        val snapshot = calculator.buildYearSnapshot(listOf(habit), events, 2026, 1, today)
+
+        assertEquals(2, snapshot.summaryMetrics.completionDayCount)
+        assertEquals(2, snapshot.summaryMetrics.activeDayCount)
     }
 
     @Test

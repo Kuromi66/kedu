@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.stats.HourlyDistributionBucket
@@ -155,16 +157,7 @@ fun StatsScreen(
                     )
                 }
                 item(key = "stats-summary-metrics") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
-                        StatsMetricCard(strings.activeDaysMetric, snapshot.summaryMetrics.activeDayCount.toString(), Modifier.weight(1f), compactLayout)
-                        StatsMetricCard(strings.totalCheckInsMetric, snapshot.summaryMetrics.totalCount.toString(), Modifier.weight(1f), compactLayout)
-                        StatsMetricCard(
-                            strings.longestStreakMetric,
-                            if (snapshot.summaryMetrics.longestStreak == 0) "--" else strings.streakDays(snapshot.summaryMetrics.longestStreak),
-                            Modifier.weight(1f),
-                            compactLayout,
-                        )
-                    }
+                    StatsOverviewCard(snapshot = snapshot, compactLayout = compactLayout)
                 }
                 item(key = "stats-trend-chart") {
                     TrendChartCard(snapshot.trendPoints, compactLayout)
@@ -276,18 +269,134 @@ private fun StatsHabitChip(
 }
 
 @Composable
-private fun StatsMetricCard(title: String, value: String, modifier: Modifier = Modifier, compactLayout: Boolean) {
-    GlassCard(modifier = modifier.heightIn(min = if (compactLayout) 108.dp else 116.dp)) {
+private fun StatsOverviewCard(snapshot: YearSnapshot, compactLayout: Boolean) {
+    val strings = LocalPulseStrings.current
+    val completionProgress = if (snapshot.summaryMetrics.trackedDayCount == 0) {
+        0f
+    } else {
+        snapshot.summaryMetrics.completionDayCount.toFloat() / snapshot.summaryMetrics.trackedDayCount.toFloat()
+    }.coerceIn(0f, 1f)
+    val completionPercent = (completionProgress * 100f).toInt()
+    val animatedCompletionProgress by animateFloatAsState(
+        targetValue = completionProgress,
+        animationSpec = tween(durationMillis = 420),
+        label = "stats-completion-progress",
+    )
+    val animatedCompletionPercent by animateIntAsState(
+        targetValue = completionPercent,
+        animationSpec = tween(durationMillis = 320),
+        label = "stats-completion-percent",
+    )
+    val ringSize = if (compactLayout) 74.dp else 84.dp
+    val ringStroke = if (compactLayout) 9.dp else 11.dp
+    val metricValueStyle = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium
+    val metricLabelStyle = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium
+    val ringTextStyle = if (compactLayout) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge
+    val ringTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+    val ringProgressColor = MaterialTheme.colorScheme.primary
+    val metricLabelTopPadding = if (compactLayout) 8.dp else 10.dp
+
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 18.dp else 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(ringSize),
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawArc(
+                        color = ringTrackColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = ringStroke.toPx(), cap = StrokeCap.Round),
+                    )
+                    if (animatedCompletionProgress > 0f) {
+                        drawArc(
+                            color = ringProgressColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * animatedCompletionProgress,
+                            useCenter = false,
+                            style = Stroke(width = ringStroke.toPx(), cap = StrokeCap.Round),
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "$animatedCompletionPercent%",
+                        style = ringTextStyle,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = strings.completionRateMetric,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StatsOverviewMetric(
+                    value = snapshot.summaryMetrics.activeDayCount.toString(),
+                    label = strings.activeDaysMetric,
+                    valueStyle = metricValueStyle,
+                    labelStyle = metricLabelStyle,
+                    modifier = Modifier.weight(1f),
+                    labelTopPadding = metricLabelTopPadding,
+                )
+                StatsOverviewMetric(
+                    value = snapshot.summaryMetrics.totalCount.toString(),
+                    label = strings.totalCheckInsMetric,
+                    valueStyle = metricValueStyle,
+                    labelStyle = metricLabelStyle,
+                    modifier = Modifier.weight(1f),
+                    labelTopPadding = metricLabelTopPadding,
+                )
+                StatsOverviewMetric(
+                    value = snapshot.summaryMetrics.longestStreak.toString(),
+                    label = strings.longestStreakMetric,
+                    valueStyle = metricValueStyle,
+                    labelStyle = metricLabelStyle,
+                    modifier = Modifier.weight(1f),
+                    labelTopPadding = metricLabelTopPadding,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsOverviewMetric(
+    value: String,
+    label: String,
+    valueStyle: androidx.compose.ui.text.TextStyle,
+    labelStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    labelTopPadding: androidx.compose.ui.unit.Dp = 0.dp,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(text = value, style = valueStyle, fontWeight = FontWeight.Bold)
         Text(
-            text = title,
+            text = label,
+            modifier = Modifier.padding(top = labelTopPadding),
+            style = labelStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-            minLines = 2,
+            textAlign = TextAlign.Center,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
         )
-        Spacer(modifier = Modifier.height(if (compactLayout) 8.dp else 10.dp))
-        Text(text = value, style = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium)
     }
 }
 

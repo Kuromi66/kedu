@@ -3,6 +3,8 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -55,12 +57,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -174,21 +179,7 @@ fun HistoryScreen(
                 }
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp)) {
-                    HistoryMetric(strings.monthCountMetric, snapshot.monthTotalCount.toString(), Modifier.weight(1f), compactLayout)
-                    HistoryMetric(
-                        strings.completionRateMetric,
-                        if (snapshot.targetHabitDays == 0) "--" else "${(snapshot.completedHabitDays * 100 / snapshot.targetHabitDays)}%",
-                        Modifier.weight(1f),
-                        compactLayout,
-                    )
-                    HistoryMetric(
-                        strings.currentStreakMetric,
-                        if (snapshot.bestCurrentStreak == 0) "--" else strings.streakDays(snapshot.bestCurrentStreak),
-                        Modifier.weight(1f),
-                        compactLayout,
-                    )
-                }
+                HistoryOverviewCard(snapshot = snapshot, compactLayout = compactLayout)
             }
             item {
                 Text(strings.historyDetailDate(selectedDate), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
@@ -497,18 +488,136 @@ private fun HistoryFilterChip(
 }
 
 @Composable
-private fun HistoryMetric(title: String, value: String, modifier: Modifier = Modifier, compactLayout: Boolean) {
-    GlassCard(modifier = modifier.heightIn(min = if (compactLayout) 108.dp else 116.dp)) {
+private fun HistoryOverviewCard(snapshot: MonthSnapshot, compactLayout: Boolean) {
+    val strings = LocalPulseStrings.current
+    val completionProgress = if (snapshot.targetHabitDays == 0) {
+        0f
+    } else {
+        snapshot.completedHabitDays.toFloat() / snapshot.targetHabitDays.toFloat()
+    }.coerceIn(0f, 1f)
+    val completionPercent = (completionProgress * 100f).toInt()
+    val animatedCompletionProgress by animateFloatAsState(
+        targetValue = completionProgress,
+        animationSpec = tween(durationMillis = 420),
+        label = "history-completion-progress",
+    )
+    val animatedCompletionPercent by animateIntAsState(
+        targetValue = completionPercent,
+        animationSpec = tween(durationMillis = 320),
+        label = "history-completion-percent",
+    )
+    val activeDays = snapshot.calendarDays.count { it.totalCount > 0 }
+    val ringSize = if (compactLayout) 74.dp else 84.dp
+    val ringStroke = if (compactLayout) 9.dp else 11.dp
+    val metricValueStyle = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium
+    val metricLabelStyle = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium
+    val ringTextStyle = if (compactLayout) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge
+    val ringTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+    val ringProgressColor = MaterialTheme.colorScheme.primary
+    val metricLabelTopPadding = if (compactLayout) 8.dp else 10.dp
+
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 18.dp else 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(ringSize),
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawArc(
+                        color = ringTrackColor,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(width = ringStroke.toPx(), cap = StrokeCap.Round),
+                    )
+                    if (completionProgress > 0f) {
+                        drawArc(
+                            color = ringProgressColor,
+                            startAngle = -90f,
+                            sweepAngle = 360f * animatedCompletionProgress,
+                            useCenter = false,
+                            style = Stroke(width = ringStroke.toPx(), cap = StrokeCap.Round),
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "$animatedCompletionPercent%",
+                        style = ringTextStyle,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = strings.completionRateMetric,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HistoryOverviewMetric(
+                    value = snapshot.monthTotalCount.toString(),
+                    label = strings.monthCountMetric,
+                    valueStyle = metricValueStyle,
+                    labelStyle = metricLabelStyle,
+                    modifier = Modifier.weight(1f),
+                    labelTopPadding = metricLabelTopPadding,
+                )
+                HistoryOverviewMetric(
+                    value = activeDays.toString(),
+                    label = strings.activeDaysMetric,
+                    valueStyle = metricValueStyle,
+                    labelStyle = metricLabelStyle,
+                    modifier = Modifier.weight(1f),
+                    labelTopPadding = metricLabelTopPadding,
+                )
+                HistoryOverviewMetric(
+                    value = snapshot.bestCurrentStreak.toString(),
+                    label = strings.currentStreakMetric,
+                    valueStyle = metricValueStyle,
+                    labelStyle = metricLabelStyle,
+                    modifier = Modifier.weight(1f),
+                    labelTopPadding = metricLabelTopPadding,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryOverviewMetric(
+    value: String,
+    label: String,
+    valueStyle: androidx.compose.ui.text.TextStyle,
+    labelStyle: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier,
+    labelTopPadding: androidx.compose.ui.unit.Dp = 0.dp,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(text = value, style = valueStyle, fontWeight = FontWeight.Bold)
         Text(
-            text = title,
+            text = label,
+            style = labelStyle,
+            modifier = Modifier.padding(top = labelTopPadding),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-            minLines = 2,
+            textAlign = TextAlign.Center,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            minLines = 2,
         )
-        Spacer(modifier = Modifier.height(if (compactLayout) 8.dp else 10.dp))
-        Text(text = value, style = if (compactLayout) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium)
     }
 }
 
