@@ -39,6 +39,7 @@ enum class PulseIconKind {
     Data,
     Bell,
     Info,
+    Language,
     Download,
     Upload,
     LightMode,

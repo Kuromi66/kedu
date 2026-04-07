@@ -31,6 +31,7 @@ internal val pulseLibraryIconKinds = setOf(
     PulseIconKind.Data,
     PulseIconKind.Bell,
     PulseIconKind.Info,
+    PulseIconKind.Language,
     PulseIconKind.Download,
     PulseIconKind.Upload,
     PulseIconKind.LightMode,
@@ -104,6 +105,14 @@ private val pulseLibraryIconNodes = mapOf(
         LucideCircleNode(cx = 12f, cy = 12f, r = 10f),
         LucidePathNode("M12 16v-4"),
         LucidePathNode("M12 8h.01"),
+    ),
+    PulseIconKind.Language to listOf(
+        LucidePathNode("m5 8 6 6"),
+        LucidePathNode("m4 14 6-6 2-3"),
+        LucidePathNode("M2 5h12"),
+        LucidePathNode("M7 2h1"),
+        LucidePathNode("m22 22-5-10-5 10"),
+        LucidePathNode("M14 18h6"),
     ),
     PulseIconKind.Download to listOf(
         LucidePathNode("M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"),

@@ -83,7 +83,7 @@ fun SettingsScreen(
                 GlassCard {
                     SettingsSectionHeader(
                         title = strings.languageTitle,
-                        icon = PulseIconKind.Info,
+                        icon = PulseIconKind.Language,
                         compactLayout = compactLayout,
                     )
                     Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
