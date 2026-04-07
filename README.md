@@ -9,20 +9,24 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><strong>&#x4ECA;&#x65E5;</strong></td>
-      <td align="center"><strong>&#x5386;&#x53F2;</strong></td>
+      <td align="center"><strong>今日</strong></td>
+      <td align="center"><strong>历史</strong></td>
+      <td align="center"><strong>添加</strong></td>
     </tr>
     <tr>
-      <td><img src="./docs/images/screenshot-today.png" alt="&#x4ECA;&#x65E5;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
-      <td><img src="./docs/images/screenshot-history.png" alt="&#x5386;&#x53F2;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/today.png" alt="&#x4ECA;&#x65E5;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/history.png" alt="&#x5386;&#x53F2;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/add.png" alt="&#x5386;&#x53F2;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
     </tr>
     <tr>
-      <td align="center"><strong>&#x7EDF;&#x8BA1;</strong></td>
-      <td align="center"><strong>&#x8BBE;&#x7F6E;</strong></td>
+      <td align="center"><strong>统计</strong></td>
+      <td align="center"><strong>设置</strong></td>
+      <td align="center"><strong>深色模式</strong></td>
     </tr>
     <tr>
-      <td><img src="./docs/images/screenshot-stats.png" alt="&#x7EDF;&#x8BA1;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
-      <td><img src="./docs/images/screenshot-settings.png" alt="&#x8BBE;&#x7F6E;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/stats.png" alt="&#x7EDF;&#x8BA1;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/settings.png" alt="&#x8BBE;&#x7F6E;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/dark.png" alt="&#x8BBE;&#x7F6E;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
     </tr>
   </table>
 </div>
