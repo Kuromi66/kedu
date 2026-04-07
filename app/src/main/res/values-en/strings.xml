@@ -172,4 +172,8 @@
     <string name="elapsed_hours">%1$d h</string>
     <string name="elapsed_days">%1$d d</string>
     <string name="version_name">Version %1$s</string>
+    <string name="habit_icon_category_health">Health &amp; Wellness</string>
+    <string name="habit_icon_category_growth">Learning &amp; Growth</string>
+    <string name="habit_icon_category_life">Daily Life</string>
+    <string name="habit_icon_category_social">Social &amp; Work</string>
 </resources>

@@ -89,7 +89,7 @@
     <string name="dark_mode">深色</string>
     <string name="chinese">中文</string>
     <string name="english">英文</string>
-    <string name="habit_editor_new">新建习惯</string>
+    <string name="habit_editor_new">添加习惯</string>
     <string name="habit_editor_edit">编辑习惯</string>
     <string name="habit_name">习惯名称</string>
     <string name="habit_name_placeholder">例如 喝水、拉伸、阅读</string>
@@ -164,4 +164,8 @@
     <string name="elapsed_hours">%1$d小时</string>
     <string name="elapsed_days">%1$d天</string>
     <string name="version_name">版本 %1$s</string>
+    <string name="habit_icon_category_health">健康与自律</string>
+    <string name="habit_icon_category_growth">学习与成长</string>
+    <string name="habit_icon_category_life">生活与日常</string>
+    <string name="habit_icon_category_social">社交与工作</string>
 </resources>

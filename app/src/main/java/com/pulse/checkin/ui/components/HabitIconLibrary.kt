@@ -47,6 +47,46 @@ val habitIconOptions = listOf(
     HabitIconPreset(token = ":clipboard-check", label = "\u590d\u76d8\u603b\u7ed3")
 )
 
+
+
+data class HabitIconCategory(
+    val key: String,
+    val options: List<HabitIconPreset>,
+)
+
+private fun iconOptionsOf(vararg tokens: String): List<HabitIconPreset> =
+    tokens.mapNotNull { token -> habitIconOptions.find { it.token == token } }
+
+val habitIconCategories = listOf(
+    HabitIconCategory(
+        key = "health",
+        options = iconOptionsOf(
+            ":dumbbell", ":droplet", ":brain", ":moon", ":footprints", ":apple", ":heart-pulse", ":sun",
+            ":wind", ":sparkles", ":smile", ":bike", ":waves", ":activity", ":move-vertical", ":mountain",
+            ":timer", ":cigarette-off", ":stethoscope", ":pill"
+        ),
+    ),
+    HabitIconCategory(
+        key = "growth",
+        options = iconOptionsOf(
+            ":book-open", ":graduation-cap", ":pencil", ":music", ":palette", ":flower-2", ":target", ":code",
+            ":languages", ":pen-tool", ":book-text", ":file-text", ":clipboard-check"
+        ),
+    ),
+    HabitIconCategory(
+        key = "life",
+        options = iconOptionsOf(
+            ":coffee", ":home", ":coins", ":film", ":gamepad-2", ":camera"
+        ),
+    ),
+    HabitIconCategory(
+        key = "social",
+        options = iconOptionsOf(
+            ":message-circle", ":users", ":user-plus", ":hand-heart", ":video"
+        ),
+    ),
+)
+
 private val habitIconNodes = mapOf(
     ":dumbbell" to listOf(
             LucidePathNode("M14.4 14.4 9.6 9.6"),

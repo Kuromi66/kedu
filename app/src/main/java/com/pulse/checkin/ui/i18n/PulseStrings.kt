@@ -137,6 +137,13 @@ class PulseStrings(private val context: Context) {
     val habitNamePlaceholder: String get() = context.getString(R.string.habit_name_placeholder)
     val habitIdentifier: String get() = context.getString(R.string.habit_identifier)
     val commonIcons: String get() = context.getString(R.string.common_icons)
+    fun habitIconCategoryTitle(key: String): String = when (key) {
+        "health" -> context.getString(R.string.habit_icon_category_health)
+        "growth" -> context.getString(R.string.habit_icon_category_growth)
+        "life" -> context.getString(R.string.habit_icon_category_life)
+        "social" -> context.getString(R.string.habit_icon_category_social)
+        else -> context.getString(R.string.common_icons)
+    }
     val letters: String get() = context.getString(R.string.letters)
     val iconLetter: String get() = context.getString(R.string.icon_letter)
     val iconLetterSupport: String get() = context.getString(R.string.icon_letter_support)

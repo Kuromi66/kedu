@@ -1,10 +1,12 @@
 package com.pulse.checkin.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -19,7 +21,9 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 
 data class HabitIconPreset(
     val token: String,
@@ -67,13 +71,25 @@ fun HabitGlyph(
 ) {
     val iconToken = resolveHabitIconToken(glyph)
     if (iconToken == null) {
-        Text(
-            text = glyph,
-            color = color,
-            style = textStyle,
-            fontWeight = fontWeight,
-            modifier = modifier,
-        )
+        val displayGlyph = glyph.take(2)
+        val adjustedStyle = if (displayGlyph.length > 1) {
+            textStyle.copy(
+                fontSize = if (textStyle.fontSize.isSpecified) textStyle.fontSize * 0.7f else MaterialTheme.typography.titleMedium.fontSize,
+                letterSpacing = if (textStyle.letterSpacing.isSpecified) textStyle.letterSpacing * 0.2f else androidx.compose.ui.unit.TextUnit.Unspecified,
+            )
+        } else {
+            textStyle
+        }
+        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+            Text(
+                text = displayGlyph,
+                color = color,
+                style = adjustedStyle,
+                fontWeight = fontWeight,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+            )
+        }
         return
     }
 

@@ -29,6 +29,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,6 +53,7 @@ import com.pulse.checkin.ui.HabitDraft
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.util.habitColorOptions
 import com.pulse.checkin.ui.util.habitGlyphOptions
+import com.pulse.checkin.ui.components.habitIconCategories
 import com.pulse.checkin.ui.components.habitIconOptions
 import com.pulse.checkin.ui.components.isPresetHabitIcon
 import com.pulse.checkin.ui.components.resolveHabitIconToken
@@ -82,6 +84,13 @@ fun HabitEditorSheet(
     var selectedIconGlyph by remember(initialDraft.id) {
         mutableStateOf(resolveInitialIconToken(initialDraft.glyph))
     }
+    var selectedIconCategoryKey by remember(initialDraft.id) {
+        mutableStateOf(
+            habitIconCategories.firstOrNull { category ->
+                category.options.any { it.token == resolveInitialIconToken(initialDraft.glyph) }
+            }?.key ?: habitIconCategories.first().key
+        )
+    }
     var letterGlyph by remember(initialDraft.id) {
         mutableStateOf(normalizeLetterGlyph(initialDraft.glyph).ifBlank { habitGlyphOptions.first() })
     }
@@ -91,6 +100,15 @@ fun HabitEditorSheet(
     var reminderMinute by remember(initialDraft.id) { mutableIntStateOf(initialDraft.reminderMinute) }
     var targetEnabled by remember(initialDraft.id) { mutableStateOf(initialDraft.targetEnabled) }
     var targetCount by remember(initialDraft.id) { mutableIntStateOf(initialDraft.targetCount.coerceAtLeast(1)) }
+
+    val sheetSwitchColors = SwitchDefaults.colors(
+        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+        checkedTrackColor = MaterialTheme.colorScheme.primary,
+        checkedBorderColor = MaterialTheme.colorScheme.primary,
+        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+        uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.28f),
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -127,11 +145,14 @@ fun HabitEditorSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(strings.habitIdentifier, style = MaterialTheme.typography.titleLarge)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        item {
+                        items(habitIconCategories) { category ->
                             FilterChip(
-                                selected = glyphInputMode == HabitGlyphInputMode.ICON,
-                                onClick = { glyphInputMode = HabitGlyphInputMode.ICON },
-                                label = { Text(strings.commonIcons) },
+                                selected = glyphInputMode == HabitGlyphInputMode.ICON && selectedIconCategoryKey == category.key,
+                                onClick = {
+                                    glyphInputMode = HabitGlyphInputMode.ICON
+                                    selectedIconCategoryKey = category.key
+                                },
+                                label = { Text(strings.habitIconCategoryTitle(category.key)) },
                             )
                         }
                         item {
@@ -143,13 +164,15 @@ fun HabitEditorSheet(
                         }
                     }
                     if (glyphInputMode == HabitGlyphInputMode.ICON) {
+                        val selectedCategory = habitIconCategories.firstOrNull { it.key == selectedIconCategoryKey }
+                            ?: habitIconCategories.first()
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             maxItemsInEachRow = if (compactLayout) 3 else 4,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            habitIconOptions.forEach { option ->
+                            selectedCategory.options.forEach { option ->
                                 FilterChip(
                                     selected = selectedIconGlyph == option.token,
                                     onClick = { selectedIconGlyph = option.token },
@@ -224,7 +247,7 @@ fun HabitEditorSheet(
                             Text(strings.dailyTarget, style = MaterialTheme.typography.titleLarge)
                             Text(strings.dailyTargetDesc, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = targetEnabled, onCheckedChange = { targetEnabled = it })
+                        Switch(checked = targetEnabled, onCheckedChange = { targetEnabled = it }, colors = sheetSwitchColors)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
@@ -257,7 +280,7 @@ fun HabitEditorSheet(
                             Text(strings.localReminder, style = MaterialTheme.typography.titleLarge)
                             Text(strings.localReminderDesc, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it })
+                        Switch(checked = reminderEnabled, onCheckedChange = { reminderEnabled = it }, colors = sheetSwitchColors)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
