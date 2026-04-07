@@ -1,14 +1,11 @@
 ﻿package com.pulse.checkin.ui.screen
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
@@ -27,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -45,19 +43,26 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.stats.CalendarDaySummary
@@ -75,6 +80,9 @@ import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import java.time.format.DateTimeFormatter
 
 private val recordTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -150,54 +158,18 @@ fun HistoryScreen(
                 }
             }
             item {
-                GlassCard(
-                    modifier = Modifier.pointerInput(snapshot.month) {
-                        var totalDrag = 0f
-                        detectHorizontalDragGestures(
-                            onHorizontalDrag = { _, dragAmount ->
-                                totalDrag += dragAmount
-                            },
-                            onDragEnd = {
-                                when {
-                                    totalDrag >= 48f -> onPreviousMonth()
-                                    totalDrag <= -48f && canGoToNextMonth -> onNextMonth()
-                                }
-                                totalDrag = 0f
-                            },
-                            onDragCancel = {
-                                totalDrag = 0f
-                            },
-                        )
-                    },
-                ) {
-                    AnimatedContent(
-                        targetState = snapshot.month,
-                        transitionSpec = {
-                            val forward = targetState > initialState
-                            (
-                                slideInHorizontally(animationSpec = tween(280)) { fullWidth ->
-                                    if (forward) fullWidth else -fullWidth / 3
-                                } + fadeIn(animationSpec = tween(220))
-                            ).togetherWith(
-                                slideOutHorizontally(animationSpec = tween(280)) { fullWidth ->
-                                    if (forward) -fullWidth / 3 else fullWidth
-                                } + fadeOut(animationSpec = tween(180))
-                            )
-                        },
-                        label = "monthChange",
-                    ) {
-                        MonthCalendarSection(
-                            snapshot = snapshot,
-                            selectedDate = selectedDate,
-                            currentMonth = currentMonth,
-                            compactLayout = compactLayout,
-                            onPreviousMonth = onPreviousMonth,
-                            onNextMonth = onNextMonth,
-                            canGoToNextMonth = canGoToNextMonth,
-                            onBackToCurrentMonth = onBackToCurrentMonth,
-                            onSelectDate = onSelectDate,
-                        )
-                    }
+                GlassCard {
+                    MonthCalendarSection(
+                        snapshot = snapshot,
+                        selectedDate = selectedDate,
+                        currentMonth = currentMonth,
+                        compactLayout = compactLayout,
+                        onPreviousMonth = onPreviousMonth,
+                        onNextMonth = onNextMonth,
+                        canGoToNextMonth = canGoToNextMonth,
+                        onBackToCurrentMonth = onBackToCurrentMonth,
+                        onSelectDate = onSelectDate,
+                    )
                 }
             }
             item {
@@ -257,6 +229,29 @@ private fun MonthCalendarSection(
     onSelectDate: (LocalDate) -> Unit,
 ) {
     val strings = LocalPulseStrings.current
+    val scope = rememberCoroutineScope()
+    var dragOffsetPx by remember(snapshot.month) { mutableFloatStateOf(0f) }
+    var pageWidthPx by remember { mutableFloatStateOf(0f) }
+
+    fun animateMonthSwitch(targetOffsetSign: Float, onComplete: () -> Unit) {
+        val widthPx = pageWidthPx
+        if (widthPx <= 0f) {
+            onComplete()
+            return
+        }
+        scope.launch {
+            animate(
+                initialValue = dragOffsetPx,
+                targetValue = widthPx * targetOffsetSign,
+                animationSpec = tween(180),
+            ) { value, _ ->
+                dragOffsetPx = value
+            }
+            dragOffsetPx = 0f
+            onComplete()
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 14.dp else 18.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -266,7 +261,7 @@ private fun MonthCalendarSection(
             MonthSwitchButton(
                 type = MonthSwitchType.Previous,
                 compactLayout = compactLayout,
-                onClick = onPreviousMonth,
+                onClick = { animateMonthSwitch(1f, onPreviousMonth) },
             )
             Text(
                 text = strings.historyMonthText(snapshot.month),
@@ -277,23 +272,173 @@ private fun MonthCalendarSection(
                     type = MonthSwitchType.Current,
                     compactLayout = compactLayout,
                     enabled = snapshot.month != currentMonth,
-                    onClick = onBackToCurrentMonth,
+                    onClick = {
+                        val direction = if (snapshot.month < currentMonth) -1f else 1f
+                        animateMonthSwitch(direction, onBackToCurrentMonth)
+                    },
                 )
                 MonthSwitchButton(
                     type = MonthSwitchType.Next,
                     compactLayout = compactLayout,
                     enabled = canGoToNextMonth,
-                    onClick = onNextMonth,
+                    onClick = { animateMonthSwitch(-1f, onNextMonth) },
                 )
             }
         }
-        CalendarGrid(
-            month = snapshot.month,
-            days = snapshot.calendarDays,
-            selectedDate = selectedDate,
-            onSelectDate = onSelectDate,
-            compactLayout = compactLayout,
-        )
+        CalendarWeekHeader(compactLayout = compactLayout)
+        LaunchedEffect(snapshot.month) {
+            dragOffsetPx = 0f
+        }
+        val previousMonth = snapshot.month.minusMonths(1)
+        val nextMonth = snapshot.month.plusMonths(1)
+        val density = LocalDensity.current
+        val horizontalSpacingPx = with(density) { (if (compactLayout) 4.dp else 8.dp).toPx() }
+        val verticalSpacingPx = with(density) { (if (compactLayout) 8.dp else 10.dp).toPx() }
+        val currentRows = remember(snapshot.month) { calendarRowCount(snapshot.month) }
+        val previousRows = remember(previousMonth) { calendarRowCount(previousMonth) }
+        val nextRows = remember(nextMonth) { calendarRowCount(nextMonth) }
+        val currentHeightPx = remember(pageWidthPx, currentRows, horizontalSpacingPx, verticalSpacingPx) {
+            calculateCalendarGridHeightPx(pageWidthPx, currentRows, horizontalSpacingPx, verticalSpacingPx)
+        }
+        val dragProgress = if (pageWidthPx > 0f) (abs(dragOffsetPx) / pageWidthPx).coerceIn(0f, 1f) else 0f
+        val targetRows = when {
+            dragOffsetPx > 0f -> previousRows
+            dragOffsetPx < 0f && canGoToNextMonth -> nextRows
+            else -> currentRows
+        }
+        val targetHeightPx = remember(pageWidthPx, targetRows, horizontalSpacingPx, verticalSpacingPx) {
+            calculateCalendarGridHeightPx(pageWidthPx, targetRows, horizontalSpacingPx, verticalSpacingPx)
+        }
+        val containerHeightPx = if (dragProgress == 0f) {
+            currentHeightPx
+        } else {
+            currentHeightPx + (targetHeightPx - currentHeightPx) * dragProgress
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (containerHeightPx > 0f) Modifier.height(with(density) { containerHeightPx.toDp() })
+                    else Modifier
+                )
+                .clipToBounds()
+                .onSizeChanged { pageWidthPx = it.width.toFloat() }
+                .pointerInput(snapshot.month, canGoToNextMonth) {
+                    detectHorizontalDragGestures(
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            val widthPx = if (pageWidthPx > 0f) pageWidthPx else size.width.toFloat()
+                            val minOffset = if (canGoToNextMonth) -widthPx else 0f
+                            val maxOffset = widthPx
+                            dragOffsetPx = (dragOffsetPx + dragAmount).coerceIn(minOffset, maxOffset)
+                        },
+                        onDragEnd = {
+                            val widthPx = if (pageWidthPx > 0f) pageWidthPx else size.width.toFloat()
+                            val threshold = widthPx * 0.25f
+                            when {
+                                dragOffsetPx >= threshold -> {
+                                    scope.launch {
+                                        animate(
+                                            initialValue = dragOffsetPx,
+                                            targetValue = widthPx,
+                                            animationSpec = tween(180),
+                                        ) { value, _ ->
+                                            dragOffsetPx = value
+                                        }
+                                        dragOffsetPx = 0f
+                                        onPreviousMonth()
+                                    }
+                                }
+
+                                dragOffsetPx <= -threshold && canGoToNextMonth -> {
+                                    scope.launch {
+                                        animate(
+                                            initialValue = dragOffsetPx,
+                                            targetValue = -widthPx,
+                                            animationSpec = tween(180),
+                                        ) { value, _ ->
+                                            dragOffsetPx = value
+                                        }
+                                        dragOffsetPx = 0f
+                                        onNextMonth()
+                                    }
+                                }
+
+                                else -> {
+                                    scope.launch {
+                                        animate(
+                                            initialValue = dragOffsetPx,
+                                            targetValue = 0f,
+                                            animationSpec = tween(220),
+                                        ) { value, _ ->
+                                            dragOffsetPx = value
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            scope.launch {
+                                animate(
+                                    initialValue = dragOffsetPx,
+                                    targetValue = 0f,
+                                    animationSpec = tween(220),
+                                ) { value, _ ->
+                                    dragOffsetPx = value
+                                }
+                            }
+                        },
+                    )
+                },
+        ) {
+            CalendarDateGrid(
+                month = snapshot.month,
+                days = snapshot.calendarDays,
+                selectedDate = selectedDate,
+                onSelectDate = onSelectDate,
+                compactLayout = compactLayout,
+                interactive = true,
+                previewMode = false,
+                modifier = Modifier.offset { IntOffset(dragOffsetPx.roundToInt(), 0) },
+            )
+
+            if (pageWidthPx > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset { IntOffset((dragOffsetPx - pageWidthPx).roundToInt(), 0) },
+                ) {
+                    CalendarDateGrid(
+                        month = previousMonth,
+                        days = emptyList(),
+                        selectedDate = selectedDate,
+                        onSelectDate = {},
+                        compactLayout = compactLayout,
+                        interactive = false,
+                        previewMode = true,
+                    )
+                }
+
+                if (canGoToNextMonth) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .offset { IntOffset((dragOffsetPx + pageWidthPx).roundToInt(), 0) },
+                    ) {
+                        CalendarDateGrid(
+                            month = nextMonth,
+                            days = emptyList(),
+                            selectedDate = selectedDate,
+                            onSelectDate = {},
+                            compactLayout = compactLayout,
+                            interactive = false,
+                            previewMode = true,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -404,62 +549,102 @@ private fun MonthSwitchButton(
 }
 
 @Composable
-private fun CalendarGrid(
-    month: YearMonth,
-    days: List<CalendarDaySummary>,
-    selectedDate: LocalDate,
-    onSelectDate: (LocalDate) -> Unit,
-    compactLayout: Boolean,
-) {
+private fun CalendarWeekHeader(compactLayout: Boolean) {
     val weekHeaders = LocalPulseStrings.current.weekHeaders
-    val offset = month.atDay(1).dayOfWeek.value - 1
-    val summaryByDate = days.associateBy { it.date }
-    val cells = List<LocalDate?>(offset) { null } + days.map { it.date }
     val horizontalSpacing = if (compactLayout) 4.dp else 8.dp
-    val maxCount = days.maxOfOrNull { it.totalCount } ?: 0
 
-    Column(verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)) {
-            weekHeaders.forEach { label ->
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = label,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
-        }
-        cells.chunked(7).forEach { week ->
-            Row(horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)) {
-                week.forEach { date ->
-                    CalendarCell(
-                        modifier = Modifier.weight(1f),
-                        date = date,
-                        summary = date?.let(summaryByDate::get),
-                        maxCount = maxCount,
-                        selected = date == selectedDate,
-                        onClick = { if (date != null) onSelectDate(date) },
-                        compactLayout = compactLayout,
-                    )
-                }
-                repeat(7 - week.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+    Row(horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)) {
+        weekHeaders.forEach { label ->
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Text(
+                    text = label,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = if (compactLayout) MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }
 }
 
 @Composable
+private fun CalendarDateGrid(
+    month: YearMonth,
+    days: List<CalendarDaySummary>,
+    selectedDate: LocalDate,
+    onSelectDate: (LocalDate) -> Unit,
+    compactLayout: Boolean,
+    interactive: Boolean,
+    previewMode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val summaryByDate = days.associateBy { it.date }
+    val cells = remember(month) { buildCalendarPageCells(month) }
+    val horizontalSpacing = if (compactLayout) 4.dp else 8.dp
+    val maxCount = days.maxOfOrNull { it.totalCount } ?: 0
+
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+    ) {
+        cells.chunked(7).forEach { week ->
+            Row(horizontalArrangement = Arrangement.spacedBy(horizontalSpacing)) {
+                week.forEach { date ->
+                    if (date == null) {
+                        Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
+                    } else {
+                        CalendarCell(
+                            modifier = Modifier.weight(1f),
+                            date = date,
+                            summary = summaryByDate[date],
+                            maxCount = maxCount,
+                            selected = interactive && date == selectedDate,
+                            enabled = interactive,
+                            compactLayout = compactLayout,
+                            previewMode = previewMode,
+                            onClick = { onSelectDate(date) },
+                        )
+                    }
+                }
+                repeat(7 - week.size) {
+                    Spacer(modifier = Modifier.weight(1f).aspectRatio(1f))
+                }
+            }
+        }
+    }
+}
+
+private fun buildCalendarPageCells(month: YearMonth): List<LocalDate?> {
+    val offset = month.atDay(1).dayOfWeek.value - 1
+    return List<LocalDate?>(offset) { null } + (1..month.lengthOfMonth()).map { day -> month.atDay(day) }
+}
+
+private fun calendarRowCount(month: YearMonth): Int {
+    val offset = month.atDay(1).dayOfWeek.value - 1
+    return (offset + month.lengthOfMonth() + 6) / 7
+}
+
+private fun calculateCalendarGridHeightPx(
+    pageWidthPx: Float,
+    rowCount: Int,
+    horizontalSpacingPx: Float,
+    verticalSpacingPx: Float,
+): Float {
+    if (pageWidthPx <= 0f || rowCount <= 0) return 0f
+    val cellSizePx = (pageWidthPx - horizontalSpacingPx * 6f) / 7f
+    return cellSizePx * rowCount + verticalSpacingPx * (rowCount - 1)
+}
+
+@Composable
 private fun CalendarCell(
     modifier: Modifier = Modifier,
-    date: LocalDate?,
+    date: LocalDate,
     summary: CalendarDaySummary?,
     maxCount: Int,
     selected: Boolean,
-    onClick: () -> Unit,
+    enabled: Boolean,
     compactLayout: Boolean,
+    previewMode: Boolean,
+    onClick: () -> Unit,
 ) {
     val density = if ((summary?.totalCount ?: 0) > 0 && maxCount > 0) {
         summary!!.totalCount.toFloat() / maxCount.toFloat()
@@ -469,6 +654,7 @@ private fun CalendarCell(
     val selectedBackground = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.9f)
     val backgroundColor = when {
         selected -> selectedBackground
+        previewMode -> Color.Transparent
         density > 0f -> lerp(
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
@@ -478,28 +664,28 @@ private fun CalendarCell(
     }
     val contentColor = when {
         selected -> MaterialTheme.colorScheme.onTertiary
+        previewMode -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.42f)
         density > 0.58f -> MaterialTheme.colorScheme.onPrimary
-        else -> MaterialTheme.colorScheme.onSurface
+        enabled -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
     }
 
     Box(
         modifier = modifier
-             .aspectRatio(1f)
+            .aspectRatio(1f)
             .clip(CircleShape)
             .background(backgroundColor)
-            .clickable(enabled = date != null, onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(4.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (date != null) {
-            Text(
-                text = date.dayOfMonth.toString(),
-                color = contentColor,
-                fontWeight = FontWeight.SemiBold,
-                style = if (compactLayout) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = date.dayOfMonth.toString(),
+            color = contentColor,
+            fontWeight = if (previewMode) FontWeight.Medium else FontWeight.SemiBold,
+            style = if (compactLayout) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+        )
     }
 }
 
