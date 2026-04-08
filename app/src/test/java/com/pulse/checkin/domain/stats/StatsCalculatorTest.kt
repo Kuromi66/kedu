@@ -169,6 +169,8 @@ class StatsCalculatorTest {
         assertEquals(2, snapshot.monthlyDetails[0].totalCount)
         assertEquals(2, snapshot.monthlyDetails[1].totalCount)
         assertEquals(2, snapshot.monthlyDetails[1].activeDayCount)
+        assertEquals(3.23f, snapshot.monthlyDetails[0].completionRate * 100f, 0.01f)
+        assertEquals(7.14f, snapshot.monthlyDetails[1].completionRate * 100f, 0.01f)
     }
 
 

@@ -77,6 +77,7 @@
     <string name="hourly_preview">%1$02d:00  %2$d times</string>
     <string name="monthly_details_title">Monthly details</string>
     <string name="detail_month">Month</string>
+    <string name="detail_completion">Rate</string>
     <string name="detail_days">Days</string>
     <string name="detail_count">Count</string>
     <string name="detail_streak">Streak</string>

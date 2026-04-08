@@ -702,7 +702,7 @@ private fun MonthlyDetailCard(rows: List<MonthlyDetailRow>, compactLayout: Boole
     GlassCard {
         Text(LocalPulseStrings.current.monthlyDetailsTitle, style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(if (compactLayout) 14.dp else 16.dp))
-        DetailTableHeader()
+        DetailTableHeader(compactLayout = compactLayout)
         Spacer(modifier = Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             rows.forEach { row ->
@@ -713,13 +713,19 @@ private fun MonthlyDetailCard(rows: List<MonthlyDetailRow>, compactLayout: Boole
 }
 
 @Composable
-private fun DetailTableHeader() {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+private fun DetailTableHeader(compactLayout: Boolean) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = if (compactLayout) 12.dp else 14.dp, vertical = if (compactLayout) 10.dp else 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         val strings = LocalPulseStrings.current
-        DetailCell(strings.detailMonth, 1.2f, true)
-        DetailCell(strings.detailDays, 1f, true)
-        DetailCell(strings.detailCount, 1f, true)
-        DetailCell(strings.detailStreak, 1f, true)
+        DetailCell(strings.detailMonth, 1.1f, true, center = false)
+        DetailCell(strings.detailCompletion, 0.95f, true, center = true)
+        DetailCell(strings.detailDays, 0.9f, true, center = true)
+        DetailCell(strings.detailCount, 0.9f, true, center = true)
+        DetailCell(strings.detailStreak, 1.05f, true, center = true)
     }
 }
 
@@ -733,21 +739,26 @@ private fun DetailTableRow(row: MonthlyDetailRow, compactLayout: Boolean) {
             .padding(horizontal = if (compactLayout) 12.dp else 14.dp, vertical = if (compactLayout) 10.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DetailCell(LocalPulseStrings.current.statsMonthText(row.month), 1.2f, false)
-        DetailCell(row.activeDayCount.toString(), 1f, false)
-        DetailCell(row.totalCount.toString(), 1f, false)
-        DetailCell(if (row.longestStreak == 0) "--" else LocalPulseStrings.current.streakDays(row.longestStreak), 1f, false)
+        DetailCell(LocalPulseStrings.current.statsMonthText(row.month), 1.1f, false, center = false)
+        DetailCell("${(row.completionRate * 100f).toInt()}%", 0.95f, false, center = true)
+        DetailCell(row.activeDayCount.toString(), 0.9f, false, center = true)
+        DetailCell(row.totalCount.toString(), 0.9f, false, center = true)
+        DetailCell(if (row.longestStreak == 0) "--" else LocalPulseStrings.current.streakDays(row.longestStreak), 1.05f, false, center = true)
     }
 }
 
 @Composable
-private fun RowScope.DetailCell(text: String, weight: Float, header: Boolean) {
-    Box(modifier = Modifier.weight(weight), contentAlignment = Alignment.CenterStart) {
+private fun RowScope.DetailCell(text: String, weight: Float, header: Boolean, center: Boolean) {
+    Box(
+        modifier = Modifier.weight(weight),
+        contentAlignment = if (center) Alignment.Center else Alignment.CenterStart,
+    ) {
         Text(
             text = text,
             style = if (header) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodyMedium,
             color = if (header) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             fontWeight = if (header) FontWeight.SemiBold else FontWeight.Medium,
+            textAlign = if (center) TextAlign.Center else TextAlign.Start,
         )
     }
 }

@@ -108,6 +108,7 @@ class PulseStrings(private val context: Context) {
     fun hourlyPreview(hour: Int, count: Int): String = context.getString(R.string.hourly_preview, hour, count)
     val monthlyDetailsTitle: String get() = context.getString(R.string.monthly_details_title)
     val detailMonth: String get() = context.getString(R.string.detail_month)
+    val detailCompletion: String get() = context.getString(R.string.detail_completion)
     val detailDays: String get() = context.getString(R.string.detail_days)
     val detailCount: String get() = context.getString(R.string.detail_count)
     val detailStreak: String get() = context.getString(R.string.detail_streak)

@@ -137,6 +137,7 @@ data class HourlyDistributionBucket(
 
 data class MonthlyDetailRow(
     val month: YearMonth,
+    val completionRate: Float,
     val activeDayCount: Int,
     val totalCount: Int,
     val longestStreak: Int,
@@ -330,8 +331,19 @@ class LocalStatsCalculator : StatsCalculator {
             longestStreak = computeLongestStreak(selectedEvents.map { it.localDate }.distinct()),
         )
         val monthlyDetails = trendPoints.map { point ->
+            val monthDailyCounts = selectedDailyCounts.filterKeys { date ->
+                YearMonth.from(date) == point.month
+            }
+            val monthCompletionDays = if (selectedHabit.targetCountOrDefault() != null) {
+                monthDailyCounts.values.count { count ->
+                    count >= (selectedHabit.targetCountOrDefault() ?: 1)
+                }
+            } else {
+                monthDailyCounts.size
+            }
             MonthlyDetailRow(
                 month = point.month,
+                completionRate = monthCompletionDays.toFloat() / point.month.lengthOfMonth().toFloat(),
                 activeDayCount = point.activeDayCount,
                 totalCount = point.totalCount,
                 longestStreak = point.longestStreak,

@@ -73,6 +73,7 @@
     <string name="hourly_preview">%1$02d:00  %2$d次</string>
     <string name="monthly_details_title">月度明细</string>
     <string name="detail_month">月份</string>
+    <string name="detail_completion">完成率</string>
     <string name="detail_days">天数</string>
     <string name="detail_count">次数</string>
     <string name="detail_streak">连续</string>
