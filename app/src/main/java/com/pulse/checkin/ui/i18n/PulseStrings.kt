@@ -64,6 +64,7 @@ class PulseStrings(private val context: Context) {
     val completionRateMetric: String get() = context.getString(R.string.completion_rate_metric)
     val currentStreakMetric: String get() = context.getString(R.string.current_streak_metric)
     val noRecordsForFilter: String get() = context.getString(R.string.no_records_for_filter)
+    val calendarTodayShort: String get() = context.getString(R.string.calendar_today_short)
     val weekHeaders: List<String>
         get() = listOf(
             context.getString(R.string.week_mon),

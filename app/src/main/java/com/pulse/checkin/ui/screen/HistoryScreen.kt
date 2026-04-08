@@ -758,6 +758,9 @@ private fun CalendarCell(
     previewMode: Boolean,
     onClick: () -> Unit,
 ) {
+    val strings = LocalPulseStrings.current
+    val isToday = date == LocalDate.now()
+    val dayLabel = if (isToday) strings.calendarTodayShort else date.dayOfMonth.toString()
     val density = if ((summary?.totalCount ?: 0) > 0 && maxCount > 0) {
         summary!!.totalCount.toFloat() / maxCount.toFloat()
     } else {
@@ -792,7 +795,7 @@ private fun CalendarCell(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = date.dayOfMonth.toString(),
+            text = dayLabel,
             color = contentColor,
             fontWeight = if (previewMode) FontWeight.Medium else FontWeight.SemiBold,
             style = if (compactLayout) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,

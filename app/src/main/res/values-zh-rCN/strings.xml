@@ -42,6 +42,7 @@
     <string name="completion_rate_metric">完成率</string>
     <string name="current_streak_metric">当前连续</string>
     <string name="no_records_for_filter">当前筛选下暂无记录</string>
+    <string name="calendar_today_short">今</string>
     <string name="week_mon">一</string>
     <string name="week_tue">二</string>
     <string name="week_wed">三</string>
