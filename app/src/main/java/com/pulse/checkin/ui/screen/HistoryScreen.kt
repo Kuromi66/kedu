@@ -1,6 +1,7 @@
 ﻿package com.pulse.checkin.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
@@ -784,19 +785,38 @@ private fun CalendarCell(
         enabled -> MaterialTheme.colorScheme.onSurface
         else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
     }
+    val animatedBackgroundColor by animateColorAsState(
+        targetValue = backgroundColor,
+        animationSpec = tween(durationMillis = 240),
+        label = "calendarCellBackground",
+    )
+    val animatedContentColor by animateColorAsState(
+        targetValue = contentColor,
+        animationSpec = tween(durationMillis = 220),
+        label = "calendarCellContent",
+    )
+    val backfillMarkerColor by animateColorAsState(
+        targetValue = if (selected || density > 0.58f) {
+            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f)
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
+        animationSpec = tween(durationMillis = 220),
+        label = "calendarCellMarker",
+    )
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
             .clip(CircleShape)
-            .background(backgroundColor)
+            .background(animatedBackgroundColor)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(4.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = dayLabel,
-            color = contentColor,
+            color = animatedContentColor,
             fontWeight = if (previewMode) FontWeight.Medium else FontWeight.SemiBold,
             style = if (compactLayout) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,
             maxLines = 1,
@@ -808,13 +828,7 @@ private fun CalendarCell(
                     .padding(bottom = if (compactLayout) 2.dp else 3.dp)
                     .size(if (compactLayout) 4.dp else 5.dp)
                     .clip(CircleShape)
-                    .background(
-                        if (selected || density > 0.58f) {
-                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f)
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                    ),
+                    .background(backfillMarkerColor),
             )
         }
     }
