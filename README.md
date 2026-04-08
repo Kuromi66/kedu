@@ -1,22 +1,22 @@
-# 刻度
+# 刻度（Pulse）
 
-刻度是一款完全本地运行的 Android 次数型习惯打卡应用，专注于“多次打卡、趋势查看、离线可用”这三件事。应用基于 `Kotlin + Jetpack Compose` 构建，不依赖云端服务，不需要账号登录，所有数据默认保存在本机。
+刻度是一款完全本地运行的 Android 习惯打卡应用，面向“可多次打卡、可回看趋势、可离线使用”的日常记录场景。项目基于 Kotlin 与 Jetpack Compose 开发，不依赖云端账号系统，核心数据默认保存在本机。
 
-项目当前已完成 `v1.0.1` 正式版配置，支持签名 APK / AAB 构建、数据导入导出、本地提醒、月度历史查看和年度统计分析。
+当前仓库对应版本为 `v1.0.3`，已经支持正式包签名构建、历史补卡、本地通知提醒、数据导入导出、中英文切换，以及今日 / 历史 / 统计 / 设置四个主要页面。
 
-## &#x5E94;&#x7528;&#x622A;&#x56FE;
+## 应用截图
 
 <div align="center">
   <table>
     <tr>
       <td align="center"><strong>今日</strong></td>
       <td align="center"><strong>历史</strong></td>
-      <td align="center"><strong>添加</strong></td>
+      <td align="center"><strong>新增 / 编辑习惯</strong></td>
     </tr>
     <tr>
-      <td><img src="./docs/images/today.png" alt="&#x4ECA;&#x65E5;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
-      <td><img src="./docs/images/history.png" alt="&#x5386;&#x53F2;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
-      <td><img src="./docs/images/add.png" alt="&#x5386;&#x53F2;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/today.png" alt="今日页截图" width="260" /></td>
+      <td><img src="./docs/images/history.png" alt="历史页截图" width="260" /></td>
+      <td><img src="./docs/images/add.png" alt="新增习惯截图" width="260" /></td>
     </tr>
     <tr>
       <td align="center"><strong>统计</strong></td>
@@ -24,81 +24,79 @@
       <td align="center"><strong>深色模式</strong></td>
     </tr>
     <tr>
-      <td><img src="./docs/images/stats.png" alt="&#x7EDF;&#x8BA1;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
-      <td><img src="./docs/images/settings.png" alt="&#x8BBE;&#x7F6E;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
-      <td><img src="./docs/images/dark.png" alt="&#x8BBE;&#x7F6E;&#x9875;&#x622A;&#x56FE;" width="260" /></td>
+      <td><img src="./docs/images/stats.png" alt="统计页截图" width="260" /></td>
+      <td><img src="./docs/images/settings.png" alt="设置页截图" width="260" /></td>
+      <td><img src="./docs/images/dark.png" alt="深色模式截图" width="260" /></td>
     </tr>
   </table>
 </div>
 
-&#x8BF4;&#x660E;&#xFF1A;
-&#x5F53;&#x524D; README &#x5DF2;&#x76F4;&#x63A5;&#x5F15;&#x7528; `docs/images/` &#x4E0B;&#x7684; JPG &#x622A;&#x56FE;&#x6587;&#x4EF6;&#xFF0C;&#x5982;&#x9700;&#x66FF;&#x6362;&#xFF0C;&#x53EA;&#x8981;&#x4FDD;&#x6301;&#x540C;&#x540D;&#x6587;&#x4EF6;&#x5373;&#x53EF;&#x3002;
+## 当前功能
 
+### 今日页
 
-## 项目特点
+- 展示今日总打卡次数、达标习惯数、最佳连续等概览数据
+- 支持习惯一键打卡，并保留当日多次打卡记录
+- 支持查看每个习惯当天的记录列表与相对时间
+- 支持删除单条打卡记录
+- 支持新增、编辑、删除习惯
 
-- 完全本地离线运行，无账号、无后端、无云同步
-- 支持多个习惯、同一习惯一天内多次打卡
-- 支持可选每日目标，无目标习惯也可参与连续统计
-- 今日页支持快速打卡、展开查看当日记录、删除单条记录
-- 历史页支持按习惯筛选、月历热力展示、当天记录明细
-- 统计页支持年度趋势、年度次数、最长连续、24 小时分布、月度详细数据
-- 设置页支持主题切换、通知权限、本地 JSON 导入导出
-- 支持本地提醒，应用重启后会自动恢复提醒调度
+### 历史页
 
-## 功能概览
+- 支持按习惯筛选查看月历与当日详情
+- 支持左右滑动或按钮切换月份
+- 月历使用颜色深浅展示当月打卡密度
+- 当天日期会显示为“今”或对应英文短文案
+- 存在补卡记录的日期会显示底部标记
+- 支持在历史记录弹层中为过去日期补卡
+- 补卡记录会在列表中单独标记，并参与正常统计
 
-### 1. 今日
+### 统计页
 
-- 展示今日总打卡次数、已达标习惯数、最佳连续表现
-- 每个习惯卡片支持一键打卡
-- 有目标的习惯：
-  - 未完成时按钮显示“打卡”
-  - 达标后按钮显示勾选状态
-- 无目标的习惯：
-  - 只要当天至少打卡一次，就视为当天达标
-- 支持展开查看今天的每一条打卡记录
-- 支持长按习惯卡片后确认删除习惯
-- 支持长按单条打卡记录后确认删除
+- 以年份为维度查看单个习惯的年度统计
+- 顶部汇总卡展示完成率、活跃天数、打卡次数、最长连续
+- 支持月度趋势图与 24 小时分布图预览
+- 月度明细支持查看每月完成率、活跃天数、打卡次数、最长连续
+- 支持左右切换年份和回到当年
 
-### 2. 历史
-
-- 支持按单个习惯筛选查看
-- 支持月份切换、回到本月、左右滑动切换月份
-- 月历使用颜色深浅表示当天打卡量
-- 选中日期后，可查看该习惯当天的打卡详情
-- 详情以底部弹窗形式展示，支持长按删除单条记录
-- 连续与达标规则：
-  - 有目标习惯：当日打卡次数大于等于目标次数，视为达标
-  - 无目标习惯：当日只要有 1 次打卡，视为达标
-
-### 3. 统计
-
-- 按年查看单个习惯的年度统计
-- 顶部支持按习惯筛选
-- 支持上一年 / 下一年 / 回到今年
-- 提供以下统计内容：
-  - 年度打卡天数
-  - 年度打卡次数
-  - 最长连续天数
-  - 月度打卡趋势图
-  - 24 小时打卡分布图
-  - 月度详细数据（打卡天数 / 次数 / 最长连续）
-- 趋势图和小时分布图支持按住后左右滑动预览数据
-
-### 4. 设置
+### 设置页
 
 - 支持浅色 / 深色 / 跟随系统主题
-- 支持请求通知权限
-- 支持导出本地数据为 JSON
-- 支持从 JSON 备份导入数据
+- 支持中文 / 英文界面切换
+- 支持本地 JSON 导出与导入
+- 支持通知权限状态查看与本地提醒开关
+- 显示当前应用版本信息
 
-## 设计方向
+## 业务规则
 
-- 风格：简洁、轻盈、偏 iOS 观感
-- 视觉：大圆角、留白、浅背景、克制高亮
-- 动效：页面切换、统计图表、月历切换、数值变化都做了轻量动画
-- 品牌：应用名称为“刻度”，图标采用 `K + 刻痕` 的方向
+### 打卡与补卡
+
+- 一个习惯可以在同一天记录多次打卡
+- 每次打卡都会保存为独立事件
+- 补卡只允许针对过去日期执行
+- 补卡写入当前操作时间，但归属到选中的历史日期
+- 补卡记录与普通打卡使用同一套统计口径，只额外保留“补卡”标记
+
+### 达标规则
+
+- 有目标习惯：当天打卡次数 `>= dailyTargetCount` 视为达标
+- 无目标习惯：当天至少有 1 次记录即视为达标
+
+### 连续规则
+
+- 连续口径统一为“连续达标天数”
+- 无目标习惯也参与连续统计
+- 历史页与统计页都基于聚合后的按日数据计算连续结果
+
+### 完成率规则
+
+- 历史页月度完成率：当月达标总数 / 当月应统计总数
+- 统计页年度完成率：
+  - 无目标习惯：有记录天数 / 当年总天数
+  - 有目标习惯：达标天数 / 当年总天数
+- 统计页月度明细完成率：
+  - 无目标习惯：当月有记录天数 / 当月总天数
+  - 有目标习惯：当月达标天数 / 当月总天数
 
 ## 技术栈
 
@@ -106,74 +104,102 @@
 - Jetpack Compose
 - Material 3
 - Room
-- DataStore
+- DataStore Preferences
 - WorkManager
-- MVVM + Repository
 - KSP
+- MVVM + Repository
 
 ## 项目结构
 
 ```text
 app/src/main/java/com/pulse/checkin
 ├── data
-│   ├── backup            # 导入导出
-│   ├── db                # Room 数据库、DAO、实体
-│   ├── preferences       # DataStore 偏好设置
-│   └── repository        # Repository 实现
+│   ├── backup
+│   │   └── BackupManager.kt        # JSON 导入导出与备份摘要
+│   ├── db
+│   │   ├── dao/                    # Room DAO
+│   │   ├── entity/                 # Room Entity
+│   │   └── PulseDatabase.kt        # 数据库定义与迁移
+│   ├── preferences
+│   │   └── AppPreferences.kt       # 主题、语言、提醒等偏好存储
+│   └── repository
+│       └── Repositories.kt         # 仓储接口实现与数据映射
 ├── domain
-│   ├── model             # 核心模型
-│   ├── repository        # Repository 接口
-│   └── stats             # 今日 / 月度 / 年度统计计算
-├── reminder              # 本地提醒与开机恢复
+│   ├── model
+│   │   └── Models.kt               # Habit / CheckInEvent / 设置模型
+│   ├── repository
+│   │   └── Repositories.kt         # 领域层仓储接口
+│   └── stats
+│       └── StatsCalculator.kt      # 今日、历史、统计页聚合口径
+├── reminder
+│   ├── Reminder.kt                 # Worker、通知、开机恢复实现
+│   └── ReminderScheduler.kt        # 提醒调度接口
 ├── ui
-│   ├── components        # 通用组件
-│   ├── screen            # Today / History / Stats / Settings 页面
-│   ├── theme             # 颜色、排版、主题
-│   └── util              # UI 工具方法
-├── MainActivity.kt
-└── PulseApplication.kt   # AppContainer 与依赖装配
+│   ├── components/                # 通用 Compose 组件与弹层
+│   ├── i18n/
+│   │   └── PulseStrings.kt        # 中英文文案封装
+│   ├── screen
+│   │   ├── TodayScreen.kt         # 今日页
+│   │   ├── HistoryScreen.kt       # 历史页与月历
+│   │   ├── StatsScreen.kt         # 统计页
+│   │   └── SettingsScreen.kt      # 设置页
+│   ├── theme
+│   │   ├── Theme.kt               # 主题入口
+│   │   ├── Colors.kt              # 色板
+│   │   └── Type.kt                # 排版
+│   ├── util/                      # 颜色、时间、预览等 UI 工具
+│   ├── AppViewModel.kt            # 页面状态聚合与业务入口
+│   └── PulseApp.kt                # Scaffold、导航与弹层协调
+├── MainActivity.kt                # Activity 入口
+└── PulseApplication.kt            # AppContainer 与依赖装配
 ```
 
-## 数据与业务规则
+### 结构说明
 
-### 打卡数据模型
+- `data/`：负责“怎么存”和“怎么读”，包含 Room、DataStore、备份导入导出，以及仓储实现。
+- `domain/model/`：放跨页面共享的核心业务模型，比如习惯、打卡事件、主题与语言设置。
+- `domain/stats/`：是统计口径的核心位置，今日页概览、历史页月历、统计页年度汇总都在这里聚合。
+- `reminder/`：负责本地通知提醒、WorkManager 调度，以及开机或应用更新后的提醒恢复。
+- `ui/screen/`：按页面拆分，主要改动通常会落在这里。
+- `ui/components/`：放通用卡片、按钮、图标、弹窗、编辑器等可复用 Compose 组件。
+- `ui/i18n/`：统一管理界面文案，涉及中英文适配时优先改这里。
+- `ui/theme/`：统一管理颜色、排版、主题切换与动态过渡。
+- `ui/AppViewModel.kt`：连接仓储、统计计算与页面状态，是大多数用户操作的统一入口。
+- `ui/PulseApp.kt`：负责主应用壳层、底部导航、页面切换和弹层挂载。
 
-- 一个习惯可以在一天内记录多次打卡
-- 每次打卡都会保存为独立事件
-- 日次数、月次数、年度趋势都由事件聚合计算
+## 本地存储与权限
 
-### 达标规则
-
-- 有目标习惯：当天打卡次数 `>= dailyTargetCount`，当天达标
-- 无目标习惯：当天打卡次数 `>= 1`，当天达标
-
-### 连续规则
-
-- 连续口径统一为“连续达标天数”
-- 无目标习惯也参与连续统计
-- 当前连续会以当前页面锚点日期向前计算
-
-## 本地存储
+### 本地存储
 
 - 习惯数据：Room
 - 打卡事件：Room
-- 用户设置：DataStore
+- 用户偏好：DataStore
 - 备份格式：JSON
 
-导出 JSON 当前包含：
+导出的 JSON 当前包含：
 
-- 应用备份版本号
+- 备份版本号
 - 导出时间
 - 用户偏好设置
 - 习惯列表
 - 打卡事件列表
 
+### 权限与提醒
+
+应用当前声明了以下权限：
+
+- `POST_NOTIFICATIONS`
+- `RECEIVE_BOOT_COMPLETED`
+- `VIBRATE`
+
+提醒通过 `WorkManager` 按天调度，本质上是本地系统通知，不要求应用保持前台。设备重启或应用更新后，会尝试重新同步提醒任务。
+
 ## 开发环境
 
-- Android Studio（建议使用较新稳定版）
+- Android Studio 最新稳定版或近几个稳定版本
 - JDK 17
 - Android SDK 35
-- Gradle Wrapper（项目已自带）
+- Gradle Wrapper（仓库已包含）
 
 ## 快速开始
 
@@ -184,16 +210,17 @@ git clone <your-repo-url>
 cd project
 ```
 
-### 2. 用 Android Studio 打开
+### 2. 使用 Android Studio 打开
 
-- 直接打开项目根目录 `F:\Android\project`
-- 等待 Gradle 同步完成
+直接打开项目根目录：
 
-### 3. 运行 Debug 版本
-
-```bash
-./gradlew :app:assembleDebug
+```text
+F:\Android\project
 ```
+
+等待 Gradle 同步完成后即可运行或调试。
+
+### 3. 本地调试构建
 
 Windows PowerShell：
 
@@ -201,7 +228,7 @@ Windows PowerShell：
 & '.\gradlew.bat' :app:assembleDebug --offline
 ```
 
-生成的 APK 路径：
+生成的调试包路径：
 
 ```text
 app/build/outputs/apk/debug/app-debug.apk
@@ -233,25 +260,24 @@ app/build/outputs/apk/debug/app-debug.apk
 & '.\gradlew.bat' :app:testDebugUnitTest
 ```
 
-## 正式版打包
-
-项目已经支持 `v1.0.1` 正式版打包。
+## Release 打包说明
 
 ### 当前版本
 
-- `versionCode = 2`
-- `versionName = "1.0.1"`
+- `versionCode = 4`
+- `versionName = "1.0.3"`
 
-### Release 配置
+### 构建配置
 
-- 开启 `minifyEnabled`
-- 开启 `shrinkResources`
-- 配置了 release signing 读取逻辑
-- release lint 已改为不阻塞离线出包
+- `minSdk = 29`
+- `targetSdk = 35`
+- `compileSdk = 35`
+- Release 构建开启代码压缩与资源收缩
+- 当存在有效的签名配置时，Release 会自动使用对应签名
 
-### 签名文件
+### 签名配置文件
 
-项目当前使用本地签名配置文件：
+项目读取根目录下的：
 
 ```text
 release-signing.properties
@@ -263,24 +289,24 @@ release-signing.properties
 release-signing.properties.example
 ```
 
-配置内容如下：
+示例内容：
 
 ```properties
-storeFile=keystore/kedu-release-v2.jks
+storeFile=keystore/kedu-release.jks
 storePassword=your_store_password
-keyAlias=kedu-release
+keyAlias=your_key_alias
 keyPassword=your_key_password
 ```
 
-### 已生成产物
+### 构建产物路径
 
-签名 APK：
+Release APK：
 
 ```text
 app/build/outputs/apk/release/app-release.apk
 ```
 
-上架 AAB：
+Release AAB：
 
 ```text
 app/build/outputs/bundle/release/app-release.aab
@@ -290,39 +316,29 @@ app/build/outputs/bundle/release/app-release.aab
 
 ### 导出
 
-- 在设置页点击“导出数据”
+- 在设置页选择导出入口
 - 通过系统文件选择器保存为 JSON
 
 ### 导入
 
-- 在设置页点击“导入数据”
+- 在设置页选择导入入口
 - 选择此前导出的 JSON 文件
 - 导入会覆盖当前本地数据
 
-### 第三方数据改造
-
-仓库中保留了示例文件：
+仓库中保留了示例数据文件：
 
 - [data.json](./data.json)
 - [data_pulse_import.json](./data_pulse_import.json)
 
-其中 `data_pulse_import.json` 是已转换为当前应用可导入格式的样例。
-
-## 提醒机制
-
-- 每个习惯支持一个每日提醒时间
-- 提醒通过 WorkManager 调度
-- 安装更新、重启设备后会尝试恢复提醒
-
 ## 测试覆盖
 
-当前单元测试重点覆盖：
+当前单元测试主要覆盖：
 
-- 多次打卡聚合
-- 当日达标判定
-- 无目标习惯连续逻辑
-- 月度与年度统计计算
-- 小时分布与趋势数据聚合
+- 多次打卡聚合逻辑
+- 达标与连续计算
+- 历史月历与补卡标记
+- 年度统计与完成率口径
+- 小时分布与月度明细聚合
 
 运行命令：
 
@@ -330,32 +346,13 @@ app/build/outputs/bundle/release/app-release.aab
 & '.\gradlew.bat' :app:testDebugUnitTest
 ```
 
-## 已知说明
+## 当前已知情况
 
-- 应用为单模块结构，适合当前阶段快速迭代
-- 当前以手机竖屏为主要目标场景
-- release 构建默认支持本地签名；如需更换正式证书，只需要替换 keystore 与 `release-signing.properties`
-- 仓库中的 keystore 和签名配置仅供当前本地构建使用，正式发布前建议自行更换为独立保管的证书
+- 项目目前为单模块 Android 应用
+- 主要以手机竖屏体验为主
+- 通知由 WorkManager 周期任务驱动，提醒时间存在系统级延迟的可能
+- 仓库中包含本地签名配置模板，正式发布前建议替换为自有签名信息
 
-## 后续可扩展方向
+## License
 
-- 国际化语言支持
-- 更细的习惯分类与排序能力
-- 更丰富的年度对比分析
-- Widget / 快捷操作支持
-- 平板与横屏布局适配
-
-## 许可证
-
-当前仓库未单独声明开源许可证。如需开源发布，建议补充 `LICENSE` 文件。
-
-## 最近更新
-
-- 新增中英文界面切换，并支持在设置页内无闪动切换
-- 习惯创建与编辑支持图标库选择，使用 `Designhabiticons-main` 中的习惯图标资源
-- 底部导航栏和主要操作图标已统一为应用内图标库，并优化为玻璃 / 液体玻璃质感
-- 今日页习惯卡片支持打卡二次确认、删除确认、距离上次打卡相对时间显示
-- 历史页、统计页和设置页的筛选、切换时间、导入导出等图标已全部统一风格
-- 设置页已精简提示文案，支持主题切换、通知权限、数据导入导出及版本号显示
-- 新建习惯弹窗背景增加模糊与遮罩过渡动画，主题切换也支持更柔和的颜色过渡
-
+当前仓库未单独声明开源许可证；如需公开发布，建议补充 `LICENSE` 文件。
