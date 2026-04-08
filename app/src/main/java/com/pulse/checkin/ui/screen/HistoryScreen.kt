@@ -289,11 +289,12 @@ private fun MonthCalendarSection(
         val density = LocalDensity.current
         val horizontalSpacingPx = with(density) { (if (compactLayout) 4.dp else 8.dp).toPx() }
         val verticalSpacingPx = with(density) { (if (compactLayout) 8.dp else 10.dp).toPx() }
+        val bottomInsetPx = with(density) { (if (compactLayout) 4.dp else 6.dp).toPx() }
         val currentRows = remember(snapshot.month) { calendarRowCount(snapshot.month) }
         val previousRows = remember(previousMonth) { calendarRowCount(previousMonth) }
         val nextRows = remember(nextMonth) { calendarRowCount(nextMonth) }
         val currentHeightPx = remember(pageWidthPx, currentRows, horizontalSpacingPx, verticalSpacingPx) {
-            calculateCalendarGridHeightPx(pageWidthPx, currentRows, horizontalSpacingPx, verticalSpacingPx)
+            calculateCalendarGridHeightPx(pageWidthPx, currentRows, horizontalSpacingPx, verticalSpacingPx) + bottomInsetPx
         }
         val dragProgress = if (pageWidthPx > 0f) (abs(dragOffsetPx) / pageWidthPx).coerceIn(0f, 1f) else 0f
         val targetRows = when {
@@ -302,7 +303,7 @@ private fun MonthCalendarSection(
             else -> currentRows
         }
         val targetHeightPx = remember(pageWidthPx, targetRows, horizontalSpacingPx, verticalSpacingPx) {
-            calculateCalendarGridHeightPx(pageWidthPx, targetRows, horizontalSpacingPx, verticalSpacingPx)
+            calculateCalendarGridHeightPx(pageWidthPx, targetRows, horizontalSpacingPx, verticalSpacingPx) + bottomInsetPx
         }
         val containerHeightPx = if (dragProgress == 0f) {
             currentHeightPx
