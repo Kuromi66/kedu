@@ -78,7 +78,7 @@ fun StatsScreen(
     onPreviousYear: () -> Unit,
     onNextYear: () -> Unit,
     onBackToCurrentYear: () -> Unit,
-    onSelectHabit: (Long) -> Unit,
+    onSelectHabit: (String) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val strings = LocalPulseStrings.current

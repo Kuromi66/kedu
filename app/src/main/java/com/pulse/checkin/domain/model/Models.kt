@@ -27,7 +27,7 @@ data class UserPreferences(
 )
 
 data class Habit(
-    val id: Long = 0,
+    val id: String = "",
     val name: String,
     val colorArgb: Long,
     val glyph: String,
@@ -39,6 +39,7 @@ data class Habit(
     val dailyTargetCount: Int? = null,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val archived: Boolean = false,
+    val updatedAtEpochMillis: Long = createdAtEpochMillis,
 ) {
     fun reminderTimeOrNull(): LocalTime? {
         if (!reminderEnabled || reminderHour == null || reminderMinute == null) return null
@@ -49,9 +50,11 @@ data class Habit(
 }
 
 data class CheckInEvent(
-    val id: Long = 0,
-    val habitId: Long,
+    val id: String = "",
+    val habitId: String,
     val occurredAtEpochMillis: Long,
     val localDate: LocalDate,
     val isBackfilled: Boolean = false,
+    val deletedAtEpochMillis: Long? = null,
+    val updatedAtEpochMillis: Long = occurredAtEpochMillis,
 )

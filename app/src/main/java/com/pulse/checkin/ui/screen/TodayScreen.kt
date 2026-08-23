@@ -74,9 +74,9 @@ private fun formatElapsedSince(epochMillis: Long, strings: com.pulse.checkin.ui.
 fun TodayScreen(
     snapshot: TodaySnapshot,
     onEditHabit: (Habit) -> Unit,
-    onCheckInHabit: (Long) -> Unit,
-    onDeleteRecord: (Long) -> Unit,
-    onDeleteHabit: (Long) -> Unit,
+    onCheckInHabit: (String) -> Unit,
+    onDeleteRecord: (String) -> Unit,
+    onDeleteHabit: (String) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
     val strings = LocalPulseStrings.current
@@ -170,12 +170,12 @@ private fun HabitCard(
     compactLayout: Boolean,
     onEdit: () -> Unit,
     onCheckIn: () -> Unit,
-    onDeleteRecord: (Long) -> Unit,
-    onDeleteHabit: (Long) -> Unit,
+    onDeleteRecord: (String) -> Unit,
+    onDeleteHabit: (String) -> Unit,
 ) {
     var expanded by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingCheckIn by rememberSaveable(item.habit.id) { mutableStateOf(false) }
-    var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<Long?>(null) }
+    var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<String?>(null) }
     var pendingDeleteHabit by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     val strings = LocalPulseStrings.current
     val progress = animateFloatAsState(targetValue = item.progress, label = "progress").value

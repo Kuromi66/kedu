@@ -130,7 +130,7 @@ fun HabitEditorSheet(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 Text(
-                    text = if (initialDraft.id == 0L) strings.habitEditorNew else strings.habitEditorEdit,
+                    text = if (initialDraft.id.isBlank()) strings.habitEditorNew else strings.habitEditorEdit,
                     style = MaterialTheme.typography.headlineMedium,
                 )
                 OutlinedTextField(

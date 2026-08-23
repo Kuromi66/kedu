@@ -22,13 +22,13 @@ interface StatsCalculator {
         habits: List<Habit>,
         events: List<CheckInEvent>,
         year: Int,
-        selectedHabitId: Long?,
+        selectedHabitId: String?,
         today: LocalDate,
     ): YearSnapshot
 }
 
 data class CheckInRecordItem(
-    val id: Long,
+    val id: String,
     val occurredAtEpochMillis: Long,
     val displayTime: LocalTime,
     val isBackfilled: Boolean = false,
@@ -146,7 +146,7 @@ data class MonthlyDetailRow(
 data class YearSnapshot(
     val year: Int,
     val habitOptions: List<YearHabitOption>,
-    val selectedHabitId: Long?,
+    val selectedHabitId: String?,
     val selectedHabit: Habit?,
     val summaryMetrics: YearSummaryMetrics,
     val trendPoints: List<MonthlyTrendPoint>,
@@ -273,7 +273,7 @@ class LocalStatsCalculator : StatsCalculator {
         habits: List<Habit>,
         events: List<CheckInEvent>,
         year: Int,
-        selectedHabitId: Long?,
+        selectedHabitId: String?,
         today: LocalDate,
     ): YearSnapshot {
         val sortedHabits = habits.sortedBy { it.sortOrder }
@@ -362,7 +362,7 @@ class LocalStatsCalculator : StatsCalculator {
         )
     }
 
-    private fun buildDailyCounts(events: List<CheckInEvent>): Map<Long, Map<LocalDate, Int>> {
+    private fun buildDailyCounts(events: List<CheckInEvent>): Map<String, Map<LocalDate, Int>> {
         return events.groupBy { it.habitId }
             .mapValues { (_, value) -> value.groupingBy { it.localDate }.eachCount() }
     }

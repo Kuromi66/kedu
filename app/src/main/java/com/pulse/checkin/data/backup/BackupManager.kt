@@ -33,11 +33,11 @@ class BackupManager(
             val events = database.checkInEventDao().getAll()
             val preferences = appPreferences.currentPreferences()
             val payload = JSONObject()
-                .put("version", 1)
+                .put("version", 2)
                 .put("exportedAtEpochMillis", System.currentTimeMillis())
                 .put("preferences", preferences.toJson())
-                .put("habits", JSONArray().apply { habits.forEach { put(it.toJson()) } })
-                .put("events", JSONArray().apply { events.forEach { put(it.toJson()) } })
+                .put("habits", JSONArray().apply { habits.forEach { put(it.toJsonV2()) } })
+                .put("events", JSONArray().apply { events.forEach { put(it.toJsonV2()) } })
 
             context.contentResolver.openOutputStream(uri)?.use { output ->
                 output.write(payload.toString(2).toByteArray(StandardCharsets.UTF_8))
@@ -54,12 +54,13 @@ class BackupManager(
                 ?: error("无法读取备份文件")
             val root = JSONObject(raw)
             val version = root.optInt("version", -1)
-            require(version == 1) { "暂不支持这个备份版本" }
+            require(version == 1 || version == 2) { "暂不支持这个备份版本" }
 
             val preferences = root.optJSONObject("preferences")?.toUserPreferences()
                 ?: error("备份文件缺少设置信息")
-            val habits = root.optJSONArray("habits")?.toHabitEntities().orEmpty()
-            val events = root.optJSONArray("events")?.toEventEntities().orEmpty()
+            val now = System.currentTimeMillis()
+            val habits = root.optJSONArray("habits")?.toHabitEntities(version, now).orEmpty()
+            val events = root.optJSONArray("events")?.toEventEntities(version, now).orEmpty()
 
             database.withTransaction {
                 database.checkInEventDao().clearAll()
@@ -89,7 +90,7 @@ private fun JSONObject.toUserPreferences(): UserPreferences = UserPreferences(
     notificationPromptSeen = optBoolean("notificationPromptSeen", false),
 )
 
-private fun HabitEntity.toJson(): JSONObject = JSONObject()
+private fun HabitEntity.toJsonV2(): JSONObject = JSONObject()
     .put("id", id)
     .put("name", name)
     .put("colorArgb", colorArgb)
@@ -102,47 +103,86 @@ private fun HabitEntity.toJson(): JSONObject = JSONObject()
     .put("dailyTargetCount", dailyTargetCount)
     .put("createdAtEpochMillis", createdAtEpochMillis)
     .put("archived", archived)
+    .put("updatedAtEpochMillis", updatedAtEpochMillis)
 
-private fun CheckInEventEntity.toJson(): JSONObject = JSONObject()
+private fun CheckInEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("id", id)
     .put("habitId", habitId)
     .put("occurredAtEpochMillis", occurredAtEpochMillis)
     .put("localDate", localDate)
     .put("isBackfilled", isBackfilled)
+    .put("deletedAtEpochMillis", deletedAtEpochMillis ?: JSONObject.NULL)
+    .put("updatedAtEpochMillis", updatedAtEpochMillis)
 
-private fun JSONArray.toHabitEntities(): List<HabitEntity> = buildList(length()) {
+private fun JSONArray.toHabitEntities(version: Int, now: Long): List<HabitEntity> = buildList(length()) {
     repeat(length()) { index ->
         val item = getJSONObject(index)
         add(
-            HabitEntity(
-                id = item.optLong("id", 0L),
-                name = item.optString("name"),
-                colorArgb = item.optLong("colorArgb"),
-                glyph = item.optString("glyph"),
-                sortOrder = item.optInt("sortOrder", index),
-                reminderEnabled = item.optBoolean("reminderEnabled", false),
-                reminderHour = item.optNullableInt("reminderHour"),
-                reminderMinute = item.optNullableInt("reminderMinute"),
-                targetEnabled = item.optBoolean("targetEnabled", false),
-                dailyTargetCount = item.optNullableInt("dailyTargetCount"),
-                createdAtEpochMillis = item.optLong("createdAtEpochMillis", System.currentTimeMillis()),
-                archived = item.optBoolean("archived", false),
-            ),
+            if (version == 1) {
+                val oldId = item.optLong("id", 0L)
+                HabitEntity(
+                    id = "h-$oldId",
+                    name = item.optString("name"),
+                    colorArgb = item.optLong("colorArgb"),
+                    glyph = item.optString("glyph"),
+                    sortOrder = item.optInt("sortOrder", index),
+                    reminderEnabled = item.optBoolean("reminderEnabled", false),
+                    reminderHour = item.optNullableInt("reminderHour"),
+                    reminderMinute = item.optNullableInt("reminderMinute"),
+                    targetEnabled = item.optBoolean("targetEnabled", false),
+                    dailyTargetCount = item.optNullableInt("dailyTargetCount"),
+                    createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
+                    archived = item.optBoolean("archived", false),
+                    updatedAtEpochMillis = now,
+                )
+            } else {
+                HabitEntity(
+                    id = item.optString("id").ifBlank { "h-$index-$now" },
+                    name = item.optString("name"),
+                    colorArgb = item.optLong("colorArgb"),
+                    glyph = item.optString("glyph"),
+                    sortOrder = item.optInt("sortOrder", index),
+                    reminderEnabled = item.optBoolean("reminderEnabled", false),
+                    reminderHour = item.optNullableInt("reminderHour"),
+                    reminderMinute = item.optNullableInt("reminderMinute"),
+                    targetEnabled = item.optBoolean("targetEnabled", false),
+                    dailyTargetCount = item.optNullableInt("dailyTargetCount"),
+                    createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
+                    archived = item.optBoolean("archived", false),
+                    updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),
+                )
+            },
         )
     }
 }
 
-private fun JSONArray.toEventEntities(): List<CheckInEventEntity> = buildList(length()) {
+private fun JSONArray.toEventEntities(version: Int, now: Long): List<CheckInEventEntity> = buildList(length()) {
     repeat(length()) { index ->
         val item = getJSONObject(index)
         add(
-            CheckInEventEntity(
-                id = item.optLong("id", 0L),
-                habitId = item.optLong("habitId"),
-                occurredAtEpochMillis = item.optLong("occurredAtEpochMillis"),
-                localDate = item.optString("localDate"),
-                isBackfilled = item.optBoolean("isBackfilled", false),
-            ),
+            if (version == 1) {
+                val oldId = item.optLong("id", 0L)
+                val oldHabitId = item.optLong("habitId", 0L)
+                CheckInEventEntity(
+                    id = "e-$oldId",
+                    habitId = "h-$oldHabitId",
+                    occurredAtEpochMillis = item.optLong("occurredAtEpochMillis"),
+                    localDate = item.optString("localDate"),
+                    isBackfilled = item.optBoolean("isBackfilled", false),
+                    deletedAtEpochMillis = null,
+                    updatedAtEpochMillis = now,
+                )
+            } else {
+                CheckInEventEntity(
+                    id = item.optString("id").ifBlank { "e-$index-$now" },
+                    habitId = item.optString("habitId"),
+                    occurredAtEpochMillis = item.optLong("occurredAtEpochMillis"),
+                    localDate = item.optString("localDate"),
+                    isBackfilled = item.optBoolean("isBackfilled", false),
+                    deletedAtEpochMillis = item.optNullableLong("deletedAtEpochMillis"),
+                    updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),
+                )
+            },
         )
     }
 }
@@ -150,4 +190,9 @@ private fun JSONArray.toEventEntities(): List<CheckInEventEntity> = buildList(le
 private fun JSONObject.optNullableInt(key: String): Int? {
     if (isNull(key) || !has(key)) return null
     return optInt(key)
+}
+
+private fun JSONObject.optNullableLong(key: String): Long? {
+    if (isNull(key) || !has(key)) return null
+    return optLong(key)
 }

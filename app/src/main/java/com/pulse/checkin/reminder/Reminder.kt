@@ -47,7 +47,7 @@ class ReminderSchedulerImpl(
         }
         val initialDelay = computeInitialDelayMillis(habit)
         val data = Data.Builder()
-            .putLong(KEY_HABIT_ID, habit.id)
+            .putString(KEY_HABIT_ID, habit.id)
             .putString(KEY_HABIT_NAME, habit.name)
             .build()
         val request = PeriodicWorkRequestBuilder<HabitReminderWorker>(1, TimeUnit.DAYS)
@@ -62,7 +62,7 @@ class ReminderSchedulerImpl(
         )
     }
 
-    override fun cancelForHabit(habitId: Long) {
+    override fun cancelForHabit(habitId: String) {
         workManager.cancelUniqueWork(uniqueWorkName(habitId))
     }
 
@@ -70,7 +70,7 @@ class ReminderSchedulerImpl(
         habits.forEach(::scheduleForHabit)
     }
 
-    private fun uniqueWorkName(habitId: Long): String = "$WORK_PREFIX$habitId"
+    private fun uniqueWorkName(habitId: String): String = "$WORK_PREFIX$habitId"
 
     private fun computeInitialDelayMillis(habit: Habit): Long {
         val reminderTime = habit.reminderTimeOrNull() ?: return TimeUnit.HOURS.toMillis(24)
@@ -104,9 +104,10 @@ class HabitReminderWorker(
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
+        val habitId = inputData.getString(KEY_HABIT_ID)
         val pendingIntent = PendingIntent.getActivity(
             applicationContext,
-            inputData.getLong(KEY_HABIT_ID, 0L).toInt(),
+            (habitId.hashCode() and 0x7fffffff).coerceAtLeast(1),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -119,7 +120,7 @@ class HabitReminderWorker(
             .setAutoCancel(true)
             .build()
         NotificationManagerCompat.from(applicationContext).notify(
-            inputData.getLong(KEY_HABIT_ID, 0L).toInt(),
+            (habitId.hashCode() and 0x7fffffff).coerceAtLeast(1),
             notification,
         )
         return Result.success()

@@ -13,7 +13,7 @@ import com.pulse.checkin.data.db.entity.HabitEntity
 
 @Database(
     entities = [HabitEntity::class, CheckInEventEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false,
 )
 abstract class PulseDatabase : RoomDatabase() {
@@ -29,6 +29,45 @@ abstract class PulseDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS habits_new (" +
+                        "id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, colorArgb INTEGER NOT NULL, " +
+                        "glyph TEXT NOT NULL, sortOrder INTEGER NOT NULL, reminderEnabled INTEGER NOT NULL, " +
+                        "reminderHour INTEGER, reminderMinute INTEGER, targetEnabled INTEGER NOT NULL, " +
+                        "dailyTargetCount INTEGER, createdAtEpochMillis INTEGER NOT NULL, " +
+                        "archived INTEGER NOT NULL, updatedAtEpochMillis INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "INSERT INTO habits_new (id, name, colorArgb, glyph, sortOrder, reminderEnabled, " +
+                        "reminderHour, reminderMinute, targetEnabled, dailyTargetCount, createdAtEpochMillis, " +
+                        "archived, updatedAtEpochMillis) " +
+                        "SELECT 'h-' || id, name, colorArgb, glyph, sortOrder, reminderEnabled, reminderHour, " +
+                        "reminderMinute, targetEnabled, dailyTargetCount, createdAtEpochMillis, archived, " +
+                        "createdAtEpochMillis FROM habits",
+                )
+                db.execSQL("DROP TABLE habits")
+                db.execSQL("ALTER TABLE habits_new RENAME TO habits")
+
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS check_in_events_new (" +
+                        "id TEXT NOT NULL PRIMARY KEY, habitId TEXT NOT NULL, " +
+                        "occurredAtEpochMillis INTEGER NOT NULL, localDate TEXT NOT NULL, " +
+                        "isBackfilled INTEGER NOT NULL, deletedAtEpochMillis INTEGER, " +
+                        "updatedAtEpochMillis INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "INSERT INTO check_in_events_new (id, habitId, occurredAtEpochMillis, localDate, " +
+                        "isBackfilled, deletedAtEpochMillis, updatedAtEpochMillis) " +
+                        "SELECT 'e-' || id, 'h-' || habitId, occurredAtEpochMillis, localDate, isBackfilled, " +
+                        "NULL, occurredAtEpochMillis FROM check_in_events",
+                )
+                db.execSQL("DROP TABLE check_in_events")
+                db.execSQL("ALTER TABLE check_in_events_new RENAME TO check_in_events")
+            }
+        }
+
         @Volatile
         private var instance: PulseDatabase? = null
 
@@ -40,6 +79,7 @@ abstract class PulseDatabase : RoomDatabase() {
                     "pulse-database",
                 )
                     .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

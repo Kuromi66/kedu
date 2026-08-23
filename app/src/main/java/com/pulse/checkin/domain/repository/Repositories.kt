@@ -7,20 +7,20 @@ import kotlinx.coroutines.flow.Flow
 
 interface HabitRepository {
     fun observeHabits(): Flow<List<Habit>>
-    suspend fun getHabit(id: Long): Habit?
+    suspend fun getHabit(id: String): Habit?
     suspend fun getActiveReminderHabits(): List<Habit>
-    suspend fun upsert(habit: Habit): Long
-    suspend fun setArchived(id: Long, archived: Boolean)
+    suspend fun upsert(habit: Habit)
+    suspend fun setArchived(id: String, archived: Boolean)
 }
 
 interface CheckInRepository {
     fun observeAllEvents(): Flow<List<CheckInEvent>>
     suspend fun addCheckIn(
-        habitId: Long,
+        habitId: String,
         occurredAtEpochMillis: Long = System.currentTimeMillis(),
         localDate: LocalDate? = null,
         isBackfilled: Boolean = false,
     )
-    suspend fun removeLatestForDay(habitId: Long, date: LocalDate)
-    suspend fun deleteCheckIn(eventId: Long)
+    suspend fun removeLatestForDay(habitId: String, date: LocalDate)
+    suspend fun deleteCheckIn(eventId: String)
 }

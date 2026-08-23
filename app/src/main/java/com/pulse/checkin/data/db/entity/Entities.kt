@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "habits")
 data class HabitEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String,
     val name: String,
     val colorArgb: Long,
     val glyph: String,
@@ -17,13 +17,16 @@ data class HabitEntity(
     val dailyTargetCount: Int?,
     val createdAtEpochMillis: Long,
     val archived: Boolean,
+    val updatedAtEpochMillis: Long = createdAtEpochMillis,
 )
 
 @Entity(tableName = "check_in_events")
 data class CheckInEventEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val habitId: Long,
+    @PrimaryKey val id: String,
+    val habitId: String,
     val occurredAtEpochMillis: Long,
     val localDate: String,
     val isBackfilled: Boolean = false,
+    val deletedAtEpochMillis: Long? = null,
+    val updatedAtEpochMillis: Long = occurredAtEpochMillis,
 )

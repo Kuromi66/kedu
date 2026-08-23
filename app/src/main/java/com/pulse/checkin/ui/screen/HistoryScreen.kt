@@ -97,15 +97,15 @@ private val recordTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern
 fun HistoryScreen(
     snapshot: MonthSnapshot,
     habits: List<Habit>,
-    selectedHabitId: Long?,
+    selectedHabitId: String?,
     selectedDate: LocalDate,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onSelectDate: (LocalDate) -> Unit,
-    onSelectHabit: (Long?) -> Unit,
+    onSelectHabit: (String?) -> Unit,
     onBackToCurrentMonth: () -> Unit,
-    onBackfillHabit: (Long, LocalDate) -> Unit,
-    onDeleteRecord: (Long) -> Unit,
+    onBackfillHabit: (String, LocalDate) -> Unit,
+    onDeleteRecord: (String) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val strings = LocalPulseStrings.current
@@ -113,7 +113,7 @@ fun HistoryScreen(
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     val currentMonth = YearMonth.now()
     val canGoToNextMonth = snapshot.month < currentMonth
-    var selectedDetailHabitId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var selectedDetailHabitId by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedDetail = snapshot.selectedDateDetails.firstOrNull { it.habit.id == selectedDetailHabitId }
     var showFilters by rememberSaveable { mutableStateOf(false) }
 
@@ -883,8 +883,8 @@ private fun HistoryRecordSheet(
     selectedDate: LocalDate,
     compactLayout: Boolean,
     onDismiss: () -> Unit,
-    onBackfillHabit: (Long, LocalDate) -> Unit,
-    onDeleteRecord: (Long) -> Unit,
+    onBackfillHabit: (String, LocalDate) -> Unit,
+    onDeleteRecord: (String) -> Unit,
 ) {
     var pendingDeleteRecord by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
     var pendingBackfill by remember(detail.habit.id, selectedDate) { mutableStateOf(false) }
@@ -1031,7 +1031,6 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
 
 
 
