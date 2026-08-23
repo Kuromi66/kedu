@@ -44,8 +44,8 @@ enum class PulseIconKind {
     Upload,
     Account,
     Share,
-    Calendar,
     DragHandle,
+    Flag,
     LightMode,
     DarkMode,
     SystemMode,
@@ -215,19 +215,11 @@ fun PulseActionIcon(
                 drawLine(color, Offset(size.width * 0.30f, size.height * 0.36f), Offset(size.width * 0.48f, size.height * 0.66f), stroke, cap = StrokeCap.Round)
                 drawLine(color, Offset(size.width * 0.70f, size.height * 0.32f), Offset(size.width * 0.56f, size.height * 0.66f), stroke, cap = StrokeCap.Round)
             }
-            PulseIconKind.Calendar -> {
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(size.width * 0.12f, size.height * 0.14f),
-                    size = Size(size.width * 0.76f, size.height * 0.74f),
-                    cornerRadius = CornerRadius(size.width * 0.12f, size.width * 0.12f),
-                    style = Stroke(width = stroke),
-                )
-                drawLine(color, Offset(size.width * 0.12f, size.height * 0.34f), Offset(size.width * 0.88f, size.height * 0.34f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(size.width * 0.28f, size.height * 0.10f), Offset(size.width * 0.28f, size.height * 0.24f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(size.width * 0.72f, size.height * 0.10f), Offset(size.width * 0.72f, size.height * 0.24f), stroke, cap = StrokeCap.Round)
-                drawCircle(color, radius = stroke * 0.8f, center = Offset(size.width * 0.34f, size.height * 0.56f))
-                drawCircle(color, radius = stroke * 0.8f, center = Offset(size.width * 0.62f, size.height * 0.56f))
+            PulseIconKind.Flag -> {
+                drawLine(color, Offset(size.width * 0.30f, size.height * 0.18f), Offset(size.width * 0.30f, size.height * 0.84f), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.30f, size.height * 0.20f), Offset(size.width * 0.76f, size.height * 0.30f), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.76f, size.height * 0.30f), Offset(size.width * 0.30f, size.height * 0.44f), stroke, cap = StrokeCap.Round)
+                drawLine(color, Offset(size.width * 0.20f, size.height * 0.84f), Offset(size.width * 0.42f, size.height * 0.84f), stroke, cap = StrokeCap.Round)
             }
             PulseIconKind.DragHandle -> {
                 listOf(0.32f, 0.5f, 0.68f).forEach { y ->
