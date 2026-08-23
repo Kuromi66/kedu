@@ -117,6 +117,7 @@
     <string name="invalid_input">Please check your input</string>
     <string name="network_unavailable">Network unavailable, try again later</string>
     <string name="unknown_error">Something went wrong</string>
+    <string name="logout_confirm_text">After logging out, local habits and check-ins will no longer sync to the cloud. Log out?</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

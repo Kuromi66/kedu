@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -43,6 +44,7 @@ import com.pulse.checkin.BuildConfig
 import com.pulse.checkin.data.cloud.SyncError
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.ThemeMode
+import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
@@ -224,6 +226,7 @@ private fun AccountSection(
     val strings = LocalPulseStrings.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var pendingLogout by remember { mutableStateOf(false) }
     val session = syncState.session
 
     SettingsSectionHeader(
@@ -245,6 +248,7 @@ private fun AccountSection(
             onValueChange = { email = it },
             label = { Text(strings.emailLabel) },
             singleLine = true,
+            enabled = !syncState.isSyncing,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth(),
@@ -255,6 +259,7 @@ private fun AccountSection(
             onValueChange = { password = it },
             label = { Text(strings.passwordLabel) },
             singleLine = true,
+            enabled = !syncState.isSyncing,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             shape = RoundedCornerShape(16.dp),
@@ -269,12 +274,20 @@ private fun AccountSection(
                 shape = RoundedCornerShape(18.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
             ) {
-                SettingsButtonContent(
-                    text = strings.register,
-                    icon = PulseIconKind.Add,
-                    color = MaterialTheme.colorScheme.primary,
-                    compactLayout = compactLayout,
-                )
+                if (syncState.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    SettingsButtonContent(
+                        text = strings.register,
+                        icon = PulseIconKind.Add,
+                        color = MaterialTheme.colorScheme.primary,
+                        compactLayout = compactLayout,
+                    )
+                }
             }
             Button(
                 onClick = { onLogin(email, password) },
@@ -283,12 +296,20 @@ private fun AccountSection(
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             ) {
-                SettingsButtonContent(
-                    text = strings.login,
-                    icon = PulseIconKind.Check,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    compactLayout = compactLayout,
-                )
+                if (syncState.isSyncing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    SettingsButtonContent(
+                        text = strings.login,
+                        icon = PulseIconKind.Check,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        compactLayout = compactLayout,
+                    )
+                }
             }
         }
         syncState.authError?.let { error ->
@@ -322,7 +343,7 @@ private fun AccountSection(
                 )
             }
             OutlinedButton(
-                onClick = onLogout,
+                onClick = { pendingLogout = true },
                 enabled = !syncState.isSyncing,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(18.dp),
@@ -352,6 +373,19 @@ private fun AccountSection(
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
+    }
+
+    if (pendingLogout) {
+        DestructiveConfirmDialog(
+            message = strings.logoutConfirmText,
+            confirmLabel = strings.logout,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                pendingLogout = false
+                onLogout()
+            },
+            onDismiss = { pendingLogout = false },
+        )
     }
 }
 

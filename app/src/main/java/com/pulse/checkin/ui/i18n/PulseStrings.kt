@@ -153,6 +153,7 @@ class PulseStrings(private val context: Context) {
     val invalidInput: String get() = context.getString(R.string.invalid_input)
     val networkUnavailable: String get() = context.getString(R.string.network_unavailable)
     val unknownError: String get() = context.getString(R.string.unknown_error)
+    val logoutConfirmText: String get() = context.getString(R.string.logout_confirm_text)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)
