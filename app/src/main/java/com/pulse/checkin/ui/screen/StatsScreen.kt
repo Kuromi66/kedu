@@ -1,5 +1,6 @@
 package com.pulse.checkin.ui.screen
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -9,6 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,12 +35,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,10 +58,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.pulse.checkin.domain.stats.HourlyDistributionBucket
 import com.pulse.checkin.domain.stats.MonthlyDetailRow
 import com.pulse.checkin.domain.stats.MonthlyTrendPoint
@@ -66,9 +74,14 @@ import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.PulseActionIcon
+import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
+import com.pulse.checkin.ui.components.renderStatsShareBitmap
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.i18n.PulseStrings
+import com.pulse.checkin.ui.util.saveBitmapToGallery
+import com.pulse.checkin.ui.util.shareBitmap
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.YearMonth
 
@@ -82,94 +95,228 @@ fun StatsScreen(
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val strings = LocalPulseStrings.current
+    val context = LocalContext.current
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    var showShareOptions by remember { mutableStateOf(false) }
+    var shareBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     val currentYear = YearMonth.now().year
     val canGoToNextYear = snapshot.year < currentYear
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        ScreenHeader(
-            title = strings.statsTitle,
-            compactLayout = compactLayout,
-            action = {
-                HeaderFilterButton(
-                    active = showFilters,
-                    compactLayout = compactLayout,
-                    onClick = { showFilters = !showFilters },
-                )
-            },
-        )
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(
-                start = horizontalPadding,
-                end = horizontalPadding,
-                top = contentSpacing,
-                bottom = if (compactLayout) 84.dp else 92.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(contentSpacing),
-        ) {
-            if (snapshot.habitOptions.isEmpty()) {
-                item {
-                    GlassCard {
-                        Text(strings.noHabitDataTitle, style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = strings.noHabitDataDesc,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            ScreenHeader(
+                title = strings.statsTitle,
+                compactLayout = compactLayout,
+                action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PulseIconButton(
+                            kind = PulseIconKind.Share,
+                            compactLayout = compactLayout,
+                            onClick = {
+                                shareBitmap = renderStatsShareBitmap(context, snapshot, strings)
+                                showShareOptions = true
+                            },
+                        )
+                        HeaderFilterButton(
+                            active = showFilters,
+                            compactLayout = compactLayout,
+                            onClick = { showFilters = !showFilters },
                         )
                     }
-                }
-            } else {
-                item(key = "stats-filters") {
-                    AnimatedVisibility(
-                        visible = showFilters,
-                        enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(180)),
-                        exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text(strings.habitFilterTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
-                                contentPadding = PaddingValues(end = 4.dp),
-                            ) {
-                                items(snapshot.habitOptions, key = { it.habit.id }) { option ->
-                                    StatsHabitChip(
-                                        option = option,
-                                        selected = option.habit.id == snapshot.selectedHabitId,
-                                        onClick = { onSelectHabit(option.habit.id) },
-                                    )
+                },
+            )
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(
+                    start = horizontalPadding,
+                    end = horizontalPadding,
+                    top = contentSpacing,
+                    bottom = if (compactLayout) 84.dp else 92.dp,
+                ),
+                verticalArrangement = Arrangement.spacedBy(contentSpacing),
+            ) {
+                if (snapshot.habitOptions.isEmpty()) {
+                    item {
+                        GlassCard {
+                            Text(strings.noHabitDataTitle, style = MaterialTheme.typography.titleLarge)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = strings.noHabitDataDesc,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                } else {
+                    item(key = "stats-filters") {
+                        AnimatedVisibility(
+                            visible = showFilters,
+                            enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(180)),
+                            exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(140)),
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(strings.habitFilterTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(if (compactLayout) 8.dp else 10.dp),
+                                    contentPadding = PaddingValues(end = 4.dp),
+                                ) {
+                                    items(snapshot.habitOptions, key = { it.habit.id }) { option ->
+                                        StatsHabitChip(
+                                            option = option,
+                                            selected = option.habit.id == snapshot.selectedHabitId,
+                                            onClick = { onSelectHabit(option.habit.id) },
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                item(key = "stats-year-switcher") {
-                    YearSwitcherCard(
-                        year = snapshot.year,
-                        compactLayout = compactLayout,
-                        onPreviousYear = onPreviousYear,
-                        onNextYear = onNextYear,
-                        canGoToNextYear = canGoToNextYear,
-                        onBackToCurrentYear = onBackToCurrentYear,
-                    )
-                }
-                item(key = "stats-summary-metrics") {
-                    StatsOverviewCard(snapshot = snapshot, compactLayout = compactLayout)
-                }
-                item(key = "stats-trend-chart") {
-                    TrendChartCard(snapshot.trendPoints, compactLayout)
-                }
-                item(key = "stats-hourly-chart") {
-                    HourlyDistributionCard(snapshot.hourlyDistribution, compactLayout)
-                }
-                item(key = "stats-monthly-detail") {
-                    MonthlyDetailCard(snapshot.monthlyDetails, compactLayout)
+                    item(key = "stats-year-switcher") {
+                        YearSwitcherCard(
+                            year = snapshot.year,
+                            compactLayout = compactLayout,
+                            onPreviousYear = onPreviousYear,
+                            onNextYear = onNextYear,
+                            canGoToNextYear = canGoToNextYear,
+                            onBackToCurrentYear = onBackToCurrentYear,
+                        )
+                    }
+                    item(key = "stats-summary-metrics") {
+                        StatsOverviewCard(snapshot = snapshot, compactLayout = compactLayout)
+                    }
+                    item(key = "stats-trend-chart") {
+                        TrendChartCard(snapshot.trendPoints, compactLayout)
+                    }
+                    item(key = "stats-hourly-chart") {
+                        HourlyDistributionCard(snapshot.hourlyDistribution, compactLayout)
+                    }
+                    item(key = "stats-monthly-detail") {
+                        MonthlyDetailCard(snapshot.monthlyDetails, compactLayout)
+                    }
                 }
             }
         }
+
+    }
+
+    if (showShareOptions) {
+        ShareStatsDialog(
+            strings = strings,
+            onSave = {
+                val bitmap = shareBitmap
+                showShareOptions = false
+                if (bitmap != null) {
+                    val saved = saveBitmapToGallery(context, bitmap)
+                    Toast.makeText(context, if (saved) strings.saveSuccess else strings.saveFailed, Toast.LENGTH_SHORT).show()
+                }
+            },
+            onShare = {
+                val bitmap = shareBitmap
+                showShareOptions = false
+                if (bitmap != null) {
+                    shareBitmap(context, bitmap, strings.share)
+                }
+            },
+            onDismiss = { showShareOptions = false },
+        )
+    }
+}
+
+@Composable
+private fun ShareStatsDialog(
+    strings: PulseStrings,
+    onSave: () -> Unit,
+    onShare: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true),
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = strings.shareStatsTitle,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = strings.shareStatsDesc,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                ShareOptionRow(
+                    icon = PulseIconKind.Download,
+                    text = strings.saveToGallery,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = onSave,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
+                ShareOptionRow(
+                    icon = PulseIconKind.Share,
+                    text = strings.share,
+                    color = MaterialTheme.colorScheme.primary,
+                    onClick = onShare,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
+                ShareOptionRow(
+                    icon = null,
+                    text = strings.cancel,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShareOptionRow(
+    icon: PulseIconKind?,
+    text: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        if (icon != null) {
+            PulseActionIcon(
+                kind = icon,
+                color = color,
+                compactLayout = true,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = color,
+        )
     }
 }
 

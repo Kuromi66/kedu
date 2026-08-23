@@ -123,6 +123,12 @@
     <string name="record_detail_title">Check-in details</string>
     <string name="no_note">No note</string>
     <string name="delete_record_action">Delete record</string>
+    <string name="share">Share</string>
+    <string name="share_stats_title">Share stats</string>
+    <string name="share_stats_desc">Generate an image of this year\'s stats</string>
+    <string name="save_to_gallery">Save to gallery</string>
+    <string name="save_success">Saved to gallery</string>
+    <string name="save_failed">Failed to save</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>
