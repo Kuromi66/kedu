@@ -192,6 +192,10 @@ interface DayEventRecord {
   repeatsYearly: boolean;
   note: string | null;
   sortOrder: number;
+  calendarType: string;
+  lunarMonth: number | null;
+  lunarDay: number | null;
+  lunarLeap: boolean;
   createdAtEpochMillis: number;
   archived: boolean;
   updatedAtEpochMillis: number;
@@ -236,12 +240,16 @@ function isEvent(value: unknown): value is EventRecord {
 function isDayEvent(value: unknown): value is DayEventRecord {
   const item = value as Record<string, unknown>;
   const note = item.note;
+  const calendarType = item.calendarType;
   return (
     asString(item.id) !== null &&
     asString(item.name) !== null &&
     typeof item.eventDate === 'string' &&
     DATE_RE.test(item.eventDate) &&
     asNumber(item.sortOrder) !== null &&
+    (calendarType === undefined || calendarType === 'SOLAR' || calendarType === 'LUNAR') &&
+    (item.lunarMonth === null || item.lunarMonth === undefined || asNumber(item.lunarMonth) !== null) &&
+    (item.lunarDay === null || item.lunarDay === undefined || asNumber(item.lunarDay) !== null) &&
     asNumber(item.createdAtEpochMillis) !== null &&
     asNumber(item.updatedAtEpochMillis) !== null &&
     (note === null || note === undefined || (typeof note === 'string' && note.length <= 200))
@@ -292,6 +300,10 @@ function dayEventBindings(userId: string, event: DayEventRecord, firstSeenAt: nu
     event.repeatsYearly ? 1 : 0,
     event.note ?? null,
     event.sortOrder,
+    event.calendarType ?? 'SOLAR',
+    event.lunarMonth ?? null,
+    event.lunarDay ?? null,
+    event.lunarLeap ? 1 : 0,
     event.createdAtEpochMillis,
     event.archived ? 1 : 0,
     event.updatedAtEpochMillis,
@@ -355,13 +367,16 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   const dayEventStatements = dayEventsIn.map((dayEvent) =>
     env.DB.prepare(
       `INSERT INTO day_events
-         (id, user_id, name, event_date, repeats_yearly, note, sort_order, created_at, archived,
-          updated_at, first_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, user_id, name, event_date, repeats_yearly, note, sort_order, calendar_type,
+          lunar_month, lunar_day, lunar_leap, created_at, archived, updated_at, first_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, event_date = excluded.event_date,
          repeats_yearly = excluded.repeats_yearly, note = excluded.note,
          sort_order = excluded.sort_order,
+         calendar_type = excluded.calendar_type,
+         lunar_month = excluded.lunar_month, lunar_day = excluded.lunar_day,
+         lunar_leap = excluded.lunar_leap,
          created_at = excluded.created_at, archived = excluded.archived,
          updated_at = excluded.updated_at
        WHERE excluded.updated_at > day_events.updated_at AND day_events.user_id = excluded.user_id`,
@@ -385,7 +400,8 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     .bind(userId, since, since)
     .all();
   const { results: dayEvents } = await env.DB.prepare(
-    `SELECT id, name, event_date, repeats_yearly, note, sort_order, created_at, archived, updated_at
+    `SELECT id, name, event_date, repeats_yearly, note, sort_order, calendar_type,
+            lunar_month, lunar_day, lunar_leap, created_at, archived, updated_at
      FROM day_events WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
   )
     .bind(userId, since, since)
@@ -425,6 +441,10 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       repeatsYearly: !!row.repeats_yearly,
       note: row.note ?? null,
       sortOrder: row.sort_order,
+      calendarType: row.calendar_type ?? 'SOLAR',
+      lunarMonth: row.lunar_month ?? null,
+      lunarDay: row.lunar_day ?? null,
+      lunarLeap: !!row.lunar_leap,
       createdAtEpochMillis: row.created_at,
       archived: !!row.archived,
       updatedAtEpochMillis: row.updated_at,
