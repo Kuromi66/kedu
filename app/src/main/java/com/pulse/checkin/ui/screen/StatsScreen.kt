@@ -49,14 +49,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -77,13 +80,15 @@ import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
-import com.pulse.checkin.ui.components.renderStatsShareBitmap
+import com.pulse.checkin.ui.components.StatsShareCard
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.i18n.PulseStrings
 import com.pulse.checkin.ui.util.saveBitmapToGallery
 import com.pulse.checkin.ui.util.shareBitmap
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.YearMonth
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
 fun StatsScreen(
@@ -101,6 +106,8 @@ fun StatsScreen(
     var showFilters by rememberSaveable { mutableStateOf(false) }
     var showShareOptions by remember { mutableStateOf(false) }
     var shareBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val shareLayer = rememberGraphicsLayer()
+    val coroutineScope = rememberCoroutineScope()
     val currentYear = YearMonth.now().year
     val canGoToNextYear = snapshot.year < currentYear
 
@@ -115,8 +122,12 @@ fun StatsScreen(
                             kind = PulseIconKind.Share,
                             compactLayout = compactLayout,
                             onClick = {
-                                shareBitmap = renderStatsShareBitmap(context, snapshot, strings)
-                                showShareOptions = true
+                                coroutineScope.launch {
+                                    shareBitmap = runCatching {
+                                        shareLayer.toImageBitmap().asAndroidBitmap()
+                                    }.getOrNull()
+                                    showShareOptions = shareBitmap != null
+                                }
                             },
                         )
                         HeaderFilterButton(
@@ -199,6 +210,15 @@ fun StatsScreen(
             }
         }
 
+        Box(
+            modifier = Modifier
+                .size(340.dp, 500.dp)
+                .drawWithContent {
+                    shareLayer.record { this@drawWithContent.drawContent() }
+                },
+        ) {
+            StatsShareCard(snapshot = snapshot, strings = strings)
+        }
     }
 
     if (showShareOptions) {

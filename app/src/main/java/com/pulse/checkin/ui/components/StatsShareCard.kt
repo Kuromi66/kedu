@@ -1,9 +1,5 @@
 package com.pulse.checkin.ui.components
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.view.View
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +30,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.ComposeView
 import com.pulse.checkin.domain.stats.MonthlyTrendPoint
 import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.ui.i18n.PulseStrings
@@ -210,27 +205,6 @@ private fun ShareMetricTile(
     }
 }
 
-fun renderStatsShareBitmap(
-    context: Context,
-    snapshot: YearSnapshot,
-    strings: PulseStrings,
-    widthPx: Int = 1020,
-    heightPx: Int = 1500,
-): Bitmap {
-    val view = ComposeView(context).apply {
-        setContent {
-            StatsShareCard(snapshot = snapshot, strings = strings)
-        }
-    }
-    view.measure(
-        View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
-        View.MeasureSpec.makeMeasureSpec(heightPx, View.MeasureSpec.EXACTLY),
-    )
-    view.layout(0, 0, widthPx, heightPx)
-    val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
-    view.draw(Canvas(bitmap))
-    return bitmap
-}
 
 @Composable
 private fun ShareTrendChart(
