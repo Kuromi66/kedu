@@ -9,6 +9,12 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pulse.checkin.AppContainer
 import com.pulse.checkin.data.backup.BackupManager
 import com.pulse.checkin.data.backup.BackupSummary
+import com.pulse.checkin.data.cloud.Session
+import com.pulse.checkin.data.cloud.SyncClock
+import com.pulse.checkin.data.cloud.SyncError
+import com.pulse.checkin.data.cloud.SyncException
+import com.pulse.checkin.data.cloud.SyncManager
+import com.pulse.checkin.data.cloud.SyncOutcome
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.CheckInEvent
@@ -24,12 +30,16 @@ import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.reminder.ReminderScheduler
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.UUID
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -41,7 +51,7 @@ enum class AppTab {
 }
 
 data class HabitDraft(
-    val id: Long = 0,
+    val id: String = "",
     val name: String = "",
     val glyph: String = "P",
     val colorArgb: Long = 0xFF101828,
@@ -66,12 +76,20 @@ data class HabitDraft(
     }
 }
 
+data class SyncUiState(
+    val session: Session? = null,
+    val isSyncing: Boolean = false,
+    val lastSyncAtEpochMillis: Long? = null,
+    val syncError: SyncError? = null,
+    val authError: SyncError? = null,
+)
+
 data class AppUiState(
     val selectedTab: AppTab = AppTab.TODAY,
     val selectedDate: LocalDate = LocalDate.now(),
-    val selectedHistoryHabitId: Long? = null,
+    val selectedHistoryHabitId: String? = null,
     val selectedStatsYear: Int = LocalDate.now().year,
-    val selectedStatsHabitId: Long? = null,
+    val selectedStatsHabitId: String? = null,
     val preferences: UserPreferences = UserPreferences(),
     val habits: List<Habit> = emptyList(),
     val todaySnapshot: TodaySnapshot = TodaySnapshot.Empty,
@@ -90,9 +108,9 @@ private data class BaseUiInputs(
 
 private data class DerivedUiInputs(
     val base: BaseUiInputs,
-    val rawHistoryHabitId: Long?,
+    val rawHistoryHabitId: String?,
     val statsYear: Int,
-    val rawStatsHabitId: Long?,
+    val rawStatsHabitId: String?,
 )
 
 class AppViewModel(
@@ -102,13 +120,19 @@ class AppViewModel(
     private val backupManager: BackupManager,
     private val statsCalculator: StatsCalculator,
     private val reminderScheduler: ReminderScheduler,
+    private val syncManager: SyncManager,
+    private val syncClock: SyncClock,
 ) : ViewModel() {
     private val selectedTab = MutableStateFlow(AppTab.TODAY)
     private val selectedDate = MutableStateFlow(LocalDate.now())
-    private val selectedHistoryHabitId = MutableStateFlow<Long?>(null)
+    private val selectedHistoryHabitId = MutableStateFlow<String?>(null)
     private val selectedStatsYear = MutableStateFlow(LocalDate.now().year)
-    private val selectedStatsHabitId = MutableStateFlow<Long?>(null)
+    private val selectedStatsHabitId = MutableStateFlow<String?>(null)
     private val currentDate = MutableStateFlow(LocalDate.now())
+    private val syncUiStateInternal = MutableStateFlow(SyncUiState())
+    private var syncJob: Job? = null
+
+    val syncUiState: StateFlow<SyncUiState> = syncUiStateInternal
 
     init {
         viewModelScope.launch {
@@ -118,6 +142,22 @@ class AppViewModel(
                     currentDate.value = today
                 }
                 delay(60_000L)
+            }
+        }
+        viewModelScope.launch {
+            val lastSyncAt = syncManager.currentLastSyncAt()
+            syncUiStateInternal.update {
+                it.copy(lastSyncAtEpochMillis = lastSyncAt.takeIf { value -> value > 0L })
+            }
+        }
+        viewModelScope.launch {
+            syncManager.sessionFlow.collect { session ->
+                syncUiStateInternal.update { it.copy(session = session) }
+            }
+        }
+        viewModelScope.launch {
+            if (syncManager.sessionFlow.first() != null) {
+                runSyncInternal()
             }
         }
     }
@@ -203,7 +243,7 @@ class AppViewModel(
         selectedDate.value = date
     }
 
-    fun selectHistoryHabit(habitId: Long?) {
+    fun selectHistoryHabit(habitId: String?) {
         selectedHistoryHabitId.value = habitId
     }
 
@@ -215,7 +255,7 @@ class AppViewModel(
         selectedDate.value = next.atDay(targetDay)
     }
 
-    fun selectStatsHabit(habitId: Long) {
+    fun selectStatsHabit(habitId: String) {
         selectedStatsHabitId.value = habitId
     }
 
@@ -227,13 +267,14 @@ class AppViewModel(
         selectedStatsYear.value = LocalDate.now().year
     }
 
-    fun checkInHabit(habitId: Long) {
+    fun checkInHabit(habitId: String) {
         viewModelScope.launch {
             checkInRepository.addCheckIn(habitId)
+            triggerSync()
         }
     }
 
-    fun backfillHabit(habitId: Long, targetDate: LocalDate) {
+    fun backfillHabit(habitId: String, targetDate: LocalDate) {
         if (!targetDate.isBefore(LocalDate.now())) return
         viewModelScope.launch {
             checkInRepository.addCheckIn(
@@ -242,22 +283,24 @@ class AppViewModel(
                 localDate = targetDate,
                 isBackfilled = true,
             )
+            triggerSync()
         }
     }
 
-    fun deleteCheckInRecord(eventId: Long) {
+    fun deleteCheckInRecord(eventId: String) {
         viewModelScope.launch {
             checkInRepository.deleteCheckIn(eventId)
+            triggerSync()
         }
     }
 
     fun saveHabit(draft: HabitDraft) {
         viewModelScope.launch {
-            val existing = if (draft.id != 0L) habitRepository.getHabit(draft.id) else null
+            val existing = if (draft.id.isNotBlank()) habitRepository.getHabit(draft.id) else null
             val sortOrder = existing?.sortOrder
                 ?: (uiState.value.habits.maxOfOrNull { it.sortOrder }?.plus(1) ?: 0)
             val habit = Habit(
-                id = existing?.id ?: 0,
+                id = existing?.id ?: UUID.randomUUID().toString(),
                 name = draft.name.trim(),
                 colorArgb = draft.colorArgb,
                 glyph = draft.glyph,
@@ -267,16 +310,17 @@ class AppViewModel(
                 reminderMinute = if (draft.reminderEnabled) draft.reminderMinute else null,
                 targetEnabled = draft.targetEnabled,
                 dailyTargetCount = if (draft.targetEnabled) draft.targetCount.coerceAtLeast(1) else null,
-                createdAtEpochMillis = existing?.createdAtEpochMillis ?: System.currentTimeMillis(),
+                createdAtEpochMillis = existing?.createdAtEpochMillis ?: syncClock.nowMillis(),
                 archived = false,
+                updatedAtEpochMillis = syncClock.nowMillis(),
             )
-            val savedId = habitRepository.upsert(habit)
-            val finalHabit = habit.copy(id = if (habit.id == 0L) savedId else habit.id)
-            if (finalHabit.reminderEnabled) {
-                reminderScheduler.scheduleForHabit(finalHabit)
+            habitRepository.upsert(habit)
+            if (habit.reminderEnabled) {
+                reminderScheduler.scheduleForHabit(habit)
             } else {
-                reminderScheduler.cancelForHabit(finalHabit.id)
+                reminderScheduler.cancelForHabit(habit.id)
             }
+            triggerSync()
         }
     }
 
@@ -293,14 +337,106 @@ class AppViewModel(
             selectedDate.value = LocalDate.now()
             selectedStatsYear.value = LocalDate.now().year
             reminderScheduler.syncAll(habitRepository.getActiveReminderHabits())
+            triggerSync()
         }
         return result
     }
 
-    fun archiveHabit(habitId: Long) {
+    fun archiveHabit(habitId: String) {
         viewModelScope.launch {
             habitRepository.setArchived(habitId, true)
             reminderScheduler.cancelForHabit(habitId)
+            triggerSync()
+        }
+    }
+
+    fun login(email: String, password: String) {
+        viewModelScope.launch {
+            syncUiStateInternal.update { it.copy(isSyncing = true, authError = null) }
+            syncManager.login(email, password).fold(
+                onSuccess = {
+                    syncUiStateInternal.update { it.copy(isSyncing = false, authError = null) }
+                    runSyncInternal()
+                },
+                onFailure = { exception ->
+                    syncUiStateInternal.update {
+                        it.copy(
+                            isSyncing = false,
+                            authError = (exception as? SyncException)?.error ?: SyncError.UNKNOWN,
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun register(email: String, password: String) {
+        viewModelScope.launch {
+            syncUiStateInternal.update { it.copy(isSyncing = true, authError = null) }
+            syncManager.register(email, password).fold(
+                onSuccess = {
+                    syncUiStateInternal.update { it.copy(isSyncing = false, authError = null) }
+                    runSyncInternal()
+                },
+                onFailure = { exception ->
+                    syncUiStateInternal.update {
+                        it.copy(
+                            isSyncing = false,
+                            authError = (exception as? SyncException)?.error ?: SyncError.UNKNOWN,
+                        )
+                    }
+                },
+            )
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            syncManager.logout()
+            syncUiStateInternal.update {
+                it.copy(
+                    session = null,
+                    authError = null,
+                    syncError = null,
+                    lastSyncAtEpochMillis = null,
+                )
+            }
+            selectedHistoryHabitId.value = null
+            selectedStatsHabitId.value = null
+        }
+    }
+
+    fun syncNow() {
+        viewModelScope.launch {
+            runSyncInternal()
+        }
+    }
+
+    private fun triggerSync() {
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch {
+            delay(800)
+            runSyncInternal()
+        }
+    }
+
+    private suspend fun runSyncInternal() {
+        syncUiStateInternal.update { it.copy(isSyncing = true, syncError = null) }
+        when (val outcome = syncManager.syncOnce()) {
+            is SyncOutcome.Success -> {
+                syncUiStateInternal.update {
+                    it.copy(
+                        isSyncing = false,
+                        syncError = null,
+                        lastSyncAtEpochMillis = System.currentTimeMillis(),
+                    )
+                }
+                reminderScheduler.syncAll(habitRepository.getActiveReminderHabits())
+            }
+            is SyncOutcome.SignedOut -> syncUiStateInternal.update { it.copy(isSyncing = false) }
+            is SyncOutcome.Failure -> syncUiStateInternal.update {
+                it.copy(isSyncing = false, syncError = outcome.error)
+            }
         }
     }
 
@@ -326,6 +462,8 @@ class AppViewModel(
                     backupManager = container.backupManager,
                     statsCalculator = container.statsCalculator,
                     reminderScheduler = container.reminderScheduler,
+                    syncManager = container.syncManager,
+                    syncClock = container.syncClock,
                 )
             }
         }

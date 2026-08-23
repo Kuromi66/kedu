@@ -1,6 +1,7 @@
 package com.pulse.checkin.ui.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,16 +23,24 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.BuildConfig
+import com.pulse.checkin.data.cloud.SyncError
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.ui.components.GlassCard
@@ -39,12 +48,23 @@ import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.i18n.PulseStrings
+import com.pulse.checkin.ui.SyncUiState
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun SettingsScreen(
     themeMode: ThemeMode,
     appLanguage: AppLanguage,
     notificationsGranted: Boolean,
+    syncState: SyncUiState,
+    onLogin: (email: String, password: String) -> Unit,
+    onRegister: (email: String, password: String) -> Unit,
+    onLogout: () -> Unit,
+    onSyncNow: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onAppLanguageChange: (AppLanguage) -> Unit,
     onRequestNotificationPermission: () -> Unit,
@@ -68,6 +88,18 @@ fun SettingsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {
+            item {
+                GlassCard {
+                    AccountSection(
+                        syncState = syncState,
+                        onLogin = onLogin,
+                        onRegister = onRegister,
+                        onLogout = onLogout,
+                        onSyncNow = onSyncNow,
+                        compactLayout = compactLayout,
+                    )
+                }
+            }
             item {
                 GlassCard {
                     SettingsSectionHeader(
@@ -178,6 +210,162 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+@Composable
+private fun AccountSection(
+    syncState: SyncUiState,
+    onLogin: (email: String, password: String) -> Unit,
+    onRegister: (email: String, password: String) -> Unit,
+    onLogout: () -> Unit,
+    onSyncNow: () -> Unit,
+    compactLayout: Boolean,
+) {
+    val strings = LocalPulseStrings.current
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    val session = syncState.session
+
+    SettingsSectionHeader(
+        title = strings.accountSection,
+        icon = PulseIconKind.Account,
+        compactLayout = compactLayout,
+    )
+    Spacer(modifier = Modifier.height(if (compactLayout) 12.dp else 14.dp))
+
+    if (session == null) {
+        Text(
+            text = strings.accountSyncDesc,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text(strings.emailLabel) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text(strings.passwordLabel) },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = { onRegister(email, password) },
+                enabled = !syncState.isSyncing,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+            ) {
+                SettingsButtonContent(
+                    text = strings.register,
+                    icon = PulseIconKind.Add,
+                    color = MaterialTheme.colorScheme.primary,
+                    compactLayout = compactLayout,
+                )
+            }
+            Button(
+                onClick = { onLogin(email, password) },
+                enabled = !syncState.isSyncing,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            ) {
+                SettingsButtonContent(
+                    text = strings.login,
+                    icon = PulseIconKind.Check,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    compactLayout = compactLayout,
+                )
+            }
+        }
+        syncState.authError?.let { error ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = error.toSyncMessage(strings),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    } else {
+        Text(
+            text = session.email,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
+                onClick = onSyncNow,
+                enabled = !syncState.isSyncing,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                SettingsButtonContent(
+                    text = if (syncState.isSyncing) strings.syncing else strings.syncNow,
+                    icon = PulseIconKind.Upload,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    compactLayout = compactLayout,
+                )
+            }
+            OutlinedButton(
+                onClick = onLogout,
+                enabled = !syncState.isSyncing,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+            ) {
+                SettingsButtonContent(
+                    text = strings.logout,
+                    icon = PulseIconKind.Account,
+                    color = MaterialTheme.colorScheme.primary,
+                    compactLayout = compactLayout,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = syncState.lastSyncAtEpochMillis?.let { millis ->
+                strings.lastSyncTime(formatSyncTime(millis))
+            } ?: strings.lastSyncNever,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        syncState.syncError?.let { error ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = error.toSyncMessage(strings),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+    }
+}
+
+private fun formatSyncTime(epochMillis: Long): String {
+    return DateTimeFormatter.ofPattern("MM-dd HH:mm", Locale.getDefault())
+        .format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+}
+
+private fun SyncError.toSyncMessage(strings: PulseStrings): String = when (this) {
+    SyncError.INVALID_CREDENTIALS -> strings.loginFailed
+    SyncError.EMAIL_TAKEN -> strings.emailRegistered
+    SyncError.INVALID_INPUT -> strings.invalidInput
+    SyncError.NETWORK -> strings.networkUnavailable
+    SyncError.UNKNOWN -> strings.unknownError
 }
 
 @Composable

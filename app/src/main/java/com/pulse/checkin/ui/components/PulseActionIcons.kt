@@ -42,6 +42,7 @@ enum class PulseIconKind {
     Language,
     Download,
     Upload,
+    Account,
     LightMode,
     DarkMode,
     SystemMode,
@@ -185,6 +186,23 @@ fun PulseActionIcon(
             PulseIconKind.ArrowRight -> {
                 drawLine(color, Offset(size.width * 0.38f, size.height * 0.22f), Offset(size.width * 0.64f, centerY), stroke, cap = StrokeCap.Round)
                 drawLine(color, Offset(size.width * 0.64f, centerY), Offset(size.width * 0.38f, size.height * 0.78f), stroke, cap = StrokeCap.Round)
+            }
+            PulseIconKind.Account -> {
+                drawCircle(
+                    color,
+                    radius = size.minDimension * 0.17f,
+                    center = Offset(centerX, size.height * 0.32f),
+                    style = Stroke(width = stroke),
+                )
+                drawArc(
+                    color = color,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(size.width * 0.20f, size.height * 0.46f),
+                    size = Size(size.width * 0.60f, size.height * 0.44f),
+                    style = Stroke(width = stroke),
+                )
             }
             PulseIconKind.CurrentTime -> {
                 drawCircle(color, radius = size.minDimension * 0.28f, center = Offset(centerX, centerY), style = Stroke(width = stroke))

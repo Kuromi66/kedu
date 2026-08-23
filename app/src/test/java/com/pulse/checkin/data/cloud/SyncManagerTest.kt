@@ -1,0 +1,289 @@
+package com.pulse.checkin.data.cloud
+
+import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.HabitEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
+import retrofit2.Response
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class SyncManagerTest {
+
+    private class FakeSession : SyncSessionStore {
+        private var token: String? = "token-1"
+        private var watermark = 1_000L
+        private var lastSyncAt = 0L
+
+        override val sessionFlow: Flow<Session?> =
+            MutableStateFlow(Session(token = "token-1", userId = "u-1", email = "a@example.com"))
+
+        override var clockOffsetMillis: Long = 0L
+
+        override suspend fun currentToken(): String? = token
+
+        override suspend fun currentUserId(): String? = "u-1"
+
+        override suspend fun currentAccountEmail(): String? = "a@example.com"
+
+        override suspend fun currentWatermark(): Long = watermark
+
+        override suspend fun currentLastSyncAt(): Long = lastSyncAt
+
+        override suspend fun saveSession(token: String, userId: String, email: String) {
+            this.token = token
+        }
+
+        override suspend fun clearSession() {
+            token = null
+        }
+
+        override suspend fun saveSyncState(watermark: Long, lastSyncAtEpochMillis: Long) {
+            this.watermark = watermark
+            this.lastSyncAt = lastSyncAtEpochMillis
+        }
+    }
+
+    private class FakeApi(
+        var syncResponse: SyncResponse = SyncResponse(serverTime = 3_000L),
+    ) : CloudApi {
+        var lastRequest: SyncRequest? = null
+        var lastAuth: AuthRequest? = null
+
+        override suspend fun register(body: AuthRequest): AuthResponse {
+            lastAuth = body
+            return AuthResponse(token = "t", userId = "u", serverTime = 3_000L)
+        }
+
+        override suspend fun login(body: AuthRequest): AuthResponse {
+            lastAuth = body
+            return AuthResponse(token = "t", userId = "u", serverTime = 3_000L)
+        }
+
+        override suspend fun logout(): Response<Unit> = Response.success(Unit)
+
+        override suspend fun sync(body: SyncRequest): SyncResponse {
+            lastRequest = body
+            return syncResponse
+        }
+    }
+
+    private class FakeDataSource(
+        val habits: MutableList<HabitEntity> = mutableListOf(),
+        val events: MutableList<CheckInEventEntity> = mutableListOf(),
+    ) : SyncDataSource {
+        override suspend fun getAllHabits(): List<HabitEntity> = habits.toList()
+
+        override suspend fun upsertHabits(habits: List<HabitEntity>) {
+            habits.forEach { habit ->
+                this.habits.removeAll { it.id == habit.id }
+                this.habits.add(habit)
+            }
+        }
+
+        override suspend fun getAllEventsIncludingDeleted(): List<CheckInEventEntity> = events.toList()
+
+        override suspend fun upsertEvents(events: List<CheckInEventEntity>) {
+            events.forEach { event ->
+                this.events.removeAll { it.id == event.id }
+                this.events.add(event)
+            }
+        }
+    }
+
+    private val fakeClock = object : SyncClock {
+        override fun nowMillis(): Long = 10_000L
+    }
+
+    @Test
+    fun `signed out sync is a no-op`() = runBlocking {
+        val session = FakeSession().apply { clearSession() }
+        val manager = SyncManager(FakeApi(), session, FakeDataSource(), fakeClock)
+
+        val outcome = manager.syncOnce()
+
+        assertEquals(SyncOutcome.SignedOut, outcome)
+    }
+
+    @Test
+    fun `sync pushes only records newer than watermark and applies pulled records`() = runBlocking {
+        val session = FakeSession()
+        val dataSource = FakeDataSource(
+            habits = mutableListOf(
+                habit(id = "h-local", updatedAt = 1_500L),
+                habit(id = "h-old", updatedAt = 500L),
+            ),
+            events = mutableListOf(event(id = "e-local", habitId = "h-local", updatedAt = 1_600L)),
+        )
+        val api = FakeApi(
+            syncResponse = SyncResponse(
+                serverTime = 3_000L,
+                habits = listOf(
+                    HabitDto(
+                        id = "pulled-h",
+                        name = "云端习惯",
+                        colorArgb = 1L,
+                        glyph = "P",
+                        sortOrder = 0,
+                        reminderEnabled = false,
+                        targetEnabled = false,
+                        createdAtEpochMillis = 1L,
+                        archived = false,
+                        updatedAtEpochMillis = 2_000L,
+                    ),
+                ),
+                events = listOf(
+                    EventDto(
+                        id = "pulled-e",
+                        habitId = "pulled-h",
+                        occurredAtEpochMillis = 2L,
+                        localDate = "2026-08-23",
+                        updatedAtEpochMillis = 2_100L,
+                    ),
+                ),
+            ),
+        )
+        val manager = SyncManager(api, session, dataSource, fakeClock)
+
+        val outcome = manager.syncOnce()
+
+        assertIs<SyncOutcome.Success>(outcome)
+        assertEquals(listOf("h-local"), api.lastRequest?.habits?.map { it.id })
+        assertEquals(listOf("e-local"), api.lastRequest?.events?.map { it.id })
+        assertEquals(1_000L, api.lastRequest?.since)
+        assertTrue(dataSource.habits.any { it.id == "pulled-h" })
+        assertTrue(dataSource.events.any { it.id == "pulled-e" })
+        assertEquals(3_000L, session.currentWatermark())
+        assertTrue(session.clockOffsetMillis < 0L)
+    }
+
+    @Test
+    fun `sync uploads tombstones for deleted events`() = runBlocking {
+        val session = FakeSession()
+        val dataSource = FakeDataSource(
+            events = mutableListOf(
+                event(id = "e-deleted", habitId = "h-local", updatedAt = 1_700L, deletedAt = 1_700L),
+            ),
+        )
+        val api = FakeApi()
+        val manager = SyncManager(api, session, dataSource, fakeClock)
+
+        manager.syncOnce()
+
+        assertEquals(listOf("e-deleted"), api.lastRequest?.events?.map { it.id })
+        assertEquals(1_700L, api.lastRequest?.events?.single()?.deletedAtEpochMillis)
+    }
+
+    @Test
+    fun `login saves session and resets watermark for full merge`() = runBlocking {
+        val session = FakeSession()
+        val manager = SyncManager(FakeApi(), session, FakeDataSource(), fakeClock)
+
+        val result = manager.login("  a@example.com  ", "secret123")
+
+        assertTrue(result.isSuccess)
+        assertEquals("a@example.com", manager.sessionFlow.firstSessionEmail())
+        assertEquals(0L, session.currentWatermark())
+    }
+
+    @Test
+    fun `register maps http 409 to email taken`() = runBlocking {
+        val failingApi = object : CloudApi {
+            override suspend fun register(body: AuthRequest): AuthResponse {
+                throw HttpException(
+                    Response.error<Any>(
+                        409,
+                        """{"error":"Email already registered"}""".toResponseBody("application/json".toMediaType()),
+                    ),
+                )
+            }
+
+            override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
+            override suspend fun logout(): Response<Unit> = Response.success(Unit)
+            override suspend fun sync(body: SyncRequest): SyncResponse = error("unused")
+        }
+        val manager = SyncManager(failingApi, FakeSession(), FakeDataSource(), fakeClock)
+
+        val result = manager.register("a@example.com", "secret123")
+
+        assertTrue(result.isFailure)
+        assertEquals(SyncError.EMAIL_TAKEN, (result.exceptionOrNull() as? SyncException)?.error)
+    }
+
+    @Test
+    fun `sync failure returns typed error`() = runBlocking {
+        val failingApi = object : CloudApi {
+            override suspend fun register(body: AuthRequest): AuthResponse = error("unused")
+            override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
+            override suspend fun logout(): Response<Unit> = Response.success(Unit)
+            override suspend fun sync(body: SyncRequest): SyncResponse {
+                throw HttpException(
+                    Response.error<Any>(401, """{"error":"Unauthorized"}""".toResponseBody("application/json".toMediaType())),
+                )
+            }
+        }
+        val manager = SyncManager(failingApi, FakeSession(), FakeDataSource(), fakeClock)
+
+        val outcome = manager.syncOnce()
+
+        assertIs<SyncOutcome.Failure>(outcome)
+        assertEquals(SyncError.INVALID_CREDENTIALS, outcome.error)
+    }
+
+    @Test
+    fun `logout clears local session even when server unreachable`() = runBlocking {
+        val session = FakeSession()
+        val failingApi = object : CloudApi {
+            override suspend fun register(body: AuthRequest): AuthResponse = error("unused")
+            override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
+            override suspend fun logout(): Response<Unit> = throw RuntimeException("network down")
+            override suspend fun sync(body: SyncRequest): SyncResponse = error("unused")
+        }
+        val manager = SyncManager(failingApi, session, FakeDataSource(), fakeClock)
+
+        manager.logout()
+
+        assertNull(session.currentToken())
+    }
+
+    private fun habit(id: String, updatedAt: Long): HabitEntity = HabitEntity(
+        id = id,
+        name = "habit-$id",
+        colorArgb = 1L,
+        glyph = "H",
+        sortOrder = 0,
+        reminderEnabled = false,
+        reminderHour = null,
+        reminderMinute = null,
+        targetEnabled = false,
+        dailyTargetCount = null,
+        createdAtEpochMillis = updatedAt,
+        archived = false,
+        updatedAtEpochMillis = updatedAt,
+    )
+
+    private fun event(
+        id: String,
+        habitId: String,
+        updatedAt: Long,
+        deletedAt: Long? = null,
+    ): CheckInEventEntity = CheckInEventEntity(
+        id = id,
+        habitId = habitId,
+        occurredAtEpochMillis = updatedAt,
+        localDate = "2026-08-23",
+        isBackfilled = false,
+        deletedAtEpochMillis = deletedAt,
+        updatedAtEpochMillis = updatedAt,
+    )
+}
+
+private suspend fun Flow<Session?>.firstSessionEmail(): String? = first()?.email

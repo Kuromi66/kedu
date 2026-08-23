@@ -4,6 +4,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     kotlin("android")
+    kotlin("plugin.serialization")
     id("com.google.devtools.ksp")
 }
 
@@ -18,6 +19,15 @@ val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPas
     !releaseSigningProperties.getProperty(key).isNullOrBlank()
 }
 
+val localProperties = Properties().apply {
+    val propertiesFile = rootProject.file("local.properties")
+    if (propertiesFile.exists()) {
+        FileInputStream(propertiesFile).use(::load)
+    }
+}
+
+val pulseApiBaseUrl = localProperties.getProperty("PULSE_API_BASE_URL") ?: ""
+
 android {
     namespace = "com.pulse.checkin"
     compileSdk = 35
@@ -26,11 +36,12 @@ android {
         applicationId = "com.pulse.checkin"
         minSdk = 29
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 6
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        buildConfigField("String", "PULSE_API_BASE_URL", "\"${pulseApiBaseUrl.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     signingConfigs {
@@ -113,6 +124,17 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.2.1")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    }
 }

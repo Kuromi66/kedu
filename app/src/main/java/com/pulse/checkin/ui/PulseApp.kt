@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PulseApp(viewModel: AppViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val syncUiState by viewModel.syncUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val strings = rememberPulseStrings(uiState.preferences.appLanguage)
@@ -171,6 +172,11 @@ fun PulseApp(viewModel: AppViewModel) {
                                     themeMode = uiState.preferences.themeMode,
                                     appLanguage = uiState.preferences.appLanguage,
                                     notificationsGranted = notificationsGranted,
+                                    syncState = syncUiState,
+                                    onLogin = viewModel::login,
+                                    onRegister = viewModel::register,
+                                    onLogout = viewModel::logout,
+                                    onSyncNow = viewModel::syncNow,
                                     onThemeModeChange = viewModel::setThemeMode,
                                     onAppLanguageChange = viewModel::setAppLanguage,
                                     onRequestNotificationPermission = {

@@ -100,6 +100,23 @@
     <string name="dark_mode">Dark</string>
     <string name="chinese">Chinese</string>
     <string name="english">English</string>
+    <string name="account_section">Account &amp; Sync</string>
+    <string name="account_sync_desc">Sign in to sync habits and check-ins across devices</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="login">Log in</string>
+    <string name="register">Sign up</string>
+    <string name="logout">Log out</string>
+    <string name="sync_now">Sync now</string>
+    <string name="syncing">Syncing…</string>
+    <string name="last_sync_never">Not synced yet</string>
+    <string name="last_sync_time">Last synced %1$s</string>
+    <string name="sync_failed">Sync failed</string>
+    <string name="login_failed">Wrong email or password</string>
+    <string name="email_registered">Email already registered</string>
+    <string name="invalid_input">Please check your input</string>
+    <string name="network_unavailable">Network unavailable, try again later</string>
+    <string name="unknown_error">Something went wrong</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>
