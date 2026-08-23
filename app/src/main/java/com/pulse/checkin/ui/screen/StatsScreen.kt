@@ -10,8 +10,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,12 +57,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -224,6 +229,7 @@ fun StatsScreen(
     if (showShareOptions) {
         ShareStatsDialog(
             strings = strings,
+            bitmap = shareBitmap,
             onSave = {
                 val bitmap = shareBitmap
                 showShareOptions = false
@@ -247,6 +253,7 @@ fun StatsScreen(
 @Composable
 private fun ShareStatsDialog(
     strings: PulseStrings,
+    bitmap: android.graphics.Bitmap?,
     onSave: () -> Unit,
     onShare: () -> Unit,
     onDismiss: () -> Unit,
@@ -263,7 +270,11 @@ private fun ShareStatsDialog(
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -281,6 +292,25 @@ private fun ShareStatsDialog(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                bitmap?.let { imageBitmap ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            bitmap = imageBitmap.asImageBitmap(),
+                            contentDescription = strings.shareStatsTitle,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 360.dp)
+                                .clip(RoundedCornerShape(16.dp)),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
                 ShareOptionRow(
                     icon = PulseIconKind.Download,
