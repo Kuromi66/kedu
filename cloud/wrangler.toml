@@ -1,0 +1,13 @@
+name = "pulse-sync"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# D1 database for sync data.
+# 1. Run: npx wrangler d1 create pulse
+# 2. Copy the returned database_id below.
+# 3. Run: npm run migrate:remote
+[[d1_databases]]
+binding = "DB"
+database_name = "pulse"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"

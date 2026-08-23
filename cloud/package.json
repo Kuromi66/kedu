@@ -1,0 +1,18 @@
+{
+  "name": "pulse-sync",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Pulse cloud sync backend (Cloudflare Workers + D1)",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "migrate:local": "wrangler d1 migrations apply pulse --local",
+    "migrate:remote": "wrangler d1 migrations apply pulse --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "typescript": "^5.7.2",
+    "wrangler": "^3.90.0"
+  }
+}
