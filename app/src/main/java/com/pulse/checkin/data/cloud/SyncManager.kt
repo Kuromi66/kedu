@@ -45,7 +45,7 @@ class SyncManager(
         try {
             val token = session.currentToken()
             if (!token.isNullOrBlank()) {
-                runCatching { api.logout() }
+                runCatching { api.logout("Bearer $token") }
             }
         } finally {
             session.clearSession()
@@ -69,7 +69,8 @@ class SyncManager(
                     .filter { it.updatedAtEpochMillis > watermark }
                     .map { it.toDto() }
                 val response = api.sync(
-                    SyncRequest(
+                    authorization = "Bearer $token",
+                    body = SyncRequest(
                         since = watermark,
                         habits = pushHabits,
                         events = pushEvents,

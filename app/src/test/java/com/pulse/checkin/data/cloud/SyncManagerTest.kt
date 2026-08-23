@@ -57,6 +57,7 @@ class SyncManagerTest {
     ) : CloudApi {
         var lastRequest: SyncRequest? = null
         var lastAuth: AuthRequest? = null
+        var lastAuthHeader: String? = null
 
         override suspend fun register(body: AuthRequest): AuthResponse {
             lastAuth = body
@@ -68,9 +69,13 @@ class SyncManagerTest {
             return AuthResponse(token = "t", userId = "u", serverTime = 3_000L)
         }
 
-        override suspend fun logout(): Response<Unit> = Response.success(Unit)
+        override suspend fun logout(authorization: String): Response<Unit> {
+            lastAuthHeader = authorization
+            return Response.success(Unit)
+        }
 
-        override suspend fun sync(body: SyncRequest): SyncResponse {
+        override suspend fun sync(authorization: String, body: SyncRequest): SyncResponse {
+            lastAuthHeader = authorization
             lastRequest = body
             return syncResponse
         }
@@ -156,6 +161,7 @@ class SyncManagerTest {
         val outcome = manager.syncOnce()
 
         assertIs<SyncOutcome.Success>(outcome)
+        assertEquals("Bearer token-1", api.lastAuthHeader)
         assertEquals(listOf("h-local"), api.lastRequest?.habits?.map { it.id })
         assertEquals(listOf("e-local"), api.lastRequest?.events?.map { it.id })
         assertEquals(1_000L, api.lastRequest?.since)
@@ -207,8 +213,8 @@ class SyncManagerTest {
             }
 
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
-            override suspend fun logout(): Response<Unit> = Response.success(Unit)
-            override suspend fun sync(body: SyncRequest): SyncResponse = error("unused")
+            override suspend fun logout(authorization: String): Response<Unit> = Response.success(Unit)
+            override suspend fun sync(authorization: String, body: SyncRequest): SyncResponse = error("unused")
         }
         val manager = SyncManager(failingApi, FakeSession(), FakeDataSource(), fakeClock)
 
@@ -223,8 +229,8 @@ class SyncManagerTest {
         val failingApi = object : CloudApi {
             override suspend fun register(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
-            override suspend fun logout(): Response<Unit> = Response.success(Unit)
-            override suspend fun sync(body: SyncRequest): SyncResponse {
+            override suspend fun logout(authorization: String): Response<Unit> = Response.success(Unit)
+            override suspend fun sync(authorization: String, body: SyncRequest): SyncResponse {
                 throw HttpException(
                     Response.error<Any>(401, """{"error":"Unauthorized"}""".toResponseBody("application/json".toMediaType())),
                 )
@@ -244,8 +250,8 @@ class SyncManagerTest {
         val failingApi = object : CloudApi {
             override suspend fun register(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
-            override suspend fun logout(): Response<Unit> = throw RuntimeException("network down")
-            override suspend fun sync(body: SyncRequest): SyncResponse = error("unused")
+            override suspend fun logout(authorization: String): Response<Unit> = throw RuntimeException("network down")
+            override suspend fun sync(authorization: String, body: SyncRequest): SyncResponse = error("unused")
         }
         val manager = SyncManager(failingApi, session, FakeDataSource(), fakeClock)
 

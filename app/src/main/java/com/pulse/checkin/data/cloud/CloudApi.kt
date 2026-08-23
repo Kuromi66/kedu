@@ -9,6 +9,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface CloudApi {
@@ -19,10 +20,13 @@ interface CloudApi {
     suspend fun login(@Body body: AuthRequest): AuthResponse
 
     @POST("auth/logout")
-    suspend fun logout(): Response<Unit>
+    suspend fun logout(@Header("Authorization") authorization: String): Response<Unit>
 
     @POST("sync")
-    suspend fun sync(@Body body: SyncRequest): SyncResponse
+    suspend fun sync(
+        @Header("Authorization") authorization: String,
+        @Body body: SyncRequest,
+    ): SyncResponse
 }
 
 object CloudApiFactory {
