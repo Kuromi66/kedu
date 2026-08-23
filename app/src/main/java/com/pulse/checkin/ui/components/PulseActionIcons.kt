@@ -45,7 +45,7 @@ enum class PulseIconKind {
     Account,
     Share,
     DragHandle,
-    Flag,
+    Star,
     LightMode,
     DarkMode,
     SystemMode,
@@ -215,11 +215,28 @@ fun PulseActionIcon(
                 drawLine(color, Offset(size.width * 0.30f, size.height * 0.36f), Offset(size.width * 0.48f, size.height * 0.66f), stroke, cap = StrokeCap.Round)
                 drawLine(color, Offset(size.width * 0.70f, size.height * 0.32f), Offset(size.width * 0.56f, size.height * 0.66f), stroke, cap = StrokeCap.Round)
             }
-            PulseIconKind.Flag -> {
-                drawLine(color, Offset(size.width * 0.30f, size.height * 0.18f), Offset(size.width * 0.30f, size.height * 0.84f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(size.width * 0.30f, size.height * 0.20f), Offset(size.width * 0.76f, size.height * 0.30f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(size.width * 0.76f, size.height * 0.30f), Offset(size.width * 0.30f, size.height * 0.44f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(size.width * 0.20f, size.height * 0.84f), Offset(size.width * 0.42f, size.height * 0.84f), stroke, cap = StrokeCap.Round)
+            PulseIconKind.Star -> {
+                val outerRadius = size.minDimension * 0.42f
+                val innerRadius = outerRadius * 0.42f
+                val outerPoints = (0 until 5).map { index ->
+                    val angle = -PI / 2.0 + 2.0 * PI * index / 5.0
+                    Offset(
+                        centerX + (cos(angle) * outerRadius).toFloat(),
+                        centerY + (sin(angle) * outerRadius).toFloat(),
+                    )
+                }
+                val innerPoints = (0 until 5).map { index ->
+                    val angle = -PI / 2.0 + 2.0 * PI * index / 5.0 + PI / 5.0
+                    Offset(
+                        centerX + (cos(angle) * innerRadius).toFloat(),
+                        centerY + (sin(angle) * innerRadius).toFloat(),
+                    )
+                }
+                for (index in 0 until 5) {
+                    val next = (index + 1) % 5
+                    drawLine(color, outerPoints[index], innerPoints[index], stroke, cap = StrokeCap.Round)
+                    drawLine(color, innerPoints[index], outerPoints[next], stroke, cap = StrokeCap.Round)
+                }
             }
             PulseIconKind.DragHandle -> {
                 listOf(0.32f, 0.5f, 0.68f).forEach { y ->

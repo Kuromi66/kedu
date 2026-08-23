@@ -319,7 +319,7 @@ private fun PulseBottomTab(
         AppTab.HISTORY -> PulseIconKind.HistoryTab
         AppTab.STATS -> PulseIconKind.StatsTab
         AppTab.SETTINGS -> PulseIconKind.SettingsTab
-        AppTab.DAY_EVENTS -> PulseIconKind.Flag
+        AppTab.DAY_EVENTS -> PulseIconKind.Star
     }
 
     Box(
