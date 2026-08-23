@@ -1,8 +1,8 @@
 # 刻度（Pulse）
 
-刻度是一款完全本地运行的 Android 习惯打卡应用，面向“可多次打卡、可回看趋势、可离线使用”的日常记录场景。项目基于 Kotlin 与 Jetpack Compose 开发，不依赖云端账号系统，核心数据默认保存在本机。
+刻度是一款本地优先的 Android 习惯打卡应用，面向“可多次打卡、可回看趋势、可离线使用”的日常记录场景。项目基于 Kotlin 与 Jetpack Compose 开发，数据默认保存在本机，登录账号后可通过云端在多个设备间同步习惯与打卡记录。
 
-当前仓库对应版本为 `v1.0.3`，已经支持正式包签名构建、历史补卡、本地通知提醒、数据导入导出、中英文切换，以及今日 / 历史 / 统计 / 设置四个主要页面。
+当前仓库对应版本为 `v1.1.0`，已经支持正式包签名构建、历史补卡、本地通知提醒、数据导入导出、账号登录与多设备云同步、中英文切换，以及今日 / 历史 / 统计 / 设置四个主要页面。
 
 ## 应用截图
 
@@ -61,6 +61,8 @@
 
 ### 设置页
 
+- 支持邮箱账号注册 / 登录 / 登出，登录后习惯与打卡记录跨设备同步
+- 支持手动触发同步并显示上次同步时间
 - 支持浅色 / 深色 / 跟随系统主题
 - 支持中文 / 英文界面切换
 - 支持本地 JSON 导出与导入
@@ -107,7 +109,10 @@
 - DataStore Preferences
 - WorkManager
 - KSP
+- Retrofit + OkHttp + kotlinx-serialization
 - MVVM + Repository
+
+云端同步后端基于 Cloudflare Workers + D1（SQLite），采用单条记录 Last-Write-Wins 合并策略；打卡删除以软删除墓碑同步，保证删除能跨设备传播。后端源码位于仓库 `cloud/` 目录。
 
 ## 项目结构
 
@@ -116,6 +121,11 @@ app/src/main/java/com/pulse/checkin
 ├── data
 │   ├── backup
 │   │   └── BackupManager.kt        # JSON 导入导出与备份摘要
+│   ├── cloud
+│   │   ├── CloudApi.kt             # 云端 REST 接口（Retrofit）
+│   │   ├── SessionManager.kt       # 会话、同步水位、时钟偏移存储
+│   │   ├── SyncManager.kt          # 登录注册与同步引擎
+│   │   └── SyncWorker.kt           # WorkManager 周期同步
 │   ├── db
 │   │   ├── dao/                    # Room DAO
 │   │   ├── entity/                 # Room Entity
@@ -174,15 +184,18 @@ app/src/main/java/com/pulse/checkin
 - 习惯数据：Room
 - 打卡事件：Room
 - 用户偏好：DataStore
+- 登录会话与同步状态：DataStore
 - 备份格式：JSON
 
-导出的 JSON 当前包含：
+导出的 JSON（v2）当前包含：
 
 - 备份版本号
 - 导出时间
 - 用户偏好设置
 - 习惯列表
 - 打卡事件列表
+
+仍可导入 v1 格式备份，旧版 Long 主键会映射为全局唯一 ID。
 
 ### 权限与提醒
 
@@ -191,8 +204,28 @@ app/src/main/java/com/pulse/checkin
 - `POST_NOTIFICATIONS`
 - `RECEIVE_BOOT_COMPLETED`
 - `VIBRATE`
+- `INTERNET`
+- `ACCESS_NETWORK_STATE`
 
 提醒通过 `WorkManager` 按天调度，本质上是本地系统通知，不要求应用保持前台。设备重启或应用更新后，会尝试重新同步提醒任务。
+
+## 云端部署
+
+同步后端部署在 Cloudflare Workers + D1，配置与源码见 `cloud/`：
+
+1. `cd cloud && npm install`
+2. `npx wrangler login`
+3. `npx wrangler d1 create pulse`，把返回的 `database_id` 填入 `cloud/wrangler.toml`
+4. `npm run migrate:remote` 创建数据表
+5. `npm run deploy` 部署
+
+部署后把 API 地址写入 Android 工程根目录 `local.properties`：
+
+```properties
+PULSE_API_BASE_URL=https://pulse-sync.<你的子域名>.workers.dev
+```
+
+未配置该地址时，应用仍可完全离线使用，仅账号与同步功能不可用。
 
 ## 开发环境
 
