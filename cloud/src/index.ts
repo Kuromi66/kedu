@@ -191,6 +191,7 @@ interface DayEventRecord {
   eventDate: string;
   repeatsYearly: boolean;
   note: string | null;
+  sortOrder: number;
   createdAtEpochMillis: number;
   archived: boolean;
   updatedAtEpochMillis: number;
@@ -240,6 +241,7 @@ function isDayEvent(value: unknown): value is DayEventRecord {
     asString(item.name) !== null &&
     typeof item.eventDate === 'string' &&
     DATE_RE.test(item.eventDate) &&
+    asNumber(item.sortOrder) !== null &&
     asNumber(item.createdAtEpochMillis) !== null &&
     asNumber(item.updatedAtEpochMillis) !== null &&
     (note === null || note === undefined || (typeof note === 'string' && note.length <= 200))
@@ -289,6 +291,7 @@ function dayEventBindings(userId: string, event: DayEventRecord, firstSeenAt: nu
     event.eventDate,
     event.repeatsYearly ? 1 : 0,
     event.note ?? null,
+    event.sortOrder,
     event.createdAtEpochMillis,
     event.archived ? 1 : 0,
     event.updatedAtEpochMillis,
@@ -352,12 +355,13 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   const dayEventStatements = dayEventsIn.map((dayEvent) =>
     env.DB.prepare(
       `INSERT INTO day_events
-         (id, user_id, name, event_date, repeats_yearly, note, created_at, archived, updated_at,
-          first_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (id, user_id, name, event_date, repeats_yearly, note, sort_order, created_at, archived,
+          updated_at, first_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, event_date = excluded.event_date,
          repeats_yearly = excluded.repeats_yearly, note = excluded.note,
+         sort_order = excluded.sort_order,
          created_at = excluded.created_at, archived = excluded.archived,
          updated_at = excluded.updated_at
        WHERE excluded.updated_at > day_events.updated_at AND day_events.user_id = excluded.user_id`,
@@ -381,7 +385,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     .bind(userId, since, since)
     .all();
   const { results: dayEvents } = await env.DB.prepare(
-    `SELECT id, name, event_date, repeats_yearly, note, created_at, archived, updated_at
+    `SELECT id, name, event_date, repeats_yearly, note, sort_order, created_at, archived, updated_at
      FROM day_events WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
   )
     .bind(userId, since, since)
@@ -420,6 +424,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       eventDate: row.event_date,
       repeatsYearly: !!row.repeats_yearly,
       note: row.note ?? null,
+      sortOrder: row.sort_order,
       createdAtEpochMillis: row.created_at,
       archived: !!row.archived,
       updatedAtEpochMillis: row.updated_at,
