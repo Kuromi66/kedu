@@ -166,6 +166,7 @@ class PulseStrings(private val context: Context) {
     val saveSuccess: String get() = context.getString(R.string.save_success)
     val saveFailed: String get() = context.getString(R.string.save_failed)
     val appName: String get() = context.getString(R.string.app_name)
+    val shareHistoryDesc: String get() = context.getString(R.string.share_history_desc)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

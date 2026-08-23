@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -57,12 +58,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
@@ -78,14 +83,19 @@ import com.pulse.checkin.domain.stats.MonthSnapshot
 import com.pulse.checkin.ui.components.CheckInNoteDialog
 import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.HistoryShareCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.PulseActionIcon
+import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.RecordNoteBadge
 import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
+import com.pulse.checkin.ui.components.ShareImageDialog
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.util.saveBitmapToGallery
+import com.pulse.checkin.ui.util.shareBitmap
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.LocalDate
 import java.time.YearMonth
@@ -112,6 +122,7 @@ fun HistoryScreen(
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val strings = LocalPulseStrings.current
+    val context = LocalContext.current
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     val currentMonth = YearMonth.now()
@@ -119,19 +130,39 @@ fun HistoryScreen(
     var selectedDetailHabitId by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedDetail = snapshot.selectedDateDetails.firstOrNull { it.habit.id == selectedDetailHabitId }
     var showFilters by rememberSaveable { mutableStateOf(false) }
+    var showShareOptions by remember { mutableStateOf(false) }
+    var shareBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val shareLayer = rememberGraphicsLayer()
+    val coroutineScope = rememberCoroutineScope()
+    val shareHabit = habits.firstOrNull { it.id == selectedHabitId } ?: habits.firstOrNull()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        ScreenHeader(
-            title = strings.historyTitle,
-            compactLayout = compactLayout,
-            action = {
-                HeaderFilterButton(
-                    active = showFilters,
-                    compactLayout = compactLayout,
-                    onClick = { showFilters = !showFilters },
-                )
-            },
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            ScreenHeader(
+                title = strings.historyTitle,
+                compactLayout = compactLayout,
+                action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        PulseIconButton(
+                            kind = PulseIconKind.Share,
+                            compactLayout = compactLayout,
+                            onClick = {
+                                coroutineScope.launch {
+                                    shareBitmap = runCatching {
+                                        shareLayer.toImageBitmap().asAndroidBitmap()
+                                    }.getOrNull()
+                                    showShareOptions = shareBitmap != null
+                                }
+                            },
+                        )
+                        HeaderFilterButton(
+                            active = showFilters,
+                            compactLayout = compactLayout,
+                            onClick = { showFilters = !showFilters },
+                        )
+                    }
+                },
+            )
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
@@ -199,7 +230,45 @@ fun HistoryScreen(
                     DayDetailCard(detail = detail, compactLayout = compactLayout, onClick = { selectedDetailHabitId = detail.habit.id })
                 }
             }
+            }
         }
+
+        Box(
+            modifier = Modifier
+                .size(480.dp, 705.dp)
+                .drawWithContent {
+                    shareLayer.record { this@drawWithContent.drawContent() }
+                },
+        ) {
+            HistoryShareCard(snapshot = snapshot, habit = shareHabit, strings = strings)
+        }
+    }
+
+    if (showShareOptions) {
+        ShareImageDialog(
+            title = strings.share,
+            description = strings.shareHistoryDesc,
+            bitmap = shareBitmap,
+            saveLabel = strings.saveToGallery,
+            shareLabel = strings.share,
+            cancelLabel = strings.cancel,
+            onSave = {
+                val bitmap = shareBitmap
+                showShareOptions = false
+                if (bitmap != null) {
+                    val saved = saveBitmapToGallery(context, bitmap)
+                    Toast.makeText(context, if (saved) strings.saveSuccess else strings.saveFailed, Toast.LENGTH_SHORT).show()
+                }
+            },
+            onShare = {
+                val bitmap = shareBitmap
+                showShareOptions = false
+                if (bitmap != null) {
+                    shareBitmap(context, bitmap, strings.share)
+                }
+            },
+            onDismiss = { showShareOptions = false },
+        )
     }
 
     selectedDetail?.let { detail ->
@@ -1060,11 +1129,6 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
-
-
-
-
 
 
 

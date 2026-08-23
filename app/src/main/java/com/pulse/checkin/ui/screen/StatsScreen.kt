@@ -10,11 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,10 +34,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,22 +51,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.rememberGraphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.pulse.checkin.domain.stats.HourlyDistributionBucket
 import com.pulse.checkin.domain.stats.MonthlyDetailRow
 import com.pulse.checkin.domain.stats.MonthlyTrendPoint
@@ -85,9 +75,9 @@ import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
+import com.pulse.checkin.ui.components.ShareImageDialog
 import com.pulse.checkin.ui.components.StatsShareCard
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
-import com.pulse.checkin.ui.i18n.PulseStrings
 import com.pulse.checkin.ui.util.saveBitmapToGallery
 import com.pulse.checkin.ui.util.shareBitmap
 import com.pulse.checkin.ui.util.toPulseColor
@@ -217,7 +207,7 @@ fun StatsScreen(
 
         Box(
             modifier = Modifier
-                .size(480.dp, 705.dp)
+                .size(340.dp, 500.dp)
                 .drawWithContent {
                     shareLayer.record { this@drawWithContent.drawContent() }
                 },
@@ -227,9 +217,13 @@ fun StatsScreen(
     }
 
     if (showShareOptions) {
-        ShareStatsDialog(
-            strings = strings,
+        ShareImageDialog(
+            title = strings.shareStatsTitle,
+            description = strings.shareStatsDesc,
             bitmap = shareBitmap,
+            saveLabel = strings.saveToGallery,
+            shareLabel = strings.share,
+            cancelLabel = strings.cancel,
             onSave = {
                 val bitmap = shareBitmap
                 showShareOptions = false
@@ -246,126 +240,6 @@ fun StatsScreen(
                 }
             },
             onDismiss = { showShareOptions = false },
-        )
-    }
-}
-
-@Composable
-private fun ShareStatsDialog(
-    strings: PulseStrings,
-    bitmap: android.graphics.Bitmap?,
-    onSave: () -> Unit,
-    onShare: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = true),
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            tonalElevation = 0.dp,
-            shadowElevation = 0.dp,
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = strings.shareStatsTitle,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = strings.shareStatsDesc,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                bitmap?.let { imageBitmap ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            bitmap = imageBitmap.asImageBitmap(),
-                            contentDescription = strings.shareStatsTitle,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 360.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                            contentScale = ContentScale.Fit,
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
-                ShareOptionRow(
-                    icon = PulseIconKind.Download,
-                    text = strings.saveToGallery,
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = onSave,
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
-                ShareOptionRow(
-                    icon = PulseIconKind.Share,
-                    text = strings.share,
-                    color = MaterialTheme.colorScheme.primary,
-                    onClick = onShare,
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
-                ShareOptionRow(
-                    icon = null,
-                    text = strings.cancel,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    onClick = onDismiss,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShareOptionRow(
-    icon: PulseIconKind?,
-    text: String,
-    color: Color,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        if (icon != null) {
-            PulseActionIcon(
-                kind = icon,
-                color = color,
-                compactLayout = true,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-        }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = color,
         )
     }
 }

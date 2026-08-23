@@ -129,6 +129,7 @@
     <string name="save_to_gallery">Save to gallery</string>
     <string name="save_success">Saved to gallery</string>
     <string name="save_failed">Failed to save</string>
+    <string name="share_history_desc">Generate an image of this month\'s stats</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>
