@@ -125,14 +125,6 @@ fun DayEventsScreen(
                 )
             },
         )
-        if (items.isNotEmpty()) {
-            Text(
-                text = strings.reorderHint,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = horizontalPadding),
-            )
-        }
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),

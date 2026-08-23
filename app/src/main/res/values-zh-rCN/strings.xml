@@ -143,7 +143,6 @@
     <string name="day_event_edit">编辑重要日期</string>
     <string name="confirm_delete_day_event">删除这个重要日期？</string>
     <string name="day_event_date_format">yyyy年M月d日</string>
-    <string name="reorder_hint">长按拖动排序</string>
     <string name="calendar_solar">阳历</string>
     <string name="calendar_lunar">农历</string>
     <string name="lunar_month_label">农历月份</string>

@@ -148,7 +148,6 @@
     <string name="day_event_edit">Edit important date</string>
     <string name="confirm_delete_day_event">Delete this important date?</string>
     <string name="day_event_date_format">MMM d, yyyy</string>
-    <string name="reorder_hint">Long press to reorder</string>
     <string name="calendar_solar">Solar</string>
     <string name="calendar_lunar">Lunar</string>
     <string name="lunar_month_label">Lunar month</string>

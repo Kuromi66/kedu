@@ -187,7 +187,6 @@ class PulseStrings(private val context: Context) {
     fun dayEventDateText(date: LocalDate): String = date.format(
         DateTimeFormatter.ofPattern(context.getString(R.string.day_event_date_format), locale),
     )
-    val reorderHint: String get() = context.getString(R.string.reorder_hint)
     val calendarSolar: String get() = context.getString(R.string.calendar_solar)
     val calendarLunar: String get() = context.getString(R.string.calendar_lunar)
     val lunarMonthLabel: String get() = context.getString(R.string.lunar_month_label)
