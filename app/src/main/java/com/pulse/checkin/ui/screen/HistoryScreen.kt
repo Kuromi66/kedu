@@ -235,7 +235,7 @@ fun HistoryScreen(
 
         Box(
             modifier = Modifier
-                .size(480.dp, 705.dp)
+                .size(480.dp, 550.dp)
                 .drawWithContent {
                     shareLayer.record { this@drawWithContent.drawContent() }
                 },

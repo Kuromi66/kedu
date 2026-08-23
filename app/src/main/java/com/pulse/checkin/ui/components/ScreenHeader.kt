@@ -23,6 +23,7 @@ fun ScreenHeader(
     title: String,
     compactLayout: Boolean,
     modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
 ) {
     Box(
@@ -38,6 +39,11 @@ fun ScreenHeader(
             style = if (compactLayout) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.onBackground,
         )
+        if (leading != null) {
+            Box(modifier = Modifier.align(Alignment.CenterStart)) {
+                leading()
+            }
+        }
         if (action != null) {
             Box(modifier = Modifier.align(Alignment.CenterEnd)) {
                 action()

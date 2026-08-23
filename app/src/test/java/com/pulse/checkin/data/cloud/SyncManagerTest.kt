@@ -1,6 +1,7 @@
 package com.pulse.checkin.data.cloud
 
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,6 +85,7 @@ class SyncManagerTest {
     private class FakeDataSource(
         val habits: MutableList<HabitEntity> = mutableListOf(),
         val events: MutableList<CheckInEventEntity> = mutableListOf(),
+        val dayEvents: MutableList<DayEventEntity> = mutableListOf(),
     ) : SyncDataSource {
         override suspend fun getAllHabits(): List<HabitEntity> = habits.toList()
 
@@ -100,6 +102,15 @@ class SyncManagerTest {
             events.forEach { event ->
                 this.events.removeAll { it.id == event.id }
                 this.events.add(event)
+            }
+        }
+
+        override suspend fun getAllDayEvents(): List<DayEventEntity> = dayEvents.toList()
+
+        override suspend fun upsertDayEvents(events: List<DayEventEntity>) {
+            events.forEach { event ->
+                this.dayEvents.removeAll { it.id == event.id }
+                this.dayEvents.add(event)
             }
         }
     }
@@ -186,6 +197,45 @@ class SyncManagerTest {
 
         assertEquals(listOf("e-deleted"), api.lastRequest?.events?.map { it.id })
         assertEquals(1_700L, api.lastRequest?.events?.single()?.deletedAtEpochMillis)
+    }
+
+    @Test
+    fun `sync pushes and merges day events`() = runBlocking {
+        val session = FakeSession()
+        val dataSource = FakeDataSource(
+            dayEvents = mutableListOf(
+                DayEventEntity(
+                    id = "d-local",
+                    name = "纪念日",
+                    eventDate = "2026-09-01",
+                    repeatsYearly = true,
+                    createdAtEpochMillis = 1L,
+                    updatedAtEpochMillis = 1_500L,
+                ),
+            ),
+        )
+        val api = FakeApi(
+            syncResponse = SyncResponse(
+                serverTime = 3_000L,
+                dayEvents = listOf(
+                    DayEventDto(
+                        id = "d-pulled",
+                        name = "考试",
+                        eventDate = "2026-12-01",
+                        createdAtEpochMillis = 1L,
+                        updatedAtEpochMillis = 2_000L,
+                    ),
+                ),
+            ),
+        )
+        val manager = SyncManager(api, session, dataSource, fakeClock)
+
+        val outcome = manager.syncOnce()
+
+        assertIs<SyncOutcome.Success>(outcome)
+        assertEquals(listOf("d-local"), api.lastRequest?.dayEvents?.map { it.id })
+        assertTrue(dataSource.dayEvents.any { it.id == "d-pulled" })
+        assertEquals(1, outcome.pulledDayEvents)
     }
 
     @Test

@@ -18,10 +18,12 @@ import com.pulse.checkin.data.cloud.SyncOutcome
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.CheckInEvent
+import com.pulse.checkin.domain.model.DayEvent
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.domain.model.UserPreferences
 import com.pulse.checkin.domain.repository.CheckInRepository
+import com.pulse.checkin.domain.repository.DayEventRepository
 import com.pulse.checkin.domain.repository.HabitRepository
 import com.pulse.checkin.domain.stats.MonthSnapshot
 import com.pulse.checkin.domain.stats.StatsCalculator
@@ -48,6 +50,7 @@ enum class AppTab {
     HISTORY,
     STATS,
     SETTINGS,
+    DAY_EVENTS,
 }
 
 data class HabitDraft(
@@ -84,6 +87,24 @@ data class SyncUiState(
     val authError: SyncError? = null,
 )
 
+data class DayEventDraft(
+    val id: String = "",
+    val name: String = "",
+    val date: LocalDate = LocalDate.now(),
+    val repeatsYearly: Boolean = false,
+    val note: String? = null,
+) {
+    companion object {
+        fun fromDayEvent(event: DayEvent): DayEventDraft = DayEventDraft(
+            id = event.id,
+            name = event.name,
+            date = event.date,
+            repeatsYearly = event.repeatsYearly,
+            note = event.note,
+        )
+    }
+}
+
 data class AppUiState(
     val selectedTab: AppTab = AppTab.TODAY,
     val selectedDate: LocalDate = LocalDate.now(),
@@ -92,6 +113,7 @@ data class AppUiState(
     val selectedStatsHabitId: String? = null,
     val preferences: UserPreferences = UserPreferences(),
     val habits: List<Habit> = emptyList(),
+    val dayEvents: List<DayEvent> = emptyList(),
     val todaySnapshot: TodaySnapshot = TodaySnapshot.Empty,
     val historySnapshot: MonthSnapshot = MonthSnapshot.Empty,
     val yearSnapshot: YearSnapshot = YearSnapshot.Empty,
@@ -101,6 +123,7 @@ data class AppUiState(
 private data class BaseUiInputs(
     val habits: List<Habit>,
     val events: List<CheckInEvent>,
+    val dayEvents: List<DayEvent>,
     val preferences: UserPreferences,
     val selectedTab: AppTab,
     val selectedDate: LocalDate,
@@ -116,6 +139,7 @@ private data class DerivedUiInputs(
 class AppViewModel(
     private val habitRepository: HabitRepository,
     private val checkInRepository: CheckInRepository,
+    private val dayEventRepository: DayEventRepository,
     private val appPreferences: AppPreferences,
     private val backupManager: BackupManager,
     private val statsCalculator: StatsCalculator,
@@ -172,10 +196,13 @@ class AppViewModel(
         BaseUiInputs(
             habits = habits,
             events = events,
+            dayEvents = emptyList(),
             preferences = preferences,
             selectedTab = tab,
             selectedDate = date,
         )
+    }.combine(dayEventRepository.observeDayEvents()) { base, dayEvents ->
+        base.copy(dayEvents = dayEvents)
     }.combine(selectedHistoryHabitId) { base, rawHistoryHabitId ->
         base to rawHistoryHabitId
     }.combine(selectedStatsYear) { (base, rawHistoryHabitId), statsYear ->
@@ -212,6 +239,7 @@ class AppViewModel(
             selectedStatsHabitId = effectiveStatsHabitId,
             preferences = base.preferences,
             habits = base.habits,
+            dayEvents = base.dayEvents,
             todaySnapshot = statsCalculator.buildTodaySnapshot(base.habits, base.events, today),
             historySnapshot = statsCalculator.buildMonthSnapshot(
                 habits = historyHabits,
@@ -351,6 +379,31 @@ class AppViewModel(
         }
     }
 
+    fun saveDayEvent(draft: DayEventDraft) {
+        viewModelScope.launch {
+            val existing = if (draft.id.isNotBlank()) dayEventRepository.getDayEvent(draft.id) else null
+            val event = DayEvent(
+                id = existing?.id ?: UUID.randomUUID().toString(),
+                name = draft.name.trim(),
+                date = draft.date,
+                repeatsYearly = draft.repeatsYearly,
+                note = draft.note?.trim()?.ifBlank { null },
+                createdAtEpochMillis = existing?.createdAtEpochMillis ?: syncClock.nowMillis(),
+                archived = false,
+                updatedAtEpochMillis = syncClock.nowMillis(),
+            )
+            dayEventRepository.upsert(event)
+            triggerSync()
+        }
+    }
+
+    fun archiveDayEvent(eventId: String) {
+        viewModelScope.launch {
+            dayEventRepository.setArchived(eventId, true)
+            triggerSync()
+        }
+    }
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             syncUiStateInternal.update { it.copy(isSyncing = true, authError = null) }
@@ -459,6 +512,7 @@ class AppViewModel(
                 AppViewModel(
                     habitRepository = container.habitRepository,
                     checkInRepository = container.checkInRepository,
+                    dayEventRepository = container.dayEventRepository,
                     appPreferences = container.preferences,
                     backupManager = container.backupManager,
                     statsCalculator = container.statsCalculator,

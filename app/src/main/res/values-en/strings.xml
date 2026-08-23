@@ -130,6 +130,23 @@
     <string name="save_success">Saved to gallery</string>
     <string name="save_failed">Failed to save</string>
     <string name="share_history_desc">Generate an image of this month\'s stats</string>
+    <string name="important_dates_title">Important Dates</string>
+    <string name="no_important_dates_title">No important dates yet</string>
+    <string name="no_important_dates_desc">Tap add in the top right to record anniversaries or upcoming dates</string>
+    <string name="days_until">%1$d days to go</string>
+    <string name="days_since">%1$d days ago</string>
+    <string name="day_event_today">It\'s today</string>
+    <string name="day_event_name">Name</string>
+    <string name="day_event_name_placeholder">e.g. Anniversary, Exam</string>
+    <string name="day_event_date">Date</string>
+    <string name="select_date">Pick a date</string>
+    <string name="repeats_yearly">Repeats yearly</string>
+    <string name="repeats_yearly_desc">Counts down to the same day every year</string>
+    <string name="day_event_note">Note (optional)</string>
+    <string name="day_event_new">Add important date</string>
+    <string name="day_event_edit">Edit important date</string>
+    <string name="confirm_delete_day_event">Delete this important date?</string>
+    <string name="day_event_date_format">MMM d, yyyy</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

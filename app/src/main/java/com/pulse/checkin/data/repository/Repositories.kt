@@ -1,13 +1,17 @@
 ﻿package com.pulse.checkin.data.repository
 
 import com.pulse.checkin.data.db.dao.CheckInEventDao
+import com.pulse.checkin.data.db.dao.DayEventDao
 import com.pulse.checkin.data.db.dao.HabitDao
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import com.pulse.checkin.data.cloud.SyncClock
 import com.pulse.checkin.domain.model.CheckInEvent
+import com.pulse.checkin.domain.model.DayEvent
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.repository.CheckInRepository
+import com.pulse.checkin.domain.repository.DayEventRepository
 import com.pulse.checkin.domain.repository.HabitRepository
 import java.time.Instant
 import java.time.LocalDate
@@ -131,4 +135,45 @@ private fun CheckInEventEntity.toDomain(): CheckInEvent = CheckInEvent(
     deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
     note = note,
+)
+
+class DayEventRepositoryImpl(
+    private val dayEventDao: DayEventDao,
+    private val clock: SyncClock,
+) : DayEventRepository {
+    override fun observeDayEvents(): Flow<List<DayEvent>> {
+        return dayEventDao.observeActive().map { events -> events.map(DayEventEntity::toDomain) }
+    }
+
+    override suspend fun getDayEvent(id: String): DayEvent? = dayEventDao.getById(id)?.toDomain()
+
+    override suspend fun upsert(event: DayEvent) {
+        dayEventDao.upsert(event.toEntity())
+    }
+
+    override suspend fun setArchived(id: String, archived: Boolean) {
+        dayEventDao.setArchived(id, archived, updatedAtEpochMillis = clock.nowMillis())
+    }
+}
+
+private fun DayEventEntity.toDomain(): DayEvent = DayEvent(
+    id = id,
+    name = name,
+    date = LocalDate.parse(eventDate),
+    repeatsYearly = repeatsYearly,
+    note = note,
+    createdAtEpochMillis = createdAtEpochMillis,
+    archived = archived,
+    updatedAtEpochMillis = updatedAtEpochMillis,
+)
+
+private fun DayEvent.toEntity(): DayEventEntity = DayEventEntity(
+    id = id,
+    name = name,
+    eventDate = date.toString(),
+    repeatsYearly = repeatsYearly,
+    note = note,
+    createdAtEpochMillis = createdAtEpochMillis,
+    archived = archived,
+    updatedAtEpochMillis = updatedAtEpochMillis,
 )

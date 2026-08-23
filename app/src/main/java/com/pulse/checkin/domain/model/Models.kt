@@ -59,3 +59,14 @@ data class CheckInEvent(
     val updatedAtEpochMillis: Long = occurredAtEpochMillis,
     val note: String? = null,
 )
+
+data class DayEvent(
+    val id: String = "",
+    val name: String,
+    val date: LocalDate,
+    val repeatsYearly: Boolean = false,
+    val note: String? = null,
+    val createdAtEpochMillis: Long = System.currentTimeMillis(),
+    val archived: Boolean = false,
+    val updatedAtEpochMillis: Long = createdAtEpochMillis,
+)

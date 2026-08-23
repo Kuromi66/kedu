@@ -45,10 +45,23 @@ data class EventDto(
 )
 
 @Serializable
+data class DayEventDto(
+    val id: String,
+    val name: String,
+    val eventDate: String,
+    val repeatsYearly: Boolean = false,
+    val note: String? = null,
+    val createdAtEpochMillis: Long,
+    val archived: Boolean = false,
+    val updatedAtEpochMillis: Long,
+)
+
+@Serializable
 data class SyncRequest(
     val since: Long,
     val habits: List<HabitDto>,
     val events: List<EventDto>,
+    val dayEvents: List<DayEventDto> = emptyList(),
 )
 
 @Serializable
@@ -56,6 +69,7 @@ data class SyncResponse(
     val serverTime: Long,
     val habits: List<HabitDto> = emptyList(),
     val events: List<EventDto> = emptyList(),
+    val dayEvents: List<DayEventDto> = emptyList(),
 )
 
 data class Session(
@@ -76,6 +90,10 @@ class SyncException(val error: SyncError) : Exception(error.name)
 
 sealed interface SyncOutcome {
     data object SignedOut : SyncOutcome
-    data class Success(val pulledHabits: Int, val pulledEvents: Int) : SyncOutcome
+    data class Success(
+        val pulledHabits: Int,
+        val pulledEvents: Int,
+        val pulledDayEvents: Int = 0,
+    ) : SyncOutcome
     data class Failure(val error: SyncError) : SyncOutcome
 }

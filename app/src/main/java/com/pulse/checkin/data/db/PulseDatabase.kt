@@ -7,18 +7,21 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.pulse.checkin.data.db.dao.CheckInEventDao
+import com.pulse.checkin.data.db.dao.DayEventDao
 import com.pulse.checkin.data.db.dao.HabitDao
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 
 @Database(
-    entities = [HabitEntity::class, CheckInEventEntity::class],
-    version = 4,
+    entities = [HabitEntity::class, CheckInEventEntity::class, DayEventEntity::class],
+    version = 5,
     exportSchema = false,
 )
 abstract class PulseDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun checkInEventDao(): CheckInEventDao
+    abstract fun dayEventDao(): DayEventDao
 
     companion object {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -74,6 +77,18 @@ abstract class PulseDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS day_events (" +
+                        "id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, eventDate TEXT NOT NULL, " +
+                        "repeatsYearly INTEGER NOT NULL DEFAULT 0, note TEXT, " +
+                        "createdAtEpochMillis INTEGER NOT NULL, archived INTEGER NOT NULL DEFAULT 0, " +
+                        "updatedAtEpochMillis INTEGER NOT NULL)",
+                )
+            }
+        }
+
         @Volatile
         private var instance: PulseDatabase? = null
 
@@ -87,6 +102,7 @@ abstract class PulseDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_1_2)
                     .addMigrations(MIGRATION_2_3)
                     .addMigrations(MIGRATION_3_4)
+                    .addMigrations(MIGRATION_4_5)
                     .build()
                     .also { instance = it }
             }

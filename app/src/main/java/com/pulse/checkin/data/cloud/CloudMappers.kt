@@ -1,6 +1,7 @@
 package com.pulse.checkin.data.cloud
 
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import java.time.LocalDate
 
@@ -56,6 +57,28 @@ fun EventDto.toEntity(): CheckInEventEntity = CheckInEventEntity(
     deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
     note = note,
+)
+
+fun DayEventEntity.toDto(): DayEventDto = DayEventDto(
+    id = id,
+    name = name,
+    eventDate = eventDate,
+    repeatsYearly = repeatsYearly,
+    note = note,
+    createdAtEpochMillis = createdAtEpochMillis,
+    archived = archived,
+    updatedAtEpochMillis = updatedAtEpochMillis,
+)
+
+fun DayEventDto.toEntity(): DayEventEntity = DayEventEntity(
+    id = id,
+    name = name,
+    eventDate = eventDate,
+    repeatsYearly = repeatsYearly,
+    note = note,
+    createdAtEpochMillis = createdAtEpochMillis,
+    archived = archived,
+    updatedAtEpochMillis = updatedAtEpochMillis,
 )
 
 @Suppress("unused")

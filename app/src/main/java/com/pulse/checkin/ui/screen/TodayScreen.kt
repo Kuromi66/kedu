@@ -79,6 +79,7 @@ private fun formatElapsedSince(epochMillis: Long, strings: com.pulse.checkin.ui.
 fun TodayScreen(
     snapshot: TodaySnapshot,
     onEditHabit: (Habit) -> Unit,
+    onAddHabit: () -> Unit,
     onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
@@ -90,7 +91,18 @@ fun TodayScreen(
     val bottomPadding = if (compactLayout) 84.dp else 92.dp
 
     Column(modifier = Modifier.fillMaxSize()) {
-        ScreenHeader(title = strings.todayTitle, compactLayout = compactLayout)
+        ScreenHeader(
+            title = strings.todayTitle,
+            compactLayout = compactLayout,
+            action = {
+                PulseIconButton(
+                    kind = PulseIconKind.Add,
+                    onClick = onAddHabit,
+                    compactLayout = compactLayout,
+                    highlighted = true,
+                )
+            },
+        )
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(

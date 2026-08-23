@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
@@ -49,10 +50,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.DayEventEditorSheet
 import com.pulse.checkin.ui.components.HabitEditorSheet
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.screen.HistoryScreen
+import com.pulse.checkin.ui.screen.DayEventsScreen
 import com.pulse.checkin.ui.screen.SettingsScreen
 import com.pulse.checkin.ui.screen.StatsScreen
 import com.pulse.checkin.ui.screen.TodayScreen
@@ -72,6 +75,8 @@ fun PulseApp(viewModel: AppViewModel) {
     val strings = rememberPulseStrings(uiState.preferences.appLanguage)
     var editorDraft by remember { mutableStateOf<HabitDraft?>(null) }
     val editorVisible = editorDraft != null
+    var dayEventEditorDraft by remember { mutableStateOf<DayEventDraft?>(null) }
+    var previousTab by remember { mutableStateOf(AppTab.TODAY) }
     val backgroundBlur by animateDpAsState(
         targetValue = if (editorVisible) 14.dp else 0.dp,
         animationSpec = tween(durationMillis = 260),
@@ -134,7 +139,10 @@ fun PulseApp(viewModel: AppViewModel) {
                         PulseBottomBar(
                             selectedTab = uiState.selectedTab,
                             onSelect = viewModel::selectTab,
-                            onAddHabit = { editorDraft = HabitDraft() },
+                            onAddDayEvents = {
+                                previousTab = uiState.selectedTab
+                                viewModel.selectTab(AppTab.DAY_EVENTS)
+                            },
                         )
                     },
                 ) { paddingValues ->
@@ -144,6 +152,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                 AppTab.TODAY -> TodayScreen(
                                     snapshot = uiState.todaySnapshot,
                                     onEditHabit = { habit -> editorDraft = HabitDraft.fromHabit(habit) },
+                                    onAddHabit = { editorDraft = HabitDraft() },
                                     onCheckInHabit = viewModel::checkInHabit,
                                     onDeleteRecord = viewModel::deleteCheckInRecord,
                                     onDeleteHabit = viewModel::archiveHabit,
@@ -191,6 +200,13 @@ fun PulseApp(viewModel: AppViewModel) {
                                         importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
                                     },
                                 )
+                                AppTab.DAY_EVENTS -> DayEventsScreen(
+                                    dayEvents = uiState.dayEvents,
+                                    onBack = { viewModel.selectTab(previousTab) },
+                                    onAdd = { dayEventEditorDraft = DayEventDraft() },
+                                    onEdit = { dayEvent -> dayEventEditorDraft = DayEventDraft.fromDayEvent(dayEvent) },
+                                    onDelete = viewModel::archiveDayEvent,
+                                )
                             }
                         }
                         Box(
@@ -217,13 +233,29 @@ fun PulseApp(viewModel: AppViewModel) {
                         },
                     )
                 }
+                dayEventEditorDraft?.let { draft ->
+                    DayEventEditorSheet(
+                        initialDraft = draft,
+                        onDismiss = { dayEventEditorDraft = null },
+                        onSave = {
+                            viewModel.saveDayEvent(it)
+                            dayEventEditorDraft = null
+                        },
+                    )
+                }
             }
+        }
+    }
+
+    if (uiState.selectedTab == AppTab.DAY_EVENTS) {
+        BackHandler {
+            viewModel.selectTab(previousTab)
         }
     }
 }
 
 @Composable
-private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit, onAddHabit: () -> Unit) {
+private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit, onAddDayEvents: () -> Unit) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 12.dp else 16.dp
     val verticalPadding = if (compactLayout) 10.dp else 12.dp
@@ -251,7 +283,7 @@ private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit, onAd
             )
             PulseBottomAddButton(
                 compactLayout = compactLayout,
-                onClick = onAddHabit,
+                onClick = onAddDayEvents,
             )
             PulseBottomTab(
                 tab = AppTab.STATS,
@@ -285,12 +317,14 @@ private fun PulseBottomTab(
         AppTab.HISTORY -> LocalPulseStrings.current.tabHistory
         AppTab.STATS -> LocalPulseStrings.current.tabStats
         AppTab.SETTINGS -> LocalPulseStrings.current.tabSettings
+        AppTab.DAY_EVENTS -> LocalPulseStrings.current.importantDatesTitle
     }
     val icon = when (tab) {
         AppTab.TODAY -> PulseIconKind.TodayTab
         AppTab.HISTORY -> PulseIconKind.HistoryTab
         AppTab.STATS -> PulseIconKind.StatsTab
         AppTab.SETTINGS -> PulseIconKind.SettingsTab
+        AppTab.DAY_EVENTS -> PulseIconKind.Records
     }
 
     Box(

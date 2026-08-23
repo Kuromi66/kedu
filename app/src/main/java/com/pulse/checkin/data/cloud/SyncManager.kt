@@ -62,10 +62,14 @@ class SyncManager(
                 val watermark = session.currentWatermark()
                 val localHabits = dataSource.getAllHabits()
                 val localEvents = dataSource.getAllEventsIncludingDeleted()
+                val localDayEvents = dataSource.getAllDayEvents()
                 val pushHabits = localHabits
                     .filter { it.updatedAtEpochMillis > watermark }
                     .map { it.toDto() }
                 val pushEvents = localEvents
+                    .filter { it.updatedAtEpochMillis > watermark }
+                    .map { it.toDto() }
+                val pushDayEvents = localDayEvents
                     .filter { it.updatedAtEpochMillis > watermark }
                     .map { it.toDto() }
                 val response = api.sync(
@@ -74,6 +78,7 @@ class SyncManager(
                         since = watermark,
                         habits = pushHabits,
                         events = pushEvents,
+                        dayEvents = pushDayEvents,
                     ),
                 )
                 val now = System.currentTimeMillis()
@@ -84,6 +89,9 @@ class SyncManager(
                 if (response.events.isNotEmpty()) {
                     dataSource.upsertEvents(response.events.map { it.toEntity() })
                 }
+                if (response.dayEvents.isNotEmpty()) {
+                    dataSource.upsertDayEvents(response.dayEvents.map { it.toEntity() })
+                }
                 session.saveSyncState(
                     watermark = response.serverTime,
                     lastSyncAtEpochMillis = now,
@@ -91,6 +99,7 @@ class SyncManager(
                 SyncOutcome.Success(
                     pulledHabits = response.habits.size,
                     pulledEvents = response.events.size,
+                    pulledDayEvents = response.dayEvents.size,
                 )
             } catch (exception: Exception) {
                 SyncOutcome.Failure(exception.toSyncError())

@@ -15,8 +15,10 @@ import com.pulse.checkin.data.cloud.SyncWorker
 import com.pulse.checkin.data.db.PulseDatabase
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.data.repository.CheckInRepositoryImpl
+import com.pulse.checkin.data.repository.DayEventRepositoryImpl
 import com.pulse.checkin.data.repository.HabitRepositoryImpl
 import com.pulse.checkin.domain.repository.CheckInRepository
+import com.pulse.checkin.domain.repository.DayEventRepository
 import com.pulse.checkin.domain.repository.HabitRepository
 import com.pulse.checkin.domain.stats.LocalStatsCalculator
 import com.pulse.checkin.domain.stats.StatsCalculator
@@ -42,11 +44,16 @@ class AppContainer(context: Context) {
     val syncClock: SyncClock = DeviceSyncClock(sessionManager)
     val habitRepository: HabitRepository = HabitRepositoryImpl(database.habitDao(), syncClock)
     val checkInRepository: CheckInRepository = CheckInRepositoryImpl(database.checkInEventDao(), syncClock)
+    val dayEventRepository: DayEventRepository = DayEventRepositoryImpl(database.dayEventDao(), syncClock)
     val preferences = AppPreferences(appContext)
     val backupManager = BackupManager(appContext, database, preferences)
     val statsCalculator: StatsCalculator = LocalStatsCalculator()
     val reminderScheduler: ReminderScheduler = ReminderSchedulerImpl(appContext)
     val cloudApi: CloudApi = CloudApiFactory.create()
-    val syncDataSource: SyncDataSource = RoomSyncDataSource(database.habitDao(), database.checkInEventDao())
+    val syncDataSource: SyncDataSource = RoomSyncDataSource(
+        database.habitDao(),
+        database.checkInEventDao(),
+        database.dayEventDao(),
+    )
     val syncManager = SyncManager(cloudApi, sessionManager, syncDataSource, syncClock)
 }

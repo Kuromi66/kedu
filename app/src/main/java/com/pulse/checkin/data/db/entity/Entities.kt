@@ -31,3 +31,15 @@ data class CheckInEventEntity(
     val updatedAtEpochMillis: Long = occurredAtEpochMillis,
     val note: String? = null,
 )
+
+@Entity(tableName = "day_events")
+data class DayEventEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val eventDate: String,
+    val repeatsYearly: Boolean = false,
+    val note: String? = null,
+    val createdAtEpochMillis: Long,
+    val archived: Boolean = false,
+    val updatedAtEpochMillis: Long = createdAtEpochMillis,
+)

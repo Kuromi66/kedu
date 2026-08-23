@@ -1,8 +1,10 @@
 package com.pulse.checkin.data.cloud
 
 import com.pulse.checkin.data.db.dao.CheckInEventDao
+import com.pulse.checkin.data.db.dao.DayEventDao
 import com.pulse.checkin.data.db.dao.HabitDao
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 
 interface SyncDataSource {
@@ -10,11 +12,14 @@ interface SyncDataSource {
     suspend fun upsertHabits(habits: List<HabitEntity>)
     suspend fun getAllEventsIncludingDeleted(): List<CheckInEventEntity>
     suspend fun upsertEvents(events: List<CheckInEventEntity>)
+    suspend fun getAllDayEvents(): List<DayEventEntity>
+    suspend fun upsertDayEvents(events: List<DayEventEntity>)
 }
 
 class RoomSyncDataSource(
     private val habitDao: HabitDao,
     private val eventDao: CheckInEventDao,
+    private val dayEventDao: DayEventDao,
 ) : SyncDataSource {
     override suspend fun getAllHabits(): List<HabitEntity> = habitDao.getAll()
 
@@ -26,5 +31,11 @@ class RoomSyncDataSource(
 
     override suspend fun upsertEvents(events: List<CheckInEventEntity>) {
         events.forEach { eventDao.upsert(it) }
+    }
+
+    override suspend fun getAllDayEvents(): List<DayEventEntity> = dayEventDao.getAll()
+
+    override suspend fun upsertDayEvents(events: List<DayEventEntity>) {
+        events.forEach { dayEventDao.upsert(it) }
     }
 }

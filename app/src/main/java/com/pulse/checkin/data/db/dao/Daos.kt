@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -61,4 +62,28 @@ interface CheckInEventDao {
 
     @Query("UPDATE check_in_events SET deletedAtEpochMillis = :deletedAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
     suspend fun softDeleteById(id: String, deletedAtEpochMillis: Long, updatedAtEpochMillis: Long)
+}
+
+@Dao
+interface DayEventDao {
+    @Query("SELECT * FROM day_events WHERE archived = 0 ORDER BY eventDate ASC")
+    fun observeActive(): Flow<List<DayEventEntity>>
+
+    @Query("SELECT * FROM day_events ORDER BY eventDate ASC")
+    suspend fun getAll(): List<DayEventEntity>
+
+    @Query("SELECT * FROM day_events WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): DayEventEntity?
+
+    @Upsert
+    suspend fun upsert(event: DayEventEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(events: List<DayEventEntity>)
+
+    @Query("DELETE FROM day_events")
+    suspend fun clearAll()
+
+    @Query("UPDATE day_events SET archived = :archived, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
+    suspend fun setArchived(id: String, archived: Boolean, updatedAtEpochMillis: Long)
 }

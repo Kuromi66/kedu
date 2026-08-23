@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.room.withTransaction
 import com.pulse.checkin.data.db.PulseDatabase
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
+import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.domain.model.AppLanguage
@@ -31,6 +32,7 @@ class BackupManager(
         withContext(Dispatchers.IO) {
             val habits = database.habitDao().getAll()
             val events = database.checkInEventDao().getAll()
+            val dayEvents = database.dayEventDao().getAll()
             val preferences = appPreferences.currentPreferences()
             val payload = JSONObject()
                 .put("version", 2)
@@ -38,6 +40,7 @@ class BackupManager(
                 .put("preferences", preferences.toJson())
                 .put("habits", JSONArray().apply { habits.forEach { put(it.toJsonV2()) } })
                 .put("events", JSONArray().apply { events.forEach { put(it.toJsonV2()) } })
+                .put("dayEvents", JSONArray().apply { dayEvents.forEach { put(it.toJsonV2()) } })
 
             context.contentResolver.openOutputStream(uri)?.use { output ->
                 output.write(payload.toString(2).toByteArray(StandardCharsets.UTF_8))
@@ -61,12 +64,15 @@ class BackupManager(
             val now = System.currentTimeMillis()
             val habits = root.optJSONArray("habits")?.toHabitEntities(version, now).orEmpty()
             val events = root.optJSONArray("events")?.toEventEntities(version, now).orEmpty()
+            val dayEvents = root.optJSONArray("dayEvents")?.toDayEventEntities(version, now).orEmpty()
 
             database.withTransaction {
                 database.checkInEventDao().clearAll()
                 database.habitDao().clearAll()
+                database.dayEventDao().clearAll()
                 if (habits.isNotEmpty()) database.habitDao().insertAll(habits)
                 if (events.isNotEmpty()) database.checkInEventDao().insertAll(events)
+                if (dayEvents.isNotEmpty()) database.dayEventDao().insertAll(dayEvents)
             }
             appPreferences.replaceAll(preferences)
 
@@ -114,6 +120,16 @@ private fun CheckInEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("deletedAtEpochMillis", deletedAtEpochMillis ?: JSONObject.NULL)
     .put("updatedAtEpochMillis", updatedAtEpochMillis)
     .put("note", note ?: JSONObject.NULL)
+
+private fun DayEventEntity.toJsonV2(): JSONObject = JSONObject()
+    .put("id", id)
+    .put("name", name)
+    .put("eventDate", eventDate)
+    .put("repeatsYearly", repeatsYearly)
+    .put("note", note ?: JSONObject.NULL)
+    .put("createdAtEpochMillis", createdAtEpochMillis)
+    .put("archived", archived)
+    .put("updatedAtEpochMillis", updatedAtEpochMillis)
 
 private fun JSONArray.toHabitEntities(version: Int, now: Long): List<HabitEntity> = buildList(length()) {
     repeat(length()) { index ->
@@ -186,6 +202,25 @@ private fun JSONArray.toEventEntities(version: Int, now: Long): List<CheckInEven
                     note = item.optNullableString("note"),
                 )
             },
+        )
+    }
+}
+
+private fun JSONArray.toDayEventEntities(version: Int, now: Long): List<DayEventEntity> = buildList(length()) {
+    repeat(length()) { index ->
+        val item = getJSONObject(index)
+        if (version == 1) return@repeat
+        add(
+            DayEventEntity(
+                id = item.optString("id").ifBlank { "d-$index-$now" },
+                name = item.optString("name"),
+                eventDate = item.optString("eventDate"),
+                repeatsYearly = item.optBoolean("repeatsYearly", false),
+                note = item.optNullableString("note"),
+                createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
+                archived = item.optBoolean("archived", false),
+                updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),
+            ),
         )
     }
 }
