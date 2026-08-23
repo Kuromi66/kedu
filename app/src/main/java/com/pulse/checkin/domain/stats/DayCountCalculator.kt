@@ -2,7 +2,9 @@ package com.pulse.checkin.domain.stats
 
 import com.pulse.checkin.domain.model.DayEvent
 import com.pulse.checkin.domain.model.CalendarType
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 sealed interface DayCountResult {
@@ -40,6 +42,17 @@ object DayCountCalculator {
         return upcoming + past
     }
 
+    fun progress(event: DayEvent, today: LocalDate, lunar: LunarCalendar): Float? {
+        val next = nextOccurrence(event, today, lunar)
+        if (next.isBefore(today)) return null
+        val last = lastOccurrence(event, next, lunar)
+        if (!next.isAfter(last)) return null
+        val total = ChronoUnit.DAYS.between(last, next)
+        if (total <= 0) return null
+        val elapsed = ChronoUnit.DAYS.between(last, today).coerceAtLeast(0L)
+        return (elapsed.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    }
+
     private fun solarNextOccurrence(date: LocalDate, today: LocalDate): LocalDate {
         var candidate = adjustForYear(date, today.year)
         if (candidate.isBefore(today)) {
@@ -57,6 +70,23 @@ object DayCountCalculator {
             candidate = lunar.toGregorian(today.year + 1, lunarDate)
         }
         return candidate
+    }
+
+    private fun lastOccurrence(event: DayEvent, next: LocalDate, lunar: LunarCalendar): LocalDate {
+        if (!event.repeatsYearly) {
+            val created = Instant.ofEpochMilli(event.createdAtEpochMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+            return if (created.isBefore(next)) created else next.minusDays(1)
+        }
+        return when (event.calendarType) {
+            CalendarType.SOLAR -> adjustForYear(event.date, next.year - 1)
+            CalendarType.LUNAR -> {
+                val month = event.lunarMonth ?: event.date.monthValue
+                val day = event.lunarDay ?: event.date.dayOfMonth
+                lunar.toGregorian(next.year - 1, LunarDate(month, day, event.lunarLeap))
+            }
+        }
     }
 
     private fun adjustForYear(date: LocalDate, year: Int): LocalDate {

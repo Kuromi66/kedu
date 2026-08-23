@@ -3,8 +3,10 @@ package com.pulse.checkin.domain.stats
 import com.pulse.checkin.domain.model.CalendarType
 import com.pulse.checkin.domain.model.DayEvent
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class DayCountCalculatorTest {
     private val today = LocalDate.of(2026, 8, 23)
@@ -123,6 +125,44 @@ class DayCountCalculatorTest {
         val later = event(today.plusDays(10))
         val sorted = DayCountCalculator.sortForDisplay(listOf(past, later, soon), today, fakeLunar)
         assertEquals(listOf(soon.id, later.id, past.id), sorted.map { it.id })
+    }
+
+    @Test
+    fun `one time future event progress counts from creation`() {
+        val created = today.minusDays(10)
+        val event = DayEvent(
+            id = "e-1",
+            name = "测试",
+            date = today.plusDays(10),
+            createdAtEpochMillis = created.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        )
+        val progress = DayCountCalculator.progress(event, today, fakeLunar)
+        assertEquals(0.5f, progress!!, 0.01f)
+    }
+
+    @Test
+    fun `yearly future event progress approaches full`() {
+        val event = event(LocalDate.of(2000, 9, 15), repeatsYearly = true)
+        val progress = DayCountCalculator.progress(event, today, fakeLunar)
+        assertEquals(342f / 365f, progress!!, 0.01f)
+    }
+
+    @Test
+    fun `lunar yearly future event progress approaches full`() {
+        val event = event(
+            date = LocalDate.of(2000, 9, 15),
+            repeatsYearly = true,
+            calendarType = CalendarType.LUNAR,
+            lunarMonth = 8,
+            lunarDay = 15,
+        )
+        val progress = DayCountCalculator.progress(event, today, fakeLunar)
+        assertEquals(342f / 365f, progress!!, 0.01f)
+    }
+
+    @Test
+    fun `past one time event has no progress`() {
+        assertNull(DayCountCalculator.progress(event(today.minusDays(3)), today, fakeLunar))
     }
 
     private class FakeLunarCalendar : LunarCalendar {

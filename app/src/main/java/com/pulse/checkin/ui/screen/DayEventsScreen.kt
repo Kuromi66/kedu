@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -161,6 +162,7 @@ fun DayEventsScreen(
                     DayEventCard(
                         event = event,
                         result = DayCountCalculator.compute(event, today, AndroidLunarCalendar),
+                        progress = DayCountCalculator.progress(event, today, AndroidLunarCalendar),
                         strings = strings,
                         modifier = Modifier
                             .zIndex(if (isDragging) 1f else 0f)
@@ -191,6 +193,7 @@ fun DayEventsScreen(
 private fun DayEventCard(
     event: DayEvent,
     result: DayCountResult,
+    progress: Float?,
     strings: PulseStrings,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -229,56 +232,69 @@ private fun DayEventCard(
             }
             .clickable(onClick = onClick),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(event.name, style = MaterialTheme.typography.titleLarge)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (event.calendarType == CalendarType.LUNAR) {
-                        strings.lunarDateText(
-                            event.lunarMonth ?: event.date.monthValue,
-                            event.lunarDay ?: event.date.dayOfMonth,
-                            event.lunarLeap,
-                        )
-                    } else if (event.repeatsYearly) {
-                        strings.historyDetailDate(event.date)
-                    } else {
-                        strings.dayEventDateText(event.date)
-                    },
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                event.note?.takeIf { it.isNotBlank() }?.let { note ->
-                    Spacer(modifier = Modifier.height(6.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(event.name, style = MaterialTheme.typography.titleLarge)
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = note,
+                        text = if (event.calendarType == CalendarType.LUNAR) {
+                            strings.lunarDateText(
+                                event.lunarMonth ?: event.date.monthValue,
+                                event.lunarDay ?: event.date.dayOfMonth,
+                                event.lunarLeap,
+                            )
+                        } else if (event.repeatsYearly) {
+                            strings.historyDetailDate(event.date)
+                        } else {
+                            strings.dayEventDateText(event.date)
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
+                    event.note?.takeIf { it.isNotBlank() }?.let { note ->
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = note,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
+                Text(
+                    text = badgeText,
+                    color = badgeColor,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(badgeBackground)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                )
+                PulseActionIcon(
+                    kind = PulseIconKind.DragHandle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                    compactLayout = true,
+                    modifier = Modifier.size(20.dp),
+                )
             }
-            Text(
-                text = badgeText,
-                color = badgeColor,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(badgeBackground)
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            )
-            PulseActionIcon(
-                kind = PulseIconKind.DragHandle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
-                compactLayout = true,
-                modifier = Modifier.size(20.dp),
-            )
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(999.dp)),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                )
+            }
         }
     }
 }
