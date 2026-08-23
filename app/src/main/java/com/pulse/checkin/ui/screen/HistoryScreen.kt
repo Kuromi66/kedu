@@ -954,7 +954,7 @@ private fun HistoryRecordSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     detail.records.forEachIndexed { index, record ->
                         HistoryRecordRow(
-                            index = index,
+                            index = detail.records.size - 1 - index,
                             record = record,
                             compactLayout = compactLayout,
                             onShowDetail = { pendingRecordDetail = record },
@@ -1060,7 +1060,6 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
 
 
 
