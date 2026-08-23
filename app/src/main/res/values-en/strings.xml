@@ -149,6 +149,13 @@
     <string name="confirm_delete_day_event">Delete this important date?</string>
     <string name="day_event_date_format">MMM d, yyyy</string>
     <string name="reorder_hint">Long press to reorder</string>
+    <string name="calendar_solar">Solar</string>
+    <string name="calendar_lunar">Lunar</string>
+    <string name="lunar_month_label">Lunar month</string>
+    <string name="lunar_day_label">Lunar day</string>
+    <string name="lunar_leap_label">Leap month</string>
+    <string name="lunar_date_format">Lunar %1$d/%2$d</string>
+    <string name="lunar_date_leap_format">Lunar leap %1$d/%2$d</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

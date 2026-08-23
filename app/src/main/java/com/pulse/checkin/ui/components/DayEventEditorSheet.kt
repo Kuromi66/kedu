@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +20,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -37,9 +41,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pulse.checkin.domain.model.CalendarType
+import com.pulse.checkin.domain.stats.LunarDate
 import com.pulse.checkin.ui.DayEventDraft
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.util.AndroidLunarCalendar
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,6 +65,10 @@ fun DayEventEditorSheet(
     var date by remember(initialDraft.id) { mutableStateOf(initialDraft.date) }
     var repeatsYearly by remember(initialDraft.id) { mutableStateOf(initialDraft.repeatsYearly) }
     var note by remember(initialDraft.id) { mutableStateOf(initialDraft.note ?: "") }
+    var calendarType by remember(initialDraft.id) { mutableStateOf(initialDraft.calendarType) }
+    var lunarMonth by remember(initialDraft.id) { mutableStateOf(initialDraft.lunarMonth ?: 1) }
+    var lunarDay by remember(initialDraft.id) { mutableStateOf(initialDraft.lunarDay ?: 1) }
+    var lunarLeap by remember(initialDraft.id) { mutableStateOf(initialDraft.lunarLeap) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val switchColors = SwitchDefaults.colors(
@@ -99,28 +111,30 @@ fun DayEventEditorSheet(
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column {
-                        Text(
-                            text = strings.dayEventDate,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            text = strings.dayEventDateText(date),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { showDatePicker = true },
-                        shape = RoundedCornerShape(18.dp),
+                if (calendarType == CalendarType.SOLAR) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(strings.selectDate)
+                        Column {
+                            Text(
+                                text = strings.dayEventDate,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = strings.dayEventDateText(date),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = { showDatePicker = true },
+                            shape = RoundedCornerShape(18.dp),
+                        ) {
+                            Text(strings.selectDate)
+                        }
                     }
                 }
                 Row(
@@ -141,9 +155,98 @@ fun DayEventEditorSheet(
                     }
                     Switch(
                         checked = repeatsYearly,
-                        onCheckedChange = { repeatsYearly = it },
+                        onCheckedChange = { checked ->
+                            repeatsYearly = checked
+                            if (!checked) calendarType = CalendarType.SOLAR
+                        },
                         colors = switchColors,
                     )
+                }
+                if (repeatsYearly) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FilterChip(
+                            selected = calendarType == CalendarType.SOLAR,
+                            onClick = {
+                                if (calendarType == CalendarType.LUNAR) {
+                                    date = AndroidLunarCalendar.toGregorian(
+                                        LocalDate.now().year,
+                                        LunarDate(lunarMonth, lunarDay, lunarLeap),
+                                    )
+                                }
+                                calendarType = CalendarType.SOLAR
+                            },
+                            label = { Text(strings.calendarSolar) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                        FilterChip(
+                            selected = calendarType == CalendarType.LUNAR,
+                            onClick = { calendarType = CalendarType.LUNAR },
+                            label = { Text(strings.calendarLunar) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        )
+                    }
+                }
+                if (repeatsYearly && calendarType == CalendarType.LUNAR) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            text = strings.lunarMonthLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items((1..12).toList()) { month ->
+                                FilterChip(
+                                    selected = lunarMonth == month,
+                                    onClick = { lunarMonth = month },
+                                    label = { Text("$month") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            }
+                        }
+                        Text(
+                            text = strings.lunarDayLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items((1..30).toList()) { day ->
+                                FilterChip(
+                                    selected = lunarDay == day,
+                                    onClick = { lunarDay = day },
+                                    label = { Text("$day") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = strings.lunarLeapLabel,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f),
+                            )
+                            Switch(
+                                checked = lunarLeap,
+                                onCheckedChange = { lunarLeap = it },
+                                colors = switchColors,
+                            )
+                        }
+                    }
                 }
                 OutlinedTextField(
                     value = note,
@@ -163,6 +266,10 @@ fun DayEventEditorSheet(
                                 date = date,
                                 repeatsYearly = repeatsYearly,
                                 note = note.trim().ifBlank { null },
+                                calendarType = calendarType,
+                                lunarMonth = if (calendarType == CalendarType.LUNAR) lunarMonth else null,
+                                lunarDay = if (calendarType == CalendarType.LUNAR) lunarDay else null,
+                                lunarLeap = if (calendarType == CalendarType.LUNAR) lunarLeap else false,
                             ),
                         )
                     },

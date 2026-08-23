@@ -1,6 +1,7 @@
 package com.pulse.checkin.domain.stats
 
 import com.pulse.checkin.domain.model.DayEvent
+import com.pulse.checkin.domain.model.CalendarType
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -11,8 +12,8 @@ sealed interface DayCountResult {
 }
 
 object DayCountCalculator {
-    fun compute(event: DayEvent, today: LocalDate): DayCountResult {
-        val target = nextOccurrence(event.date, event.repeatsYearly, today)
+    fun compute(event: DayEvent, today: LocalDate, lunar: LunarCalendar): DayCountResult {
+        val target = nextOccurrence(event, today, lunar)
         val days = ChronoUnit.DAYS.between(today, target)
         return when {
             days > 0 -> DayCountResult.DaysUntil(days)
@@ -21,8 +22,25 @@ object DayCountCalculator {
         }
     }
 
-    fun nextOccurrence(date: LocalDate, repeatsYearly: Boolean, today: LocalDate): LocalDate {
-        if (!repeatsYearly) return date
+    fun nextOccurrence(event: DayEvent, today: LocalDate, lunar: LunarCalendar): LocalDate {
+        if (!event.repeatsYearly) return event.date
+        return when (event.calendarType) {
+            CalendarType.SOLAR -> solarNextOccurrence(event.date, today)
+            CalendarType.LUNAR -> lunarNextOccurrence(event, today, lunar)
+        }
+    }
+
+    fun sortForDisplay(events: List<DayEvent>, today: LocalDate, lunar: LunarCalendar): List<DayEvent> {
+        val upcoming = events
+            .filter { compute(it, today, lunar) !is DayCountResult.DaysSince }
+            .sortedBy { nextOccurrence(it, today, lunar) }
+        val past = events
+            .filter { compute(it, today, lunar) is DayCountResult.DaysSince }
+            .sortedByDescending { it.date }
+        return upcoming + past
+    }
+
+    private fun solarNextOccurrence(date: LocalDate, today: LocalDate): LocalDate {
         var candidate = adjustForYear(date, today.year)
         if (candidate.isBefore(today)) {
             candidate = adjustForYear(date, today.year + 1)
@@ -30,14 +48,15 @@ object DayCountCalculator {
         return candidate
     }
 
-    fun sortForDisplay(events: List<DayEvent>, today: LocalDate): List<DayEvent> {
-        val upcoming = events
-            .filter { compute(it, today) !is DayCountResult.DaysSince }
-            .sortedBy { nextOccurrence(it.date, it.repeatsYearly, today) }
-        val past = events
-            .filter { compute(it, today) is DayCountResult.DaysSince }
-            .sortedByDescending { it.date }
-        return upcoming + past
+    private fun lunarNextOccurrence(event: DayEvent, today: LocalDate, lunar: LunarCalendar): LocalDate {
+        val month = event.lunarMonth ?: event.date.monthValue
+        val day = event.lunarDay ?: event.date.dayOfMonth
+        val lunarDate = LunarDate(month, day, event.lunarLeap)
+        var candidate = lunar.toGregorian(today.year, lunarDate)
+        if (candidate.isBefore(today)) {
+            candidate = lunar.toGregorian(today.year + 1, lunarDate)
+        }
+        return candidate
     }
 
     private fun adjustForYear(date: LocalDate, year: Int): LocalDate {

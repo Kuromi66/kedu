@@ -18,6 +18,11 @@ enum class AppLanguage {
     EN,
 }
 
+enum class CalendarType {
+    SOLAR,
+    LUNAR,
+}
+
 data class UserPreferences(
     val themeMode: ThemeMode = ThemeMode.LIGHT,
     val appLanguage: AppLanguage = AppLanguage.ZH,
@@ -67,6 +72,10 @@ data class DayEvent(
     val repeatsYearly: Boolean = false,
     val note: String? = null,
     val sortOrder: Int = 0,
+    val calendarType: CalendarType = CalendarType.SOLAR,
+    val lunarMonth: Int? = null,
+    val lunarDay: Int? = null,
+    val lunarLeap: Boolean = false,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val archived: Boolean = false,
     val updatedAtEpochMillis: Long = createdAtEpochMillis,

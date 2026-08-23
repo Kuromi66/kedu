@@ -128,6 +128,10 @@ private fun DayEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("repeatsYearly", repeatsYearly)
     .put("note", note ?: JSONObject.NULL)
     .put("sortOrder", sortOrder)
+    .put("calendarType", calendarType)
+    .put("lunarMonth", lunarMonth ?: JSONObject.NULL)
+    .put("lunarDay", lunarDay ?: JSONObject.NULL)
+    .put("lunarLeap", lunarLeap)
     .put("createdAtEpochMillis", createdAtEpochMillis)
     .put("archived", archived)
     .put("updatedAtEpochMillis", updatedAtEpochMillis)
@@ -219,6 +223,10 @@ private fun JSONArray.toDayEventEntities(version: Int, now: Long): List<DayEvent
                 repeatsYearly = item.optBoolean("repeatsYearly", false),
                 note = item.optNullableString("note"),
                 sortOrder = item.optInt("sortOrder", index),
+                calendarType = item.optString("calendarType", "SOLAR").takeIf { it == "LUNAR" } ?: "SOLAR",
+                lunarMonth = item.optNullableInt("lunarMonth"),
+                lunarDay = item.optNullableInt("lunarDay"),
+                lunarLeap = item.optBoolean("lunarLeap", false),
                 createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
                 archived = item.optBoolean("archived", false),
                 updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),

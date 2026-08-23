@@ -15,7 +15,7 @@ import com.pulse.checkin.data.db.entity.HabitEntity
 
 @Database(
     entities = [HabitEntity::class, CheckInEventEntity::class, DayEventEntity::class],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class PulseDatabase : RoomDatabase() {
@@ -95,6 +95,15 @@ abstract class PulseDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE day_events ADD COLUMN calendarType TEXT NOT NULL DEFAULT 'SOLAR'")
+                db.execSQL("ALTER TABLE day_events ADD COLUMN lunarMonth INTEGER")
+                db.execSQL("ALTER TABLE day_events ADD COLUMN lunarDay INTEGER")
+                db.execSQL("ALTER TABLE day_events ADD COLUMN lunarLeap INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         @Volatile
         private var instance: PulseDatabase? = null
 
@@ -110,6 +119,7 @@ abstract class PulseDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_3_4)
                     .addMigrations(MIGRATION_4_5)
                     .addMigrations(MIGRATION_5_6)
+                    .addMigrations(MIGRATION_6_7)
                     .build()
                     .also { instance = it }
             }

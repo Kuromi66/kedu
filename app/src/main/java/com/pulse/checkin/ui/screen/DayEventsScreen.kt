@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pulse.checkin.domain.model.DayEvent
+import com.pulse.checkin.domain.model.CalendarType
 import com.pulse.checkin.domain.stats.DayCountCalculator
 import com.pulse.checkin.domain.stats.DayCountResult
 import com.pulse.checkin.ui.components.GlassCard
@@ -52,6 +53,7 @@ import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.i18n.PulseStrings
+import com.pulse.checkin.ui.util.AndroidLunarCalendar
 import java.time.LocalDate
 import kotlin.math.abs
 
@@ -158,7 +160,7 @@ fun DayEventsScreen(
                     val isDragging = event.id == draggingId
                     DayEventCard(
                         event = event,
-                        result = DayCountCalculator.compute(event, today),
+                        result = DayCountCalculator.compute(event, today, AndroidLunarCalendar),
                         strings = strings,
                         modifier = Modifier
                             .zIndex(if (isDragging) 1f else 0f)
@@ -236,7 +238,15 @@ private fun DayEventCard(
                 Text(event.name, style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = strings.dayEventDateText(event.date),
+                    text = if (event.calendarType == CalendarType.LUNAR) {
+                        strings.lunarDateText(
+                            event.lunarMonth ?: event.date.monthValue,
+                            event.lunarDay ?: event.date.dayOfMonth,
+                            event.lunarLeap,
+                        )
+                    } else {
+                        strings.dayEventDateText(event.date)
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )

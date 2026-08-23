@@ -8,6 +8,7 @@ import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
 import com.pulse.checkin.data.cloud.SyncClock
 import com.pulse.checkin.domain.model.CheckInEvent
+import com.pulse.checkin.domain.model.CalendarType
 import com.pulse.checkin.domain.model.DayEvent
 import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.repository.CheckInRepository
@@ -170,6 +171,10 @@ private fun DayEventEntity.toDomain(): DayEvent = DayEvent(
     repeatsYearly = repeatsYearly,
     note = note,
     sortOrder = sortOrder,
+    calendarType = runCatching { CalendarType.valueOf(calendarType) }.getOrDefault(CalendarType.SOLAR),
+    lunarMonth = lunarMonth,
+    lunarDay = lunarDay,
+    lunarLeap = lunarLeap,
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
     updatedAtEpochMillis = updatedAtEpochMillis,
@@ -182,6 +187,10 @@ private fun DayEvent.toEntity(): DayEventEntity = DayEventEntity(
     repeatsYearly = repeatsYearly,
     note = note,
     sortOrder = sortOrder,
+    calendarType = calendarType.name,
+    lunarMonth = lunarMonth,
+    lunarDay = lunarDay,
+    lunarLeap = lunarLeap,
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
     updatedAtEpochMillis = updatedAtEpochMillis,

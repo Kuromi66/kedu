@@ -188,6 +188,16 @@ class PulseStrings(private val context: Context) {
         DateTimeFormatter.ofPattern(context.getString(R.string.day_event_date_format), locale),
     )
     val reorderHint: String get() = context.getString(R.string.reorder_hint)
+    val calendarSolar: String get() = context.getString(R.string.calendar_solar)
+    val calendarLunar: String get() = context.getString(R.string.calendar_lunar)
+    val lunarMonthLabel: String get() = context.getString(R.string.lunar_month_label)
+    val lunarDayLabel: String get() = context.getString(R.string.lunar_day_label)
+    val lunarLeapLabel: String get() = context.getString(R.string.lunar_leap_label)
+    fun lunarDateText(month: Int, day: Int, leap: Boolean): String = context.getString(
+        if (leap) R.string.lunar_date_leap_format else R.string.lunar_date_format,
+        month,
+        day,
+    )
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

@@ -17,6 +17,7 @@ import com.pulse.checkin.data.cloud.SyncManager
 import com.pulse.checkin.data.cloud.SyncOutcome
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.domain.model.AppLanguage
+import com.pulse.checkin.domain.model.CalendarType
 import com.pulse.checkin.domain.model.CheckInEvent
 import com.pulse.checkin.domain.model.DayEvent
 import com.pulse.checkin.domain.model.Habit
@@ -26,10 +27,12 @@ import com.pulse.checkin.domain.repository.CheckInRepository
 import com.pulse.checkin.domain.repository.DayEventRepository
 import com.pulse.checkin.domain.repository.HabitRepository
 import com.pulse.checkin.domain.stats.MonthSnapshot
+import com.pulse.checkin.domain.stats.LunarDate
 import com.pulse.checkin.domain.stats.StatsCalculator
 import com.pulse.checkin.domain.stats.TodaySnapshot
 import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.reminder.ReminderScheduler
+import com.pulse.checkin.ui.util.AndroidLunarCalendar
 import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
@@ -93,6 +96,10 @@ data class DayEventDraft(
     val date: LocalDate = LocalDate.now(),
     val repeatsYearly: Boolean = false,
     val note: String? = null,
+    val calendarType: CalendarType = CalendarType.SOLAR,
+    val lunarMonth: Int? = null,
+    val lunarDay: Int? = null,
+    val lunarLeap: Boolean = false,
 ) {
     companion object {
         fun fromDayEvent(event: DayEvent): DayEventDraft = DayEventDraft(
@@ -101,6 +108,10 @@ data class DayEventDraft(
             date = event.date,
             repeatsYearly = event.repeatsYearly,
             note = event.note,
+            calendarType = event.calendarType,
+            lunarMonth = event.lunarMonth,
+            lunarDay = event.lunarDay,
+            lunarLeap = event.lunarLeap,
         )
     }
 }
@@ -384,13 +395,29 @@ class AppViewModel(
             val existing = if (draft.id.isNotBlank()) dayEventRepository.getDayEvent(draft.id) else null
             val sortOrder = existing?.sortOrder
                 ?: (uiState.value.dayEvents.maxOfOrNull { it.sortOrder }?.plus(1) ?: 0)
+            val calendarType = draft.calendarType
+            val lunarMonth = if (calendarType == CalendarType.LUNAR) draft.lunarMonth else null
+            val lunarDay = if (calendarType == CalendarType.LUNAR) draft.lunarDay else null
+            val lunarLeap = if (calendarType == CalendarType.LUNAR) draft.lunarLeap else false
+            val date = if (calendarType == CalendarType.LUNAR) {
+                AndroidLunarCalendar.toGregorian(
+                    LocalDate.now().year,
+                    LunarDate(lunarMonth ?: 1, lunarDay ?: 1, lunarLeap),
+                )
+            } else {
+                draft.date
+            }
             val event = DayEvent(
                 id = existing?.id ?: UUID.randomUUID().toString(),
                 name = draft.name.trim(),
-                date = draft.date,
+                date = date,
                 repeatsYearly = draft.repeatsYearly,
                 note = draft.note?.trim()?.ifBlank { null },
                 sortOrder = sortOrder,
+                calendarType = calendarType,
+                lunarMonth = lunarMonth,
+                lunarDay = lunarDay,
+                lunarLeap = lunarLeap,
                 createdAtEpochMillis = existing?.createdAtEpochMillis ?: syncClock.nowMillis(),
                 archived = false,
                 updatedAtEpochMillis = syncClock.nowMillis(),
