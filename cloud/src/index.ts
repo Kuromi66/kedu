@@ -185,6 +185,17 @@ interface EventRecord {
   note: string | null;
 }
 
+interface DayEventRecord {
+  id: string;
+  name: string;
+  eventDate: string;
+  repeatsYearly: boolean;
+  note: string | null;
+  createdAtEpochMillis: number;
+  archived: boolean;
+  updatedAtEpochMillis: number;
+}
+
 function asString(value: unknown, maxLength = 200): string | null {
   return typeof value === 'string' && value.length > 0 && value.length <= maxLength
     ? value
@@ -216,6 +227,20 @@ function isEvent(value: unknown): value is EventRecord {
     asNumber(item.occurredAtEpochMillis) !== null &&
     typeof item.localDate === 'string' &&
     DATE_RE.test(item.localDate) &&
+    asNumber(item.updatedAtEpochMillis) !== null &&
+    (note === null || note === undefined || (typeof note === 'string' && note.length <= 200))
+  );
+}
+
+function isDayEvent(value: unknown): value is DayEventRecord {
+  const item = value as Record<string, unknown>;
+  const note = item.note;
+  return (
+    asString(item.id) !== null &&
+    asString(item.name) !== null &&
+    typeof item.eventDate === 'string' &&
+    DATE_RE.test(item.eventDate) &&
+    asNumber(item.createdAtEpochMillis) !== null &&
     asNumber(item.updatedAtEpochMillis) !== null &&
     (note === null || note === undefined || (typeof note === 'string' && note.length <= 200))
   );
@@ -256,6 +281,21 @@ function eventBindings(userId: string, event: EventRecord, firstSeenAt: number):
   ];
 }
 
+function dayEventBindings(userId: string, event: DayEventRecord, firstSeenAt: number): unknown[] {
+  return [
+    event.id,
+    userId,
+    event.name,
+    event.eventDate,
+    event.repeatsYearly ? 1 : 0,
+    event.note ?? null,
+    event.createdAtEpochMillis,
+    event.archived ? 1 : 0,
+    event.updatedAtEpochMillis,
+    firstSeenAt,
+  ];
+}
+
 async function handleSync(request: Request, env: Env): Promise<Response> {
   const userId = await authenticate(request, env);
   if (!userId) return error('Unauthorized', 401);
@@ -264,6 +304,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   const now = Date.now();
   const habitsIn = Array.isArray(body.habits) ? body.habits.filter(isHabit) : [];
   const eventsIn = Array.isArray(body.events) ? body.events.filter(isEvent) : [];
+  const dayEventsIn = Array.isArray(body.dayEvents) ? body.dayEvents.filter(isDayEvent) : [];
   const habitStatements = habitsIn.map((habit) =>
     env.DB.prepare(
       `INSERT INTO habits
@@ -308,6 +349,24 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     await env.DB.batch(eventStatements.slice(index, index + BATCH_LIMIT));
   }
 
+  const dayEventStatements = dayEventsIn.map((dayEvent) =>
+    env.DB.prepare(
+      `INSERT INTO day_events
+         (id, user_id, name, event_date, repeats_yearly, note, created_at, archived, updated_at,
+          first_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         name = excluded.name, event_date = excluded.event_date,
+         repeats_yearly = excluded.repeats_yearly, note = excluded.note,
+         created_at = excluded.created_at, archived = excluded.archived,
+         updated_at = excluded.updated_at
+       WHERE excluded.updated_at > day_events.updated_at AND day_events.user_id = excluded.user_id`,
+    ).bind(...dayEventBindings(userId, dayEvent, now)),
+  );
+  for (let index = 0; index < dayEventStatements.length; index += BATCH_LIMIT) {
+    await env.DB.batch(dayEventStatements.slice(index, index + BATCH_LIMIT));
+  }
+
   const { results: habits } = await env.DB.prepare(
     `SELECT id, name, color_argb, glyph, sort_order, reminder_enabled, reminder_hour,
             reminder_minute, target_enabled, daily_target_count, created_at, archived, updated_at
@@ -318,6 +377,12 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   const { results: events } = await env.DB.prepare(
     `SELECT id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at, note
      FROM events WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
+  )
+    .bind(userId, since, since)
+    .all();
+  const { results: dayEvents } = await env.DB.prepare(
+    `SELECT id, name, event_date, repeats_yearly, note, created_at, archived, updated_at
+     FROM day_events WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
   )
     .bind(userId, since, since)
     .all();
@@ -348,6 +413,16 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       deletedAtEpochMillis: row.deleted_at ?? null,
       updatedAtEpochMillis: row.updated_at,
       note: row.note ?? null,
+    })),
+    dayEvents: dayEvents.map((row) => ({
+      id: row.id,
+      name: row.name,
+      eventDate: row.event_date,
+      repeatsYearly: !!row.repeats_yearly,
+      note: row.note ?? null,
+      createdAtEpochMillis: row.created_at,
+      archived: !!row.archived,
+      updatedAtEpochMillis: row.updated_at,
     })),
   });
 }
