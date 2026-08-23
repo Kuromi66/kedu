@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
@@ -76,7 +75,6 @@ fun PulseApp(viewModel: AppViewModel) {
     var editorDraft by remember { mutableStateOf<HabitDraft?>(null) }
     val editorVisible = editorDraft != null
     var dayEventEditorDraft by remember { mutableStateOf<DayEventDraft?>(null) }
-    var previousTab by remember { mutableStateOf(AppTab.TODAY) }
     val backgroundBlur by animateDpAsState(
         targetValue = if (editorVisible) 14.dp else 0.dp,
         animationSpec = tween(durationMillis = 260),
@@ -139,10 +137,6 @@ fun PulseApp(viewModel: AppViewModel) {
                         PulseBottomBar(
                             selectedTab = uiState.selectedTab,
                             onSelect = viewModel::selectTab,
-                            onAddDayEvents = {
-                                previousTab = uiState.selectedTab
-                                viewModel.selectTab(AppTab.DAY_EVENTS)
-                            },
                         )
                     },
                 ) { paddingValues ->
@@ -202,7 +196,6 @@ fun PulseApp(viewModel: AppViewModel) {
                                 )
                                 AppTab.DAY_EVENTS -> DayEventsScreen(
                                     dayEvents = uiState.dayEvents,
-                                    onBack = { viewModel.selectTab(previousTab) },
                                     onAdd = { dayEventEditorDraft = DayEventDraft() },
                                     onEdit = { dayEvent -> dayEventEditorDraft = DayEventDraft.fromDayEvent(dayEvent) },
                                     onDelete = viewModel::archiveDayEvent,
@@ -247,15 +240,10 @@ fun PulseApp(viewModel: AppViewModel) {
         }
     }
 
-    if (uiState.selectedTab == AppTab.DAY_EVENTS) {
-        BackHandler {
-            viewModel.selectTab(previousTab)
-        }
-    }
 }
 
 @Composable
-private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit, onAddDayEvents: () -> Unit) {
+private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 12.dp else 16.dp
     val verticalPadding = if (compactLayout) 10.dp else 12.dp
@@ -281,9 +269,12 @@ private fun PulseBottomBar(selectedTab: AppTab, onSelect: (AppTab) -> Unit, onAd
                 onSelect = onSelect,
                 modifier = Modifier.weight(1f),
             )
-            PulseBottomAddButton(
+            PulseBottomTab(
+                tab = AppTab.DAY_EVENTS,
+                selectedTab = selectedTab,
                 compactLayout = compactLayout,
-                onClick = onAddDayEvents,
+                onSelect = onSelect,
+                modifier = Modifier.weight(1f),
             )
             PulseBottomTab(
                 tab = AppTab.STATS,
@@ -317,14 +308,14 @@ private fun PulseBottomTab(
         AppTab.HISTORY -> LocalPulseStrings.current.tabHistory
         AppTab.STATS -> LocalPulseStrings.current.tabStats
         AppTab.SETTINGS -> LocalPulseStrings.current.tabSettings
-        AppTab.DAY_EVENTS -> LocalPulseStrings.current.importantDatesTitle
+        AppTab.DAY_EVENTS -> LocalPulseStrings.current.tabDayEvents
     }
     val icon = when (tab) {
         AppTab.TODAY -> PulseIconKind.TodayTab
         AppTab.HISTORY -> PulseIconKind.HistoryTab
         AppTab.STATS -> PulseIconKind.StatsTab
         AppTab.SETTINGS -> PulseIconKind.SettingsTab
-        AppTab.DAY_EVENTS -> PulseIconKind.Records
+        AppTab.DAY_EVENTS -> PulseIconKind.Calendar
     }
 
     Box(
@@ -356,54 +347,6 @@ private fun PulseBottomTab(
                 text = label,
                 color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                style = MaterialTheme.typography.labelSmall,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PulseBottomAddButton(
-    compactLayout: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val buttonWidth = if (compactLayout) 68.dp else 78.dp
-    val buttonHeight = if (compactLayout) 50.dp else 56.dp
-
-    Box(
-        modifier = modifier
-            .size(width = buttonWidth, height = buttonHeight)
-            .clip(RoundedCornerShape(999.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.34f),
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
-                    ),
-                ),
-            )
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-        ) {
-            PulseActionIcon(
-                kind = PulseIconKind.Add,
-                color = MaterialTheme.colorScheme.primary,
-                compactLayout = compactLayout,
-                modifier = Modifier.size(if (compactLayout) 22.dp else 24.dp),
-            )
-            Text(
-                text = LocalPulseStrings.current.add,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold,
                 style = MaterialTheme.typography.labelSmall,
             )
         }

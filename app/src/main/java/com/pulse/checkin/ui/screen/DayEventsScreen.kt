@@ -44,7 +44,6 @@ import java.time.LocalDate
 @Composable
 fun DayEventsScreen(
     dayEvents: List<DayEvent>,
-    onBack: () -> Unit,
     onAdd: () -> Unit,
     onEdit: (DayEvent) -> Unit,
     onDelete: (String) -> Unit,
@@ -62,13 +61,6 @@ fun DayEventsScreen(
         ScreenHeader(
             title = strings.importantDatesTitle,
             compactLayout = compactLayout,
-            leading = {
-                PulseIconButton(
-                    kind = PulseIconKind.ArrowLeft,
-                    onClick = onBack,
-                    compactLayout = compactLayout,
-                )
-            },
             action = {
                 PulseIconButton(
                     kind = PulseIconKind.Add,

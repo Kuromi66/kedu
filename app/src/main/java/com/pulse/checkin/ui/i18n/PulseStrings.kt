@@ -24,6 +24,7 @@ class PulseStrings(private val context: Context) {
     val tabStats: String get() = context.getString(R.string.tab_stats)
     val tabSettings: String get() = context.getString(R.string.tab_settings)
     val add: String get() = context.getString(R.string.add)
+    val tabDayEvents: String get() = context.getString(R.string.tab_day_events)
 
     val todayTitle: String get() = context.getString(R.string.today_title)
     val todayCountMetric: String get() = context.getString(R.string.today_count_metric)
