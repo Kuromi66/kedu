@@ -72,42 +72,41 @@ fun DayEventsScreen(
     val listState = rememberLazyListState()
     val haptic = LocalHapticFeedback.current
     var items by remember { mutableStateOf(dayEvents) }
-    var draggingIndex by remember { mutableStateOf<Int?>(null) }
+    var draggingId by remember { mutableStateOf<String?>(null) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var pendingTargetIndex by remember { mutableStateOf<Int?>(null) }
 
     LaunchedEffect(dayEvents) {
         items = dayEvents
     }
 
     fun finishDrag() {
-        if (draggingIndex != null) {
-            val orderedIds = items.map { it.id }
-            draggingIndex = null
-            dragOffsetY = 0f
-            if (orderedIds != dayEvents.map { it.id }) {
-                onReorder(orderedIds)
+        val id = draggingId ?: return
+        val startIndex = items.indexOfFirst { it.id == id }
+        val targetIndex = pendingTargetIndex ?: startIndex
+        draggingId = null
+        dragOffsetY = 0f
+        pendingTargetIndex = null
+        if (targetIndex != startIndex) {
+            val newItems = items.toMutableList().apply {
+                add(targetIndex, removeAt(startIndex))
             }
+            items = newItems
+            onReorder(newItems.map { it.id })
         }
     }
 
     fun moveItem(change: PointerInputChange, dragAmount: Offset) {
         change.consume()
-        val currentIndex = draggingIndex ?: return
+        val id = draggingId ?: return
         dragOffsetY += dragAmount.y
         val layoutInfo = listState.layoutInfo
-        val draggedInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == currentIndex } ?: return
+        val draggedInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.key == id } ?: return
         val draggedCenterY = draggedInfo.offset + draggedInfo.size / 2f + dragOffsetY
-        val targetIndex = layoutInfo.visibleItemsInfo
-            .filter { it.index != currentIndex }
+        pendingTargetIndex = layoutInfo.visibleItemsInfo
+            .filter { it.key != id }
             .minByOrNull { abs((it.offset + it.size / 2f) - draggedCenterY) }
             ?.index
-        if (targetIndex != null && targetIndex != currentIndex) {
-            val newItems = items.toMutableList()
-            val moved = newItems.removeAt(currentIndex)
-            newItems.add(targetIndex, moved)
-            items = newItems
-            draggingIndex = targetIndex
-        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -156,7 +155,7 @@ fun DayEventsScreen(
                 }
             } else {
                 itemsIndexed(items, key = { _, item -> item.id }) { index, event ->
-                    val isDragging = draggingIndex == index
+                    val isDragging = event.id == draggingId
                     DayEventCard(
                         event = event,
                         result = DayCountCalculator.compute(event, today),
@@ -165,14 +164,15 @@ fun DayEventsScreen(
                             .zIndex(if (isDragging) 1f else 0f)
                             .graphicsLayer {
                                 translationY = if (isDragging) dragOffsetY else 0f
-                                scaleX = if (isDragging) 1.02f else 1f
-                                scaleY = if (isDragging) 1.02f else 1f
+                                scaleX = if (isDragging) 1.03f else 1f
+                                scaleY = if (isDragging) 1.03f else 1f
                             }
                             .animateItem(placementSpec = tween(160)),
                         onClick = { onEdit(event) },
                         onDragStart = {
-                            draggingIndex = index
+                            draggingId = event.id
                             dragOffsetY = 0f
+                            pendingTargetIndex = index
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         },
                         onDrag = { change, amount -> moveItem(change, amount) },
