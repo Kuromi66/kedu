@@ -2,6 +2,10 @@ name = "pulse-sync"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 
+routes = [
+  { pattern = "sync.kon123.click", custom_domain = true }
+]
+
 # D1 database for sync data.
 # 1. Run: npx wrangler d1 create pulse
 # 2. Copy the returned database_id below.
