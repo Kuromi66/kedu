@@ -118,7 +118,11 @@ fun DayEventEditorSheet(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                text = strings.dayEventDateText(date),
+                                text = if (repeatsYearly) {
+                                    strings.historyDetailDate(date)
+                                } else {
+                                    strings.dayEventDateText(date)
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

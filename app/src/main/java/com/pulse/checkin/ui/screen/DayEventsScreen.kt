@@ -244,6 +244,8 @@ private fun DayEventCard(
                             event.lunarDay ?: event.date.dayOfMonth,
                             event.lunarLeap,
                         )
+                    } else if (event.repeatsYearly) {
+                        strings.historyDetailDate(event.date)
                     } else {
                         strings.dayEventDateText(event.date)
                     },
