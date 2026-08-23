@@ -9,5 +9,5 @@ compatibility_date = "2024-12-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "pulse"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "e14c5641-135e-4294-b809-3a58f6cd990d"
 migrations_dir = "migrations"
