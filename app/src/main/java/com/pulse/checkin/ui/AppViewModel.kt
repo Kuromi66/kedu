@@ -267,14 +267,14 @@ class AppViewModel(
         selectedStatsYear.value = LocalDate.now().year
     }
 
-    fun checkInHabit(habitId: String) {
+    fun checkInHabit(habitId: String, note: String) {
         viewModelScope.launch {
-            checkInRepository.addCheckIn(habitId)
+            checkInRepository.addCheckIn(habitId, note = note.trim().ifBlank { null })
             triggerSync()
         }
     }
 
-    fun backfillHabit(habitId: String, targetDate: LocalDate) {
+    fun backfillHabit(habitId: String, targetDate: LocalDate, note: String) {
         if (!targetDate.isBefore(LocalDate.now())) return
         viewModelScope.launch {
             checkInRepository.addCheckIn(
@@ -282,6 +282,7 @@ class AppViewModel(
                 occurredAtEpochMillis = System.currentTimeMillis(),
                 localDate = targetDate,
                 isBackfilled = true,
+                note = note.trim().ifBlank { null },
             )
             triggerSync()
         }

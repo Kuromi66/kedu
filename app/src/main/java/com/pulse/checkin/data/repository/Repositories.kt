@@ -52,6 +52,7 @@ class CheckInRepositoryImpl(
         occurredAtEpochMillis: Long,
         localDate: LocalDate?,
         isBackfilled: Boolean,
+        note: String?,
     ) {
         val date = localDate ?: Instant.ofEpochMilli(occurredAtEpochMillis)
             .atZone(ZoneId.systemDefault())
@@ -64,6 +65,7 @@ class CheckInRepositoryImpl(
                 localDate = date.toString(),
                 isBackfilled = isBackfilled,
                 updatedAtEpochMillis = clock.nowMillis(),
+                note = note,
             ),
         )
     }
@@ -128,4 +130,5 @@ private fun CheckInEventEntity.toDomain(): CheckInEvent = CheckInEvent(
     isBackfilled = isBackfilled,
     deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    note = note,
 )

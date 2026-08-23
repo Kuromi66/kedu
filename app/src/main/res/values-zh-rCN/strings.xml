@@ -113,6 +113,11 @@
     <string name="network_unavailable">网络不可用，请稍后重试</string>
     <string name="unknown_error">发生未知错误</string>
     <string name="logout_confirm_text">退出登录后，本机习惯与打卡数据将不再与云端同步，确定退出？</string>
+    <string name="note_label">备注</string>
+    <string name="note_placeholder">选填，写下这条打卡的备注</string>
+    <string name="record_detail_title">打卡详情</string>
+    <string name="no_note">无备注</string>
+    <string name="delete_record_action">删除记录</string>
     <string name="habit_editor_new">添加习惯</string>
     <string name="habit_editor_edit">编辑习惯</string>
     <string name="habit_name">习惯名称</string>

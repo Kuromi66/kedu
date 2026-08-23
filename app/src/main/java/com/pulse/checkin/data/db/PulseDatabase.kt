@@ -13,7 +13,7 @@ import com.pulse.checkin.data.db.entity.HabitEntity
 
 @Database(
     entities = [HabitEntity::class, CheckInEventEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class PulseDatabase : RoomDatabase() {
@@ -68,6 +68,12 @@ abstract class PulseDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE check_in_events ADD COLUMN note TEXT")
+            }
+        }
+
         @Volatile
         private var instance: PulseDatabase? = null
 
@@ -80,6 +86,7 @@ abstract class PulseDatabase : RoomDatabase() {
                 )
                     .addMigrations(MIGRATION_1_2)
                     .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

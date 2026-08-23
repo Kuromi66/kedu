@@ -41,6 +41,7 @@ data class EventDto(
     val isBackfilled: Boolean = false,
     val deletedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long,
+    val note: String? = null,
 )
 
 @Serializable

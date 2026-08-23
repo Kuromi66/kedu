@@ -118,6 +118,11 @@
     <string name="network_unavailable">Network unavailable, try again later</string>
     <string name="unknown_error">Something went wrong</string>
     <string name="logout_confirm_text">After logging out, local habits and check-ins will no longer sync to the cloud. Log out?</string>
+    <string name="note_label">Note</string>
+    <string name="note_placeholder">Optional: add a note to this check-in</string>
+    <string name="record_detail_title">Check-in details</string>
+    <string name="no_note">No note</string>
+    <string name="delete_record_action">Delete record</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

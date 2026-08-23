@@ -29,4 +29,5 @@ data class CheckInEventEntity(
     val isBackfilled: Boolean = false,
     val deletedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long = occurredAtEpochMillis,
+    val note: String? = null,
 )

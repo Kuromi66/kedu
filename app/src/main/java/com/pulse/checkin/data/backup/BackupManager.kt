@@ -113,6 +113,7 @@ private fun CheckInEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("isBackfilled", isBackfilled)
     .put("deletedAtEpochMillis", deletedAtEpochMillis ?: JSONObject.NULL)
     .put("updatedAtEpochMillis", updatedAtEpochMillis)
+    .put("note", note ?: JSONObject.NULL)
 
 private fun JSONArray.toHabitEntities(version: Int, now: Long): List<HabitEntity> = buildList(length()) {
     repeat(length()) { index ->
@@ -171,6 +172,7 @@ private fun JSONArray.toEventEntities(version: Int, now: Long): List<CheckInEven
                     isBackfilled = item.optBoolean("isBackfilled", false),
                     deletedAtEpochMillis = null,
                     updatedAtEpochMillis = now,
+                    note = null,
                 )
             } else {
                 CheckInEventEntity(
@@ -181,6 +183,7 @@ private fun JSONArray.toEventEntities(version: Int, now: Long): List<CheckInEven
                     isBackfilled = item.optBoolean("isBackfilled", false),
                     deletedAtEpochMillis = item.optNullableLong("deletedAtEpochMillis"),
                     updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),
+                    note = item.optNullableString("note"),
                 )
             },
         )
@@ -195,4 +198,9 @@ private fun JSONObject.optNullableInt(key: String): Int? {
 private fun JSONObject.optNullableLong(key: String): Long? {
     if (isNull(key) || !has(key)) return null
     return optLong(key)
+}
+
+private fun JSONObject.optNullableString(key: String): String? {
+    if (isNull(key) || !has(key)) return null
+    return optString(key).takeIf { it.isNotBlank() }
 }

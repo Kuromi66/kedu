@@ -154,6 +154,11 @@ class PulseStrings(private val context: Context) {
     val networkUnavailable: String get() = context.getString(R.string.network_unavailable)
     val unknownError: String get() = context.getString(R.string.unknown_error)
     val logoutConfirmText: String get() = context.getString(R.string.logout_confirm_text)
+    val noteLabel: String get() = context.getString(R.string.note_label)
+    val notePlaceholder: String get() = context.getString(R.string.note_placeholder)
+    val recordDetailTitle: String get() = context.getString(R.string.record_detail_title)
+    val noNote: String get() = context.getString(R.string.no_note)
+    val deleteRecordAction: String get() = context.getString(R.string.delete_record_action)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

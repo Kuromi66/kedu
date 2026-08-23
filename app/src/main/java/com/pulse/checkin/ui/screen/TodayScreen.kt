@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,15 +45,18 @@ import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.stats.TodayCheckInRecord
 import com.pulse.checkin.domain.stats.TodayHabitSummary
 import com.pulse.checkin.domain.stats.TodaySnapshot
+import com.pulse.checkin.ui.components.CheckInNoteDialog
 import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.PulsePrimaryActionButton
 import com.pulse.checkin.ui.components.PulseIconButton
+import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.toPulseColor
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 
@@ -74,11 +78,10 @@ private fun formatElapsedSince(epochMillis: Long, strings: com.pulse.checkin.ui.
 fun TodayScreen(
     snapshot: TodaySnapshot,
     onEditHabit: (Habit) -> Unit,
-    onCheckInHabit: (String) -> Unit,
+    onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
 ) {
-    val haptic = LocalHapticFeedback.current
     val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
@@ -131,10 +134,7 @@ fun TodayScreen(
                         item = item,
                         compactLayout = compactLayout,
                         onEdit = { onEditHabit(item.habit) },
-                        onCheckIn = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onCheckInHabit(item.habit.id)
-                        },
+                        onCheckInHabit = onCheckInHabit,
                         onDeleteRecord = onDeleteRecord,
                         onDeleteHabit = onDeleteHabit,
                     )
@@ -169,14 +169,16 @@ private fun HabitCard(
     item: TodayHabitSummary,
     compactLayout: Boolean,
     onEdit: () -> Unit,
-    onCheckIn: () -> Unit,
+    onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
     var expanded by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingCheckIn by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<String?>(null) }
     var pendingDeleteHabit by rememberSaveable(item.habit.id) { mutableStateOf(false) }
+    var pendingRecordDetail by remember(item.habit.id) { mutableStateOf<TodayCheckInRecord?>(null) }
     val strings = LocalPulseStrings.current
     val progress = animateFloatAsState(targetValue = item.progress, label = "progress").value
     val cardShape = RoundedCornerShape(if (compactLayout) 24.dp else 28.dp)
@@ -306,7 +308,11 @@ private fun HabitCard(
             Spacer(modifier = Modifier.height(8.dp))
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 item.records.forEach { record ->
-                    CheckInRecordRow(record = record, onDelete = { pendingDeleteRecord = record.id })
+                    CheckInRecordRow(
+                        record = record,
+                        onShowDetail = { pendingRecordDetail = record },
+                        onDelete = { pendingDeleteRecord = record.id },
+                    )
                 }
             }
         }
@@ -326,16 +332,37 @@ private fun HabitCard(
     }
 
     if (pendingCheckIn) {
-        DestructiveConfirmDialog(
+        CheckInNoteDialog(
+            title = strings.confirmCheckInTitle,
             message = strings.confirmCheckInText(item.habit.name),
+            noteLabel = strings.noteLabel,
+            notePlaceholder = strings.notePlaceholder,
             confirmLabel = strings.confirmCheckIn,
             dismissLabel = strings.cancel,
-            onConfirm = {
-                onCheckIn()
+            onConfirm = { note ->
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onCheckInHabit(item.habit.id, note)
                 pendingCheckIn = false
             },
             onDismiss = { pendingCheckIn = false },
-            confirmColor = MaterialTheme.colorScheme.primary,
+        )
+    }
+
+    pendingRecordDetail?.let { record ->
+        RecordDetailDialog(
+            title = strings.recordDetailTitle,
+            timeLabel = record.displayTime.format(timeFormatter),
+            dateLabel = strings.historyDetailDate(LocalDate.now()),
+            backfillBadge = if (record.isBackfilled) strings.backfilledRecord else null,
+            note = record.note,
+            noNoteLabel = strings.noNote,
+            deleteLabel = strings.deleteRecordAction,
+            dismissLabel = strings.cancel,
+            onDelete = {
+                pendingDeleteRecord = record.id
+                pendingRecordDetail = null
+            },
+            onDismiss = { pendingRecordDetail = null },
         )
     }
 
@@ -357,6 +384,7 @@ private fun HabitCard(
 @Composable
 private fun CheckInRecordRow(
     record: TodayCheckInRecord,
+    onShowDetail: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val strings = LocalPulseStrings.current
@@ -366,7 +394,7 @@ private fun CheckInRecordRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-            .combinedClickable(onClick = {}, onLongClick = onDelete)
+            .combinedClickable(onClick = onShowDetail, onLongClick = onDelete)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

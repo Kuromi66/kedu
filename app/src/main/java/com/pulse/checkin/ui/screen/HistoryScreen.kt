@@ -75,12 +75,14 @@ import com.pulse.checkin.domain.stats.CalendarDaySummary
 import com.pulse.checkin.domain.stats.CheckInRecordItem
 import com.pulse.checkin.domain.stats.HistoryHabitDetail
 import com.pulse.checkin.domain.stats.MonthSnapshot
+import com.pulse.checkin.ui.components.CheckInNoteDialog
 import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
+import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.util.toPulseColor
@@ -104,7 +106,7 @@ fun HistoryScreen(
     onSelectDate: (LocalDate) -> Unit,
     onSelectHabit: (String?) -> Unit,
     onBackToCurrentMonth: () -> Unit,
-    onBackfillHabit: (String, LocalDate) -> Unit,
+    onBackfillHabit: (String, LocalDate, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
@@ -883,11 +885,12 @@ private fun HistoryRecordSheet(
     selectedDate: LocalDate,
     compactLayout: Boolean,
     onDismiss: () -> Unit,
-    onBackfillHabit: (String, LocalDate) -> Unit,
+    onBackfillHabit: (String, LocalDate, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
 ) {
     var pendingDeleteRecord by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
     var pendingBackfill by remember(detail.habit.id, selectedDate) { mutableStateOf(false) }
+    var pendingRecordDetail by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
     val strings = LocalPulseStrings.current
     val canBackfill = selectedDate.isBefore(LocalDate.now())
 
@@ -953,6 +956,7 @@ private fun HistoryRecordSheet(
                             index = index,
                             record = record,
                             compactLayout = compactLayout,
+                            onShowDetail = { pendingRecordDetail = record },
                             onDelete = { pendingDeleteRecord = record },
                         )
                     }
@@ -975,16 +979,36 @@ private fun HistoryRecordSheet(
     }
 
     if (pendingBackfill) {
-        DestructiveConfirmDialog(
+        CheckInNoteDialog(
+            title = strings.confirmBackfill,
             message = strings.confirmBackfillText(strings.historyDetailDate(selectedDate), detail.habit.name),
+            noteLabel = strings.noteLabel,
+            notePlaceholder = strings.notePlaceholder,
             confirmLabel = strings.confirmBackfill,
             dismissLabel = strings.cancel,
-            onConfirm = {
-                onBackfillHabit(detail.habit.id, selectedDate)
+            onConfirm = { note ->
+                onBackfillHabit(detail.habit.id, selectedDate, note)
                 pendingBackfill = false
             },
             onDismiss = { pendingBackfill = false },
-            confirmColor = MaterialTheme.colorScheme.primary,
+        )
+    }
+
+    pendingRecordDetail?.let { record ->
+        RecordDetailDialog(
+            title = strings.recordDetailTitle,
+            timeLabel = record.displayTime.format(recordTimeFormatter),
+            dateLabel = strings.historyDetailDate(selectedDate),
+            backfillBadge = if (record.isBackfilled) strings.backfilledRecord else null,
+            note = record.note,
+            noNoteLabel = strings.noNote,
+            deleteLabel = strings.deleteRecordAction,
+            dismissLabel = strings.cancel,
+            onDelete = {
+                pendingDeleteRecord = record
+                pendingRecordDetail = null
+            },
+            onDismiss = { pendingRecordDetail = null },
         )
     }
 }
@@ -995,6 +1019,7 @@ private fun HistoryRecordRow(
     index: Int,
     record: CheckInRecordItem,
     compactLayout: Boolean,
+    onShowDetail: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val strings = LocalPulseStrings.current
@@ -1004,7 +1029,7 @@ private fun HistoryRecordRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-            .combinedClickable(onClick = {}, onLongClick = onDelete)
+            .combinedClickable(onClick = onShowDetail, onLongClick = onDelete)
             .padding(horizontal = if (compactLayout) 14.dp else 16.dp, vertical = if (compactLayout) 12.dp else 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
@@ -1031,8 +1056,6 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
-
 
 
 

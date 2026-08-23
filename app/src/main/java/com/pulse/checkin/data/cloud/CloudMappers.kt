@@ -44,6 +44,7 @@ fun CheckInEventEntity.toDto(): EventDto = EventDto(
     isBackfilled = isBackfilled,
     deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    note = note,
 )
 
 fun EventDto.toEntity(): CheckInEventEntity = CheckInEventEntity(
@@ -54,6 +55,7 @@ fun EventDto.toEntity(): CheckInEventEntity = CheckInEventEntity(
     isBackfilled = isBackfilled,
     deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    note = note,
 )
 
 @Suppress("unused")

@@ -20,6 +20,7 @@ interface CheckInRepository {
         occurredAtEpochMillis: Long = System.currentTimeMillis(),
         localDate: LocalDate? = null,
         isBackfilled: Boolean = false,
+        note: String? = null,
     )
     suspend fun removeLatestForDay(habitId: String, date: LocalDate)
     suspend fun deleteCheckIn(eventId: String)

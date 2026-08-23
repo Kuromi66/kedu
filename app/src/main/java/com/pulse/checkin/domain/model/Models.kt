@@ -57,4 +57,5 @@ data class CheckInEvent(
     val isBackfilled: Boolean = false,
     val deletedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long = occurredAtEpochMillis,
+    val note: String? = null,
 )

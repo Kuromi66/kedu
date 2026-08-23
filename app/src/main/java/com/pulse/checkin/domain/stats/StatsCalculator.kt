@@ -32,6 +32,7 @@ data class CheckInRecordItem(
     val occurredAtEpochMillis: Long,
     val displayTime: LocalTime,
     val isBackfilled: Boolean = false,
+    val note: String? = null,
 )
 
 typealias TodayCheckInRecord = CheckInRecordItem
@@ -412,6 +413,7 @@ class LocalStatsCalculator : StatsCalculator {
                         .atZone(ZoneId.systemDefault())
                         .toLocalTime(),
                     isBackfilled = event.isBackfilled,
+                    note = event.note,
                 )
             }
     }
