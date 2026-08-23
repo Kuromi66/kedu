@@ -182,6 +182,7 @@ interface EventRecord {
   isBackfilled: boolean;
   deletedAtEpochMillis: number | null;
   updatedAtEpochMillis: number;
+  note: string | null;
 }
 
 function asString(value: unknown, maxLength = 200): string | null {
@@ -208,13 +209,15 @@ function isHabit(value: unknown): value is HabitRecord {
 
 function isEvent(value: unknown): value is EventRecord {
   const item = value as Record<string, unknown>;
+  const note = item.note;
   return (
     asString(item.id) !== null &&
     asString(item.habitId) !== null &&
     asNumber(item.occurredAtEpochMillis) !== null &&
     typeof item.localDate === 'string' &&
     DATE_RE.test(item.localDate) &&
-    asNumber(item.updatedAtEpochMillis) !== null
+    asNumber(item.updatedAtEpochMillis) !== null &&
+    (note === null || note === undefined || (typeof note === 'string' && note.length <= 200))
   );
 }
 
@@ -249,6 +252,7 @@ function eventBindings(userId: string, event: EventRecord, firstSeenAt: number):
     event.deletedAtEpochMillis ?? null,
     event.updatedAtEpochMillis,
     firstSeenAt,
+    event.note ?? null,
   ];
 }
 
@@ -260,7 +264,6 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
   const now = Date.now();
   const habitsIn = Array.isArray(body.habits) ? body.habits.filter(isHabit) : [];
   const eventsIn = Array.isArray(body.events) ? body.events.filter(isEvent) : [];
-
   const habitStatements = habitsIn.map((habit) =>
     env.DB.prepare(
       `INSERT INTO habits
@@ -291,12 +294,13 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       env.DB.prepare(
         `INSERT INTO events
            (id, user_id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at,
-            first_seen_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            first_seen_at, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            habit_id = excluded.habit_id, occurred_at = excluded.occurred_at,
            local_date = excluded.local_date, is_backfilled = excluded.is_backfilled,
-           deleted_at = excluded.deleted_at, updated_at = excluded.updated_at
+           deleted_at = excluded.deleted_at, updated_at = excluded.updated_at,
+           note = excluded.note
          WHERE excluded.updated_at > events.updated_at AND events.user_id = excluded.user_id`,
       ).bind(...eventBindings(userId, event, now)),
     );
@@ -312,7 +316,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     .bind(userId, since, since)
     .all();
   const { results: events } = await env.DB.prepare(
-    `SELECT id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at
+    `SELECT id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at, note
      FROM events WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
   )
     .bind(userId, since, since)
@@ -343,6 +347,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       isBackfilled: !!row.is_backfilled,
       deletedAtEpochMillis: row.deleted_at ?? null,
       updatedAtEpochMillis: row.updated_at,
+      note: row.note ?? null,
     })),
   });
 }
@@ -372,7 +377,6 @@ export default {
       return error('Not found', 404);
     } catch (err) {
       if (err instanceof HttpError) return error(err.message, err.status);
-      console.error(err);
       return error('Internal error', 500);
     }
   },
