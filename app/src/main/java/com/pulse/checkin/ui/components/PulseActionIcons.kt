@@ -45,6 +45,7 @@ enum class PulseIconKind {
     Account,
     Share,
     Calendar,
+    DragHandle,
     LightMode,
     DarkMode,
     SystemMode,
@@ -227,6 +228,17 @@ fun PulseActionIcon(
                 drawLine(color, Offset(size.width * 0.72f, size.height * 0.10f), Offset(size.width * 0.72f, size.height * 0.24f), stroke, cap = StrokeCap.Round)
                 drawCircle(color, radius = stroke * 0.8f, center = Offset(size.width * 0.34f, size.height * 0.56f))
                 drawCircle(color, radius = stroke * 0.8f, center = Offset(size.width * 0.62f, size.height * 0.56f))
+            }
+            PulseIconKind.DragHandle -> {
+                listOf(0.32f, 0.5f, 0.68f).forEach { y ->
+                    drawLine(
+                        color,
+                        Offset(size.width * 0.24f, size.height * y),
+                        Offset(size.width * 0.76f, size.height * y),
+                        stroke,
+                        cap = StrokeCap.Round,
+                    )
+                }
             }
             PulseIconKind.CurrentTime -> {
                 drawCircle(color, radius = size.minDimension * 0.28f, center = Offset(centerX, centerY), style = Stroke(width = stroke))

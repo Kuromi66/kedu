@@ -127,6 +127,7 @@ private fun DayEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("eventDate", eventDate)
     .put("repeatsYearly", repeatsYearly)
     .put("note", note ?: JSONObject.NULL)
+    .put("sortOrder", sortOrder)
     .put("createdAtEpochMillis", createdAtEpochMillis)
     .put("archived", archived)
     .put("updatedAtEpochMillis", updatedAtEpochMillis)
@@ -217,6 +218,7 @@ private fun JSONArray.toDayEventEntities(version: Int, now: Long): List<DayEvent
                 eventDate = item.optString("eventDate"),
                 repeatsYearly = item.optBoolean("repeatsYearly", false),
                 note = item.optNullableString("note"),
+                sortOrder = item.optInt("sortOrder", index),
                 createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
                 archived = item.optBoolean("archived", false),
                 updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),

@@ -15,7 +15,7 @@ import com.pulse.checkin.data.db.entity.HabitEntity
 
 @Database(
     entities = [HabitEntity::class, CheckInEventEntity::class, DayEventEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = false,
 )
 abstract class PulseDatabase : RoomDatabase() {
@@ -89,6 +89,12 @@ abstract class PulseDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE day_events ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         @Volatile
         private var instance: PulseDatabase? = null
 
@@ -103,6 +109,7 @@ abstract class PulseDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_2_3)
                     .addMigrations(MIGRATION_3_4)
                     .addMigrations(MIGRATION_4_5)
+                    .addMigrations(MIGRATION_5_6)
                     .build()
                     .also { instance = it }
             }

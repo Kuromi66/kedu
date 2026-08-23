@@ -66,10 +66,10 @@ interface CheckInEventDao {
 
 @Dao
 interface DayEventDao {
-    @Query("SELECT * FROM day_events WHERE archived = 0 ORDER BY eventDate ASC")
+    @Query("SELECT * FROM day_events WHERE archived = 0 ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     fun observeActive(): Flow<List<DayEventEntity>>
 
-    @Query("SELECT * FROM day_events ORDER BY eventDate ASC")
+    @Query("SELECT * FROM day_events ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     suspend fun getAll(): List<DayEventEntity>
 
     @Query("SELECT * FROM day_events WHERE id = :id LIMIT 1")
@@ -86,4 +86,7 @@ interface DayEventDao {
 
     @Query("UPDATE day_events SET archived = :archived, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, updatedAtEpochMillis: Long)
+
+    @Query("UPDATE day_events SET sortOrder = :sortOrder, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
+    suspend fun setSortOrder(id: String, sortOrder: Int, updatedAtEpochMillis: Long)
 }

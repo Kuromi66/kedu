@@ -154,6 +154,13 @@ class DayEventRepositoryImpl(
     override suspend fun setArchived(id: String, archived: Boolean) {
         dayEventDao.setArchived(id, archived, updatedAtEpochMillis = clock.nowMillis())
     }
+
+    override suspend fun reorderDayEvents(orderedIds: List<String>) {
+        val now = clock.nowMillis()
+        orderedIds.forEachIndexed { index, id ->
+            dayEventDao.setSortOrder(id, index, now)
+        }
+    }
 }
 
 private fun DayEventEntity.toDomain(): DayEvent = DayEvent(
@@ -162,6 +169,7 @@ private fun DayEventEntity.toDomain(): DayEvent = DayEvent(
     date = LocalDate.parse(eventDate),
     repeatsYearly = repeatsYearly,
     note = note,
+    sortOrder = sortOrder,
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
     updatedAtEpochMillis = updatedAtEpochMillis,
@@ -173,6 +181,7 @@ private fun DayEvent.toEntity(): DayEventEntity = DayEventEntity(
     eventDate = date.toString(),
     repeatsYearly = repeatsYearly,
     note = note,
+    sortOrder = sortOrder,
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
     updatedAtEpochMillis = updatedAtEpochMillis,

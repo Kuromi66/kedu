@@ -382,12 +382,15 @@ class AppViewModel(
     fun saveDayEvent(draft: DayEventDraft) {
         viewModelScope.launch {
             val existing = if (draft.id.isNotBlank()) dayEventRepository.getDayEvent(draft.id) else null
+            val sortOrder = existing?.sortOrder
+                ?: (uiState.value.dayEvents.maxOfOrNull { it.sortOrder }?.plus(1) ?: 0)
             val event = DayEvent(
                 id = existing?.id ?: UUID.randomUUID().toString(),
                 name = draft.name.trim(),
                 date = draft.date,
                 repeatsYearly = draft.repeatsYearly,
                 note = draft.note?.trim()?.ifBlank { null },
+                sortOrder = sortOrder,
                 createdAtEpochMillis = existing?.createdAtEpochMillis ?: syncClock.nowMillis(),
                 archived = false,
                 updatedAtEpochMillis = syncClock.nowMillis(),
@@ -400,6 +403,13 @@ class AppViewModel(
     fun archiveDayEvent(eventId: String) {
         viewModelScope.launch {
             dayEventRepository.setArchived(eventId, true)
+            triggerSync()
+        }
+    }
+
+    fun reorderDayEvents(orderedIds: List<String>) {
+        viewModelScope.launch {
+            dayEventRepository.reorderDayEvents(orderedIds)
             triggerSync()
         }
     }

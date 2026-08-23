@@ -39,6 +39,7 @@ data class DayEventEntity(
     val eventDate: String,
     val repeatsYearly: Boolean = false,
     val note: String? = null,
+    val sortOrder: Int = 0,
     val createdAtEpochMillis: Long,
     val archived: Boolean = false,
     val updatedAtEpochMillis: Long = createdAtEpochMillis,

@@ -66,6 +66,7 @@ data class DayEvent(
     val date: LocalDate,
     val repeatsYearly: Boolean = false,
     val note: String? = null,
+    val sortOrder: Int = 0,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val archived: Boolean = false,
     val updatedAtEpochMillis: Long = createdAtEpochMillis,

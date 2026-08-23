@@ -198,7 +198,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     dayEvents = uiState.dayEvents,
                                     onAdd = { dayEventEditorDraft = DayEventDraft() },
                                     onEdit = { dayEvent -> dayEventEditorDraft = DayEventDraft.fromDayEvent(dayEvent) },
-                                    onDelete = viewModel::archiveDayEvent,
+                                    onReorder = viewModel::reorderDayEvents,
                                 )
                             }
                         }
@@ -233,6 +233,10 @@ fun PulseApp(viewModel: AppViewModel) {
                         onSave = {
                             viewModel.saveDayEvent(it)
                             dayEventEditorDraft = null
+                        },
+                        onDelete = {
+                            dayEventEditorDraft = null
+                            viewModel.archiveDayEvent(draft.id)
                         },
                     )
                 }

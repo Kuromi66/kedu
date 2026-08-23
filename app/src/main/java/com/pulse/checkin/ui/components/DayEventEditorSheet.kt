@@ -1,5 +1,6 @@
 package com.pulse.checkin.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +48,7 @@ fun DayEventEditorSheet(
     initialDraft: DayEventDraft,
     onDismiss: () -> Unit,
     onSave: (DayEventDraft) -> Unit,
+    onDelete: (() -> Unit)? = null,
 ) {
     val strings = LocalPulseStrings.current
     val configuration = LocalConfiguration.current
@@ -171,7 +174,20 @@ fun DayEventEditorSheet(
                 ) {
                     Text(strings.save)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                if (initialDraft.id.isNotBlank() && onDelete != null) {
+                    OutlinedButton(
+                        onClick = onDelete,
+                        shape = RoundedCornerShape(18.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f)),
+                    ) {
+                        Text(strings.confirmDelete)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }

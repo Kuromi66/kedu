@@ -187,6 +187,7 @@ class PulseStrings(private val context: Context) {
     fun dayEventDateText(date: LocalDate): String = date.format(
         DateTimeFormatter.ofPattern(context.getString(R.string.day_event_date_format), locale),
     )
+    val reorderHint: String get() = context.getString(R.string.reorder_hint)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

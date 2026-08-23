@@ -32,4 +32,5 @@ interface DayEventRepository {
     suspend fun getDayEvent(id: String): DayEvent?
     suspend fun upsert(event: DayEvent)
     suspend fun setArchived(id: String, archived: Boolean)
+    suspend fun reorderDayEvents(orderedIds: List<String>)
 }

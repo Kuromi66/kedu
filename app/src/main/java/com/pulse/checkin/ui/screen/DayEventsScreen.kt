@@ -1,8 +1,10 @@
 package com.pulse.checkin.ui.screen
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,41 +14,54 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.pulse.checkin.domain.model.DayEvent
 import com.pulse.checkin.domain.stats.DayCountCalculator
 import com.pulse.checkin.domain.stats.DayCountResult
-import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconButton
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.i18n.PulseStrings
 import java.time.LocalDate
+import kotlin.math.abs
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DayEventsScreen(
     dayEvents: List<DayEvent>,
     onAdd: () -> Unit,
     onEdit: (DayEvent) -> Unit,
-    onDelete: (String) -> Unit,
+    onReorder: (List<String>) -> Unit,
 ) {
     val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
@@ -54,8 +69,46 @@ fun DayEventsScreen(
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
     val bottomPadding = if (compactLayout) 84.dp else 92.dp
     val today = LocalDate.now()
-    val sorted = DayCountCalculator.sortForDisplay(dayEvents, today)
-    var pendingDelete by remember { mutableStateOf<String?>(null) }
+    val listState = rememberLazyListState()
+    val haptic = LocalHapticFeedback.current
+    var items by remember { mutableStateOf(dayEvents) }
+    var draggingIndex by remember { mutableStateOf<Int?>(null) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(dayEvents) {
+        items = dayEvents
+    }
+
+    fun finishDrag() {
+        if (draggingIndex != null) {
+            val orderedIds = items.map { it.id }
+            draggingIndex = null
+            dragOffsetY = 0f
+            if (orderedIds != dayEvents.map { it.id }) {
+                onReorder(orderedIds)
+            }
+        }
+    }
+
+    fun moveItem(change: PointerInputChange, dragAmount: Offset) {
+        change.consume()
+        val currentIndex = draggingIndex ?: return
+        dragOffsetY += dragAmount.y
+        val layoutInfo = listState.layoutInfo
+        val draggedInfo = layoutInfo.visibleItemsInfo.firstOrNull { it.index == currentIndex } ?: return
+        val draggedCenterY = draggedInfo.offset + draggedInfo.size / 2f + dragOffsetY
+        val targetIndex = layoutInfo.visibleItemsInfo
+            .filter { it.index != currentIndex }
+            .minByOrNull { abs((it.offset + it.size / 2f) - draggedCenterY) }
+            ?.index
+        if (targetIndex != null && targetIndex != currentIndex) {
+            val newItems = items.toMutableList()
+            val moved = newItems.removeAt(currentIndex)
+            newItems.add(targetIndex, moved)
+            items = newItems
+            draggingIndex = targetIndex
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ScreenHeader(
@@ -70,7 +123,16 @@ fun DayEventsScreen(
                 )
             },
         )
+        if (items.isNotEmpty()) {
+            Text(
+                text = strings.reorderHint,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = horizontalPadding),
+            )
+        }
         LazyColumn(
+            state = listState,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
                 start = horizontalPadding,
@@ -80,7 +142,7 @@ fun DayEventsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(contentSpacing),
         ) {
-            if (sorted.isEmpty()) {
+            if (items.isEmpty()) {
                 item {
                     GlassCard {
                         Text(strings.noImportantDatesTitle, style = MaterialTheme.typography.titleLarge)
@@ -93,41 +155,47 @@ fun DayEventsScreen(
                     }
                 }
             } else {
-                items(sorted, key = { it.id }) { event ->
+                itemsIndexed(items, key = { _, item -> item.id }) { index, event ->
+                    val isDragging = draggingIndex == index
                     DayEventCard(
                         event = event,
                         result = DayCountCalculator.compute(event, today),
                         strings = strings,
+                        modifier = Modifier
+                            .zIndex(if (isDragging) 1f else 0f)
+                            .graphicsLayer {
+                                translationY = if (isDragging) dragOffsetY else 0f
+                                scaleX = if (isDragging) 1.02f else 1f
+                                scaleY = if (isDragging) 1.02f else 1f
+                            }
+                            .animateItem(placementSpec = tween(160)),
                         onClick = { onEdit(event) },
-                        onDelete = { pendingDelete = event.id },
+                        onDragStart = {
+                            draggingIndex = index
+                            dragOffsetY = 0f
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        },
+                        onDrag = { change, amount -> moveItem(change, amount) },
+                        onDragEnd = { finishDrag() },
+                        onDragCancel = { finishDrag() },
                     )
                 }
             }
         }
     }
-
-    pendingDelete?.let { id ->
-        DestructiveConfirmDialog(
-            message = strings.confirmDeleteDayEvent,
-            confirmLabel = strings.confirmDelete,
-            dismissLabel = strings.cancel,
-            onConfirm = {
-                onDelete(id)
-                pendingDelete = null
-            },
-            onDismiss = { pendingDelete = null },
-        )
-    }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DayEventCard(
     event: DayEvent,
     result: DayCountResult,
     strings: PulseStrings,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    onDelete: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (PointerInputChange, Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
 ) {
     val badgeText = when (result) {
         is DayCountResult.DaysUntil -> strings.daysUntil(result.days.toInt())
@@ -147,9 +215,17 @@ private fun DayEventCard(
     }
 
     GlassCard(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onDelete),
+            .pointerInput(event.id) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = { onDragStart() },
+                    onDrag = { change, dragAmount -> onDrag(change, dragAmount) },
+                    onDragEnd = { onDragEnd() },
+                    onDragCancel = { onDragCancel() },
+                )
+            }
+            .clickable(onClick = onClick),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -184,6 +260,12 @@ private fun DayEventCard(
                     .clip(RoundedCornerShape(999.dp))
                     .background(badgeBackground)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+            PulseActionIcon(
+                kind = PulseIconKind.DragHandle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                compactLayout = true,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
