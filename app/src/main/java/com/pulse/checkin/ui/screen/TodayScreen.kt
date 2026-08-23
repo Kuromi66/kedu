@@ -52,6 +52,7 @@ import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.PulsePrimaryActionButton
 import com.pulse.checkin.ui.components.PulseIconButton
+import com.pulse.checkin.ui.components.RecordNoteBadge
 import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
@@ -399,11 +400,19 @@ private fun CheckInRecordRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = record.displayTime.format(timeFormatter),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = record.displayTime.format(timeFormatter),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (!record.note.isNullOrBlank()) {
+                RecordNoteBadge(text = strings.noteLabel)
+            }
+        }
         Text(
             text = strings.longPressDeleteHint,
             style = MaterialTheme.typography.bodyMedium,

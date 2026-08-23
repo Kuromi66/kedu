@@ -82,6 +82,7 @@ import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.HeaderFilterButton
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
+import com.pulse.checkin.ui.components.RecordNoteBadge
 import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
@@ -1051,12 +1052,14 @@ private fun HistoryRecordRow(
                     )
                 }
             }
+            if (!record.note.isNullOrBlank()) {
+                RecordNoteBadge(text = strings.noteLabel)
+            }
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
 
 
 
