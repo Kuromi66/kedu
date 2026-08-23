@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,6 +50,8 @@ fun StatsShareCard(
     val textPrimary = Color(0xFF101828)
     val textSecondary = Color(0xFF667085)
     val tileSurface = Color(0xFFFFFFFF)
+    val cardBase = Color(0xFFF2F4F7)
+    val topTint = lerp(cardBase, accent, 0.32f)
     val generatedAt = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     val metrics = snapshot.summaryMetrics
     val completionPercent = if (metrics.trackedDayCount > 0) {
@@ -61,9 +64,9 @@ fun StatsShareCard(
         modifier = modifier
             .background(
                 Brush.verticalGradient(
-                    0f to accent.copy(alpha = 0.22f),
-                    0.35f to Color(0xFFF2F4F7),
-                    1f to Color(0xFFF2F4F7),
+                    0f to topTint,
+                    0.35f to cardBase,
+                    1f to cardBase,
                 ),
             )
             .padding(24.dp),

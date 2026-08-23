@@ -217,7 +217,7 @@ fun StatsScreen(
 
         Box(
             modifier = Modifier
-                .size(340.dp, 500.dp)
+                .size(480.dp, 705.dp)
                 .drawWithContent {
                     shareLayer.record { this@drawWithContent.drawContent() }
                 },
