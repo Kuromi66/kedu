@@ -218,6 +218,9 @@ class PulseStrings(private val context: Context) {
     val exportCsv: String get() = context.getString(R.string.export_csv)
     val csvHeader: String get() = context.getString(R.string.csv_header)
     fun exportCsvSuccess(count: Int): String = context.getString(R.string.export_csv_success, count)
+    val widgetTitle: String get() = context.getString(R.string.widget_title)
+    fun widgetSummary(total: Int, completed: Int, target: Int): String =
+        context.getString(R.string.widget_summary, total, completed, target)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

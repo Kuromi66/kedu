@@ -26,22 +26,37 @@ import com.pulse.checkin.domain.stats.StatsCalculator
 import com.pulse.checkin.reminder.ReminderScheduler
 import com.pulse.checkin.reminder.ReminderSchedulerImpl
 import com.pulse.checkin.reminder.DayEventReminderScheduler
+import com.pulse.checkin.widget.PulseWidgetUpdater
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class PulseApplication : Application() {
     lateinit var container: AppContainer
         private set
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
         SyncWorker.schedule(this)
-        CoroutineScope(Dispatchers.IO).launch {
+        appScope.launch {
             container.dayEventReminderScheduler.syncAll(
                 container.dayEventRepository.getActiveReminderDayEvents(),
             )
+        }
+        appScope.launch {
+            combine(
+                container.habitRepository.observeHabits(),
+                container.checkInRepository.observeAllEvents(),
+                container.dayEventRepository.observeDayEvents(),
+            ) { habits, events, dayEvents -> Triple(habits, events, dayEvents) }
+                .collect {
+                    container.pulseWidgetUpdater.updateAll()
+                }
         }
     }
 }
@@ -65,6 +80,7 @@ class AppContainer(context: Context) {
     val statsCalculator: StatsCalculator = LocalStatsCalculator()
     val reminderScheduler: ReminderScheduler = ReminderSchedulerImpl(appContext)
     val dayEventReminderScheduler = DayEventReminderScheduler(appContext)
+    val pulseWidgetUpdater = PulseWidgetUpdater(appContext)
     val cloudApi: CloudApi = CloudApiFactory.create()
     val syncDataSource: SyncDataSource = RoomSyncDataSource(
         database.habitDao(),

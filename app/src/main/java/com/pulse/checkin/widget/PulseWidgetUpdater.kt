@@ -1,0 +1,174 @@
+package com.pulse.checkin.widget
+
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.view.View
+import android.widget.RemoteViews
+import com.pulse.checkin.MainActivity
+import com.pulse.checkin.PulseApplication
+import com.pulse.checkin.R
+import com.pulse.checkin.domain.model.CheckInEvent
+import com.pulse.checkin.domain.model.DayEvent
+import com.pulse.checkin.domain.model.Habit
+import com.pulse.checkin.domain.stats.DayCountCalculator
+import com.pulse.checkin.domain.stats.DayCountResult
+import com.pulse.checkin.reminder.EXTRA_NAVIGATE_TO
+import com.pulse.checkin.reminder.NAVIGATE_TO_DAY_EVENTS
+import com.pulse.checkin.ui.util.AndroidLunarCalendar
+import java.time.LocalDate
+import kotlinx.coroutines.flow.first
+
+class PulseWidgetUpdater(
+    private val context: Context,
+) {
+    private val app get() = context.applicationContext as PulseApplication
+
+    private val rowIds = intArrayOf(
+        R.id.habit_row_1,
+        R.id.habit_row_2,
+        R.id.habit_row_3,
+        R.id.habit_row_4,
+    )
+    private val nameIds = intArrayOf(
+        R.id.habit_name_1,
+        R.id.habit_name_2,
+        R.id.habit_name_3,
+        R.id.habit_name_4,
+    )
+    private val progressIds = intArrayOf(
+        R.id.habit_progress_1,
+        R.id.habit_progress_2,
+        R.id.habit_progress_3,
+        R.id.habit_progress_4,
+    )
+
+    suspend fun updateAll() {
+        val manager = AppWidgetManager.getInstance(context)
+        val ids = manager.getAppWidgetIds(
+            ComponentName(context, PulseWidgetProvider::class.java),
+        )
+        if (ids.isEmpty()) return
+        val habits = app.container.habitRepository.observeHabits().first()
+        val events = app.container.checkInRepository.observeAllEvents().first()
+        val dayEvents = app.container.dayEventRepository.observeDayEvents().first()
+        val views = buildRemoteViews(habits, events, dayEvents)
+        ids.forEach { manager.updateAppWidget(it, views) }
+    }
+
+    private fun buildRemoteViews(
+        habits: List<Habit>,
+        events: List<CheckInEvent>,
+        dayEvents: List<DayEvent>,
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_pulse)
+        val today = LocalDate.now()
+        val counts = events
+            .filter { it.localDate == today }
+            .groupingBy { it.habitId }
+            .eachCount()
+        val total = counts.values.sum()
+        val completed = habits.count { habit ->
+            (counts[habit.id] ?: 0) >= (habit.targetCountOrDefault() ?: 1)
+        }
+        views.setTextViewText(
+            R.id.widget_summary,
+            context.getString(R.string.widget_summary, total, completed, habits.size),
+        )
+
+        val visible = habits.sortedBy { it.sortOrder }.take(4)
+        repeat(4) { index ->
+            val habit = visible.getOrNull(index)
+            if (habit == null) {
+                views.setViewVisibility(rowIds[index], View.GONE)
+                return@repeat
+            }
+            views.setViewVisibility(rowIds[index], View.VISIBLE)
+            views.setTextViewText(nameIds[index], habit.name)
+            val count = counts[habit.id] ?: 0
+            val target = habit.targetCountOrDefault()
+            val progressText = if (target != null) {
+                "$count/$target"
+            } else {
+                context.getString(R.string.count_times, count)
+            }
+            val reached = count >= (target ?: 1)
+            views.setTextViewText(
+                progressIds[index],
+                if (reached) "\u2713 $progressText" else progressText,
+            )
+            views.setOnClickPendingIntent(
+                rowIds[index],
+                checkInPendingIntent(habit.id),
+            )
+        }
+
+        val next = nextImportantDate(dayEvents, today)
+        if (next == null) {
+            views.setViewVisibility(R.id.date_row, View.GONE)
+        } else {
+            val (event, result) = next
+            val daysText = when (result) {
+                is DayCountResult.DaysUntil -> context.getString(R.string.days_until, result.days)
+                DayCountResult.Today -> context.getString(R.string.day_event_today)
+                is DayCountResult.DaysSince -> context.getString(R.string.days_since, result.days)
+            }
+            views.setViewVisibility(R.id.date_row, View.VISIBLE)
+            views.setTextViewText(R.id.widget_date_text, "${event.name} \u00b7 $daysText")
+            views.setOnClickPendingIntent(R.id.date_row, openDayEventsIntent())
+        }
+
+        views.setOnClickPendingIntent(R.id.widget_root, openTodayIntent())
+        return views
+    }
+
+    private fun nextImportantDate(
+        dayEvents: List<DayEvent>,
+        today: LocalDate,
+    ): Pair<DayEvent, DayCountResult>? {
+        return dayEvents
+            .map { event -> event to DayCountCalculator.compute(event, today, AndroidLunarCalendar) }
+            .filter { it.second !is DayCountResult.DaysSince }
+            .minByOrNull { DayCountCalculator.nextOccurrence(it.first, today, AndroidLunarCalendar) }
+    }
+
+    private fun checkInPendingIntent(habitId: String): PendingIntent {
+        val intent = Intent(context, PulseWidgetProvider::class.java).apply {
+            action = PulseWidgetProvider.ACTION_CHECK_IN
+            putExtra(PulseWidgetProvider.EXTRA_HABIT_ID, habitId)
+        }
+        return PendingIntent.getBroadcast(
+            context,
+            (habitId.hashCode() and 0x7fffffff).coerceAtLeast(1),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun openTodayIntent(): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context,
+            1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun openDayEventsIntent(): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_NAVIGATE_TO, NAVIGATE_TO_DAY_EVENTS)
+        }
+        return PendingIntent.getActivity(
+            context,
+            2,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+}

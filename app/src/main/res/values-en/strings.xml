@@ -176,6 +176,9 @@
     <string name="export_csv">Export CSV</string>
     <string name="csv_header">Habit,Date,Time,Backfilled,Note</string>
     <string name="export_csv_success">Exported %1$d check-ins</string>
+    <string name="widget_description">Quick check-in, progress and important date countdown on your home screen</string>
+    <string name="widget_title">Today</string>
+    <string name="widget_summary">%1$d check-ins · %2$d/%3$d done</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>
