@@ -125,6 +125,7 @@ private fun DayEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("id", id)
     .put("name", name)
     .put("eventDate", eventDate)
+    .put("repeatsMonthly", repeatsMonthly)
     .put("repeatsYearly", repeatsYearly)
     .put("note", note ?: JSONObject.NULL)
     .put("sortOrder", sortOrder)
@@ -220,6 +221,7 @@ private fun JSONArray.toDayEventEntities(version: Int, now: Long): List<DayEvent
                 id = item.optString("id").ifBlank { "d-$index-$now" },
                 name = item.optString("name"),
                 eventDate = item.optString("eventDate"),
+                repeatsMonthly = item.optBoolean("repeatsMonthly", false),
                 repeatsYearly = item.optBoolean("repeatsYearly", false),
                 note = item.optNullableString("note"),
                 sortOrder = item.optInt("sortOrder", index),

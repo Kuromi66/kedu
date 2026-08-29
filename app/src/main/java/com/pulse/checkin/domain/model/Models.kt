@@ -69,6 +69,7 @@ data class DayEvent(
     val id: String = "",
     val name: String,
     val date: LocalDate,
+    val repeatsMonthly: Boolean = false,
     val repeatsYearly: Boolean = false,
     val note: String? = null,
     val sortOrder: Int = 0,

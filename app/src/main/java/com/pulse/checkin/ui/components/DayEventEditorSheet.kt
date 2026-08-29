@@ -57,6 +57,7 @@ fun DayEventEditorSheet(
     val sheetMaxHeight = configuration.screenHeightDp.dp * 0.84f
     var name by remember(initialDraft.id) { mutableStateOf(initialDraft.name) }
     var date by remember(initialDraft.id) { mutableStateOf(initialDraft.date) }
+    var repeatsMonthly by remember(initialDraft.id) { mutableStateOf(initialDraft.repeatsMonthly) }
     var repeatsYearly by remember(initialDraft.id) { mutableStateOf(initialDraft.repeatsYearly) }
     var note by remember(initialDraft.id) { mutableStateOf(initialDraft.note ?: "") }
     var calendarType by remember(initialDraft.id) { mutableStateOf(initialDraft.calendarType) }
@@ -105,7 +106,7 @@ fun DayEventEditorSheet(
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (calendarType == CalendarType.SOLAR) {
+                if (calendarType == CalendarType.SOLAR && !repeatsMonthly) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -135,30 +136,59 @@ fun DayEventEditorSheet(
                         }
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = strings.repeatLabel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        RepeatModeChip(
+                            selected = !repeatsMonthly && !repeatsYearly,
+                            label = strings.repeatNone,
+                        ) {
+                            repeatsMonthly = false
+                            repeatsYearly = false
+                            calendarType = CalendarType.SOLAR
+                        }
+                        RepeatModeChip(
+                            selected = repeatsMonthly,
+                            label = strings.repeatMonthly,
+                        ) {
+                            repeatsMonthly = true
+                            repeatsYearly = false
+                            calendarType = CalendarType.SOLAR
+                        }
+                        RepeatModeChip(
+                            selected = repeatsYearly,
+                            label = strings.repeatYearly,
+                        ) {
+                            repeatsMonthly = false
+                            repeatsYearly = true
+                        }
+                    }
+                }
+                if (repeatsMonthly) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            text = strings.repeatsYearly,
+                            text = strings.monthlyDayLabel,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        Text(
-                            text = strings.repeatsYearlyDesc,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items((1..31).toList()) { day ->
+                                FilterChip(
+                                    selected = date.dayOfMonth == day,
+                                    onClick = { date = LocalDate.of(2000, 1, day) },
+                                    label = { Text("$day") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            }
+                        }
                     }
-                    Switch(
-                        checked = repeatsYearly,
-                        onCheckedChange = { checked ->
-                            repeatsYearly = checked
-                            if (!checked) calendarType = CalendarType.SOLAR
-                        },
-                        colors = switchColors,
-                    )
                 }
                 if (repeatsYearly) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -262,6 +292,7 @@ fun DayEventEditorSheet(
                                 id = initialDraft.id,
                                 name = name,
                                 date = date,
+                                repeatsMonthly = repeatsMonthly,
                                 repeatsYearly = repeatsYearly,
                                 note = note.trim().ifBlank { null },
                                 calendarType = calendarType,
@@ -307,4 +338,21 @@ fun DayEventEditorSheet(
             onDismiss = { showDatePicker = false },
         )
     }
+}
+
+@Composable
+private fun RepeatModeChip(
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+            selectedLabelColor = MaterialTheme.colorScheme.primary,
+        ),
+    )
 }

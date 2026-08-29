@@ -234,13 +234,15 @@ private fun DayEventCard(
                     Text(event.name, style = MaterialTheme.typography.titleLarge)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (event.calendarType == CalendarType.LUNAR) {
-                            strings.lunarDateText(
-                                event.lunarMonth ?: event.date.monthValue,
-                                event.lunarDay ?: event.date.dayOfMonth,
-                                event.lunarLeap,
-                            )
-                        } else if (event.repeatsYearly) {
+                    text = if (event.calendarType == CalendarType.LUNAR) {
+                        strings.lunarDateText(
+                            event.lunarMonth ?: event.date.monthValue,
+                            event.lunarDay ?: event.date.dayOfMonth,
+                            event.lunarLeap,
+                        )
+                    } else if (event.repeatsMonthly) {
+                        strings.monthlyDateText(event.date.dayOfMonth)
+                    } else if (event.repeatsYearly) {
                             strings.historyDetailDate(event.date)
                         } else {
                             strings.dayEventDateText(event.date)

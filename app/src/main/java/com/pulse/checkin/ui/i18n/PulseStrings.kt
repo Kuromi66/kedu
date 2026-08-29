@@ -197,6 +197,12 @@ class PulseStrings(private val context: Context) {
         month,
         day,
     )
+    val repeatLabel: String get() = context.getString(R.string.repeat_label)
+    val repeatNone: String get() = context.getString(R.string.repeat_none)
+    val repeatMonthly: String get() = context.getString(R.string.repeat_monthly)
+    val repeatYearly: String get() = context.getString(R.string.repeat_yearly)
+    val monthlyDayLabel: String get() = context.getString(R.string.monthly_day_label)
+    fun monthlyDateText(day: Int): String = context.getString(R.string.monthly_date_format, day)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

@@ -14,6 +14,7 @@ class DayCountCalculatorTest {
 
     private fun event(
         date: LocalDate,
+        repeatsMonthly: Boolean = false,
         repeatsYearly: Boolean = false,
         calendarType: CalendarType = CalendarType.SOLAR,
         lunarMonth: Int? = null,
@@ -23,6 +24,7 @@ class DayCountCalculatorTest {
         id = "e-1",
         name = "测试",
         date = date,
+        repeatsMonthly = repeatsMonthly,
         repeatsYearly = repeatsYearly,
         calendarType = calendarType,
         lunarMonth = lunarMonth,
@@ -163,6 +165,35 @@ class DayCountCalculatorTest {
     @Test
     fun `past one time event has no progress`() {
         assertNull(DayCountCalculator.progress(event(today.minusDays(3)), today, fakeLunar))
+    }
+
+    @Test
+    fun `monthly event day later this month counts to this month`() {
+        val ev = event(LocalDate.of(2000, 1, 25), repeatsMonthly = true)
+        val result = DayCountCalculator.compute(ev, today, fakeLunar)
+        assertEquals(DayCountResult.DaysUntil(2), result)
+    }
+
+    @Test
+    fun `monthly event day already passed counts to next month`() {
+        val ev = event(LocalDate.of(2000, 1, 15), repeatsMonthly = true)
+        val result = DayCountCalculator.compute(ev, today, fakeLunar)
+        assertEquals(DayCountResult.DaysUntil(23), result)
+    }
+
+    @Test
+    fun `monthly event on the 31st clamps to shorter months`() {
+        val febToday = LocalDate.of(2026, 2, 1)
+        val ev = event(LocalDate.of(2000, 1, 31), repeatsMonthly = true)
+        val result = DayCountCalculator.compute(ev, febToday, fakeLunar)
+        assertEquals(DayCountResult.DaysUntil(27), result)
+    }
+
+    @Test
+    fun `monthly event shows progress across the month`() {
+        val ev = event(LocalDate.of(2000, 1, 15), repeatsMonthly = true)
+        val progress = DayCountCalculator.progress(ev, today, fakeLunar)
+        assertEquals(8f / 31f, progress!!, 0.01f)
     }
 
     private class FakeLunarCalendar : LunarCalendar {

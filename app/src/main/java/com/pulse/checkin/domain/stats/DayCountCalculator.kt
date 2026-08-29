@@ -25,6 +25,7 @@ object DayCountCalculator {
     }
 
     fun nextOccurrence(event: DayEvent, today: LocalDate, lunar: LunarCalendar): LocalDate {
+        if (event.repeatsMonthly) return monthlyOccurrence(event.date.dayOfMonth, today)
         if (!event.repeatsYearly) return event.date
         return when (event.calendarType) {
             CalendarType.SOLAR -> solarNextOccurrence(event.date, today)
@@ -73,6 +74,9 @@ object DayCountCalculator {
     }
 
     private fun lastOccurrence(event: DayEvent, next: LocalDate, lunar: LunarCalendar): LocalDate {
+        if (event.repeatsMonthly) {
+            return monthlyOccurrence(event.date.dayOfMonth, next.minusMonths(1))
+        }
         if (!event.repeatsYearly) {
             val created = Instant.ofEpochMilli(event.createdAtEpochMillis)
                 .atZone(ZoneId.systemDefault())
@@ -87,6 +91,16 @@ object DayCountCalculator {
                 lunar.toGregorian(next.year - 1, LunarDate(month, day, event.lunarLeap))
             }
         }
+    }
+
+    private fun monthlyOccurrence(dayOfMonth: Int, today: LocalDate): LocalDate {
+        val day = dayOfMonth.coerceIn(1, 31)
+        var candidate = today.withDayOfMonth(day.coerceAtMost(today.lengthOfMonth()))
+        if (candidate.isBefore(today)) {
+            val nextMonth = today.plusMonths(1)
+            candidate = nextMonth.withDayOfMonth(day.coerceAtMost(nextMonth.lengthOfMonth()))
+        }
+        return candidate
     }
 
     private fun adjustForYear(date: LocalDate, year: Int): LocalDate {

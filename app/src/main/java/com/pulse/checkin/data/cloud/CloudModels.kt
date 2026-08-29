@@ -49,6 +49,7 @@ data class DayEventDto(
     val id: String,
     val name: String,
     val eventDate: String,
+    val repeatsMonthly: Boolean = false,
     val repeatsYearly: Boolean = false,
     val note: String? = null,
     val sortOrder: Int = 0,
