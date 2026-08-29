@@ -3,6 +3,7 @@
 import android.app.Application
 import android.content.Context
 import com.pulse.checkin.data.backup.BackupManager
+import com.pulse.checkin.data.backup.CsvExportManager
 import com.pulse.checkin.data.cloud.CloudApi
 import com.pulse.checkin.data.cloud.CloudApiFactory
 import com.pulse.checkin.data.cloud.DeviceSyncClock
@@ -60,6 +61,7 @@ class AppContainer(context: Context) {
     val dayEventRepository: DayEventRepository = DayEventRepositoryImpl(database.dayEventDao(), syncClock)
     val preferences = AppPreferences(appContext)
     val backupManager = BackupManager(appContext, database, preferences)
+    val csvExportManager = CsvExportManager(appContext, database)
     val statsCalculator: StatsCalculator = LocalStatsCalculator()
     val reminderScheduler: ReminderScheduler = ReminderSchedulerImpl(appContext)
     val dayEventReminderScheduler = DayEventReminderScheduler(appContext)

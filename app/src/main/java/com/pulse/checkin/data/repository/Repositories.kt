@@ -108,6 +108,14 @@ class CheckInRepositoryImpl(
             updatedAtEpochMillis = now,
         )
     }
+
+    override suspend fun updateCheckInTime(eventId: String, occurredAtEpochMillis: Long) {
+        eventDao.updateTime(
+            id = eventId,
+            occurredAtEpochMillis = occurredAtEpochMillis,
+            updatedAtEpochMillis = clock.nowMillis(),
+        )
+    }
 }
 
 private fun HabitEntity.toDomain(): Habit = Habit(

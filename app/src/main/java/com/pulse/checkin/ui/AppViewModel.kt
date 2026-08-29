@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.pulse.checkin.AppContainer
 import com.pulse.checkin.data.backup.BackupManager
 import com.pulse.checkin.data.backup.BackupSummary
+import com.pulse.checkin.data.backup.CsvExportManager
 import com.pulse.checkin.data.cloud.Session
 import com.pulse.checkin.data.cloud.SyncClock
 import com.pulse.checkin.data.cloud.SyncError
@@ -162,6 +163,7 @@ class AppViewModel(
     private val dayEventRepository: DayEventRepository,
     private val appPreferences: AppPreferences,
     private val backupManager: BackupManager,
+    private val csvExportManager: CsvExportManager,
     private val statsCalculator: StatsCalculator,
     private val reminderScheduler: ReminderScheduler,
     private val dayEventReminderScheduler: DayEventReminderScheduler,
@@ -348,6 +350,13 @@ class AppViewModel(
         }
     }
 
+    fun updateCheckInTime(eventId: String, occurredAtEpochMillis: Long) {
+        viewModelScope.launch {
+            checkInRepository.updateCheckInTime(eventId, occurredAtEpochMillis)
+            triggerSync()
+        }
+    }
+
     fun saveHabit(draft: HabitDraft) {
         viewModelScope.launch {
             val existing = if (draft.id.isNotBlank()) habitRepository.getHabit(draft.id) else null
@@ -394,6 +403,10 @@ class AppViewModel(
             triggerSync()
         }
         return result
+    }
+
+    suspend fun exportCsv(uri: Uri): Result<Int> {
+        return csvExportManager.exportToUri(uri)
     }
 
     fun archiveHabit(habitId: String) {
@@ -593,6 +606,7 @@ class AppViewModel(
                     dayEventRepository = container.dayEventRepository,
                     appPreferences = container.preferences,
                     backupManager = container.backupManager,
+                    csvExportManager = container.csvExportManager,
                     statsCalculator = container.statsCalculator,
                     reminderScheduler = container.reminderScheduler,
                     dayEventReminderScheduler = container.dayEventReminderScheduler,

@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,8 +57,11 @@ import com.pulse.checkin.ui.components.RecordNoteBadge
 import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.toPulseColor
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
 
@@ -83,6 +87,7 @@ fun TodayScreen(
     onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
+    onUpdateRecordTime: (String, Long) -> Unit,
 ) {
     val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
@@ -150,6 +155,7 @@ fun TodayScreen(
                         onCheckInHabit = onCheckInHabit,
                         onDeleteRecord = onDeleteRecord,
                         onDeleteHabit = onDeleteHabit,
+                        onUpdateRecordTime = onUpdateRecordTime,
                     )
                 }
             }
@@ -185,8 +191,10 @@ private fun HabitCard(
     onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
+    onUpdateRecordTime: (String, Long) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     var expanded by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingCheckIn by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<String?>(null) }
@@ -362,6 +370,7 @@ private fun HabitCard(
     }
 
     pendingRecordDetail?.let { record ->
+        val timeZone = ZoneId.systemDefault()
         RecordDetailDialog(
             title = strings.recordDetailTitle,
             timeLabel = record.displayTime.format(timeFormatter),
@@ -369,8 +378,27 @@ private fun HabitCard(
             backfillBadge = if (record.isBackfilled) strings.backfilledRecord else null,
             note = record.note,
             noNoteLabel = strings.noNote,
+            editTimeLabel = strings.editTime,
             deleteLabel = strings.deleteRecordAction,
             dismissLabel = strings.cancel,
+            onEditTime = {
+                showPulseTimePicker(
+                    context = context,
+                    initialHour = record.displayTime.hour,
+                    initialMinute = record.displayTime.minute,
+                    onSelected = { hour, minute ->
+                        val date = Instant.ofEpochMilli(record.occurredAtEpochMillis)
+                            .atZone(timeZone)
+                            .toLocalDate()
+                        val newMillis = date.atTime(hour, minute)
+                            .atZone(timeZone)
+                            .toInstant()
+                            .toEpochMilli()
+                        onUpdateRecordTime(record.id, newMillis)
+                        pendingRecordDetail = null
+                    },
+                )
+            },
             onDelete = {
                 pendingDeleteRecord = record.id
                 pendingRecordDetail = null

@@ -113,6 +113,18 @@ fun PulseApp(viewModel: AppViewModel) {
             }
         }
     }
+    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                val result = viewModel.exportCsv(uri)
+                val message = result.fold(
+                    onSuccess = { count -> strings.exportCsvSuccess(count) },
+                    onFailure = { strings.exportFailed },
+                )
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     CompositionLocalProvider(LocalPulseStrings provides strings) {
         PulseTheme(themeMode = uiState.preferences.themeMode) {
@@ -150,6 +162,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     onCheckInHabit = viewModel::checkInHabit,
                                     onDeleteRecord = viewModel::deleteCheckInRecord,
                                     onDeleteHabit = viewModel::archiveHabit,
+                                    onUpdateRecordTime = viewModel::updateCheckInTime,
                                 )
                                 AppTab.HISTORY -> HistoryScreen(
                                     snapshot = uiState.historySnapshot,
@@ -163,6 +176,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     onBackToCurrentMonth = { viewModel.selectDate(LocalDate.now()) },
                                     onBackfillHabit = viewModel::backfillHabit,
                                     onDeleteRecord = viewModel::deleteCheckInRecord,
+                                    onUpdateRecordTime = viewModel::updateCheckInTime,
                                 )
                                 AppTab.STATS -> StatsScreen(
                                     snapshot = uiState.yearSnapshot,
@@ -193,6 +207,9 @@ fun PulseApp(viewModel: AppViewModel) {
                                     },
                                     onImportData = {
                                         importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                                    },
+                                    onExportCsv = {
+                                        csvLauncher.launch("pulse-checkins-${LocalDate.now()}.csv")
                                     },
                                     onRestoreHabit = viewModel::restoreHabit,
                                     onDeleteHabitPermanently = viewModel::deleteHabitPermanently,

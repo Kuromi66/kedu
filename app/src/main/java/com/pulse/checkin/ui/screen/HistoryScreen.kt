@@ -94,11 +94,14 @@ import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.components.ShareImageDialog
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
+import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.saveBitmapToGallery
 import com.pulse.checkin.ui.util.shareBitmap
 import com.pulse.checkin.ui.util.toPulseColor
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -119,6 +122,7 @@ fun HistoryScreen(
     onBackToCurrentMonth: () -> Unit,
     onBackfillHabit: (String, LocalDate, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
+    onUpdateRecordTime: (String, Long) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val strings = LocalPulseStrings.current
@@ -279,6 +283,7 @@ fun HistoryScreen(
             onDismiss = { selectedDetailHabitId = null },
             onBackfillHabit = onBackfillHabit,
             onDeleteRecord = onDeleteRecord,
+            onUpdateRecordTime = onUpdateRecordTime,
         )
     }
 }
@@ -957,7 +962,9 @@ private fun HistoryRecordSheet(
     onDismiss: () -> Unit,
     onBackfillHabit: (String, LocalDate, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
+    onUpdateRecordTime: (String, Long) -> Unit,
 ) {
+    val context = LocalContext.current
     var pendingDeleteRecord by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
     var pendingBackfill by remember(detail.habit.id, selectedDate) { mutableStateOf(false) }
     var pendingRecordDetail by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
@@ -1065,6 +1072,7 @@ private fun HistoryRecordSheet(
     }
 
     pendingRecordDetail?.let { record ->
+        val timeZone = ZoneId.systemDefault()
         RecordDetailDialog(
             title = strings.recordDetailTitle,
             timeLabel = record.displayTime.format(recordTimeFormatter),
@@ -1072,8 +1080,27 @@ private fun HistoryRecordSheet(
             backfillBadge = if (record.isBackfilled) strings.backfilledRecord else null,
             note = record.note,
             noNoteLabel = strings.noNote,
+            editTimeLabel = strings.editTime,
             deleteLabel = strings.deleteRecordAction,
             dismissLabel = strings.cancel,
+            onEditTime = {
+                showPulseTimePicker(
+                    context = context,
+                    initialHour = record.displayTime.hour,
+                    initialMinute = record.displayTime.minute,
+                    onSelected = { hour, minute ->
+                        val date = Instant.ofEpochMilli(record.occurredAtEpochMillis)
+                            .atZone(timeZone)
+                            .toLocalDate()
+                        val newMillis = date.atTime(hour, minute)
+                            .atZone(timeZone)
+                            .toInstant()
+                            .toEpochMilli()
+                        onUpdateRecordTime(record.id, newMillis)
+                        pendingRecordDetail = null
+                    },
+                )
+            },
             onDelete = {
                 pendingDeleteRecord = record
                 pendingRecordDetail = null
@@ -1129,7 +1156,6 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
 
 
 

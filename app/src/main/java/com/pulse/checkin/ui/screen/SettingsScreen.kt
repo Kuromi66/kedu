@@ -79,6 +79,7 @@ fun SettingsScreen(
     onRequestNotificationPermission: () -> Unit,
     onExportData: () -> Unit,
     onImportData: () -> Unit,
+    onExportCsv: () -> Unit,
     onRestoreHabit: (String) -> Unit,
     onDeleteHabitPermanently: (String) -> Unit,
 ) {
@@ -166,6 +167,20 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium,
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = onExportCsv,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+                    ) {
+                        SettingsButtonContent(
+                            text = strings.exportCsv,
+                            icon = PulseIconKind.Records,
+                            color = MaterialTheme.colorScheme.primary,
+                            compactLayout = compactLayout,
+                        )
+                    }
                 }
             }
             item {

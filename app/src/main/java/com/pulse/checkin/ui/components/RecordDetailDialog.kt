@@ -13,6 +13,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,8 +32,10 @@ fun RecordDetailDialog(
     backfillBadge: String?,
     note: String?,
     noNoteLabel: String,
+    editTimeLabel: String? = null,
     deleteLabel: String,
     dismissLabel: String,
+    onEditTime: (() -> Unit)? = null,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -63,7 +66,21 @@ fun RecordDetailDialog(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    DetailRow(text = timeLabel)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        DetailRow(text = timeLabel, modifier = Modifier.weight(1f))
+                        if (editTimeLabel != null && onEditTime != null) {
+                            TextButton(onClick = onEditTime) {
+                                Text(
+                                    text = editTimeLabel,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+                    }
                     DetailRow(text = dateLabel)
                     backfillBadge?.let { badge ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -139,9 +156,10 @@ fun RecordDetailDialog(
 }
 
 @Composable
-private fun DetailRow(text: String) {
+private fun DetailRow(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
+        modifier = modifier,
         style = MaterialTheme.typography.bodyLarge,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface,

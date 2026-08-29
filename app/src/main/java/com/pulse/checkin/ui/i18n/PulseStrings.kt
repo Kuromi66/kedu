@@ -211,6 +211,10 @@ class PulseStrings(private val context: Context) {
     val restore: String get() = context.getString(R.string.restore)
     val noArchivedHabits: String get() = context.getString(R.string.no_archived_habits)
     val confirmDeleteHabitPermanent: String get() = context.getString(R.string.confirm_delete_habit_permanent)
+    val editTime: String get() = context.getString(R.string.edit_time)
+    val exportCsv: String get() = context.getString(R.string.export_csv)
+    val csvHeader: String get() = context.getString(R.string.csv_header)
+    fun exportCsvSuccess(count: Int): String = context.getString(R.string.export_csv_success, count)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

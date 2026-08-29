@@ -169,6 +169,10 @@
     <string name="restore">Restore</string>
     <string name="no_archived_habits">No archived habits</string>
     <string name="confirm_delete_habit_permanent">Permanently delete this habit and all its check-ins? This cannot be undone.</string>
+    <string name="edit_time">Edit time</string>
+    <string name="export_csv">Export CSV</string>
+    <string name="csv_header">Habit,Date,Time,Backfilled,Note</string>
+    <string name="export_csv_success">Exported %1$d check-ins</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>
