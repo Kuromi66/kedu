@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,7 +56,6 @@ import com.pulse.checkin.ui.components.RecordNoteBadge
 import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
-import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.toPulseColor
 import java.time.Instant
 import java.time.LocalDate
@@ -87,7 +85,7 @@ fun TodayScreen(
     onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
-    onUpdateRecordTime: (String, Long) -> Unit,
+    onUpdateRecord: (String, Long, String?) -> Unit,
 ) {
     val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
@@ -155,7 +153,7 @@ fun TodayScreen(
                         onCheckInHabit = onCheckInHabit,
                         onDeleteRecord = onDeleteRecord,
                         onDeleteHabit = onDeleteHabit,
-                        onUpdateRecordTime = onUpdateRecordTime,
+                        onUpdateRecord = onUpdateRecord,
                     )
                 }
             }
@@ -191,10 +189,9 @@ private fun HabitCard(
     onCheckInHabit: (String, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
     onDeleteHabit: (String) -> Unit,
-    onUpdateRecordTime: (String, Long) -> Unit,
+    onUpdateRecord: (String, Long, String?) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current
     var expanded by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingCheckIn by rememberSaveable(item.habit.id) { mutableStateOf(false) }
     var pendingDeleteRecord by rememberSaveable(item.habit.id) { mutableStateOf<String?>(null) }
@@ -376,28 +373,25 @@ private fun HabitCard(
             timeLabel = record.displayTime.format(timeFormatter),
             dateLabel = strings.historyDetailDate(LocalDate.now()),
             backfillBadge = if (record.isBackfilled) strings.backfilledRecord else null,
-            note = record.note,
-            noNoteLabel = strings.noNote,
+            initialHour = record.displayTime.hour,
+            initialMinute = record.displayTime.minute,
+            initialNote = record.note,
+            noteLabel = strings.noteLabel,
+            notePlaceholder = strings.notePlaceholder,
             editTimeLabel = strings.editTime,
+            saveLabel = strings.save,
             deleteLabel = strings.deleteRecordAction,
             dismissLabel = strings.cancel,
-            onEditTime = {
-                showPulseTimePicker(
-                    context = context,
-                    initialHour = record.displayTime.hour,
-                    initialMinute = record.displayTime.minute,
-                    onSelected = { hour, minute ->
-                        val date = Instant.ofEpochMilli(record.occurredAtEpochMillis)
-                            .atZone(timeZone)
-                            .toLocalDate()
-                        val newMillis = date.atTime(hour, minute)
-                            .atZone(timeZone)
-                            .toInstant()
-                            .toEpochMilli()
-                        onUpdateRecordTime(record.id, newMillis)
-                        pendingRecordDetail = null
-                    },
-                )
+            onSave = { hour, minute, note ->
+                val date = Instant.ofEpochMilli(record.occurredAtEpochMillis)
+                    .atZone(timeZone)
+                    .toLocalDate()
+                val newMillis = date.atTime(hour, minute)
+                    .atZone(timeZone)
+                    .toInstant()
+                    .toEpochMilli()
+                onUpdateRecord(record.id, newMillis, note)
+                pendingRecordDetail = null
             },
             onDelete = {
                 pendingDeleteRecord = record.id

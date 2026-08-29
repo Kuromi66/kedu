@@ -28,7 +28,7 @@ interface CheckInRepository {
     )
     suspend fun removeLatestForDay(habitId: String, date: LocalDate)
     suspend fun deleteCheckIn(eventId: String)
-    suspend fun updateCheckInTime(eventId: String, occurredAtEpochMillis: Long)
+    suspend fun updateCheckInRecord(eventId: String, occurredAtEpochMillis: Long, note: String?)
 }
 
 interface DayEventRepository {

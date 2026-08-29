@@ -94,7 +94,6 @@ import com.pulse.checkin.ui.components.RecordDetailDialog
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.components.ShareImageDialog
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
-import com.pulse.checkin.ui.util.showPulseTimePicker
 import com.pulse.checkin.ui.util.saveBitmapToGallery
 import com.pulse.checkin.ui.util.shareBitmap
 import com.pulse.checkin.ui.util.toPulseColor
@@ -122,7 +121,7 @@ fun HistoryScreen(
     onBackToCurrentMonth: () -> Unit,
     onBackfillHabit: (String, LocalDate, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
-    onUpdateRecordTime: (String, Long) -> Unit,
+    onUpdateRecord: (String, Long, String?) -> Unit,
 ) {
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val strings = LocalPulseStrings.current
@@ -283,7 +282,7 @@ fun HistoryScreen(
             onDismiss = { selectedDetailHabitId = null },
             onBackfillHabit = onBackfillHabit,
             onDeleteRecord = onDeleteRecord,
-            onUpdateRecordTime = onUpdateRecordTime,
+            onUpdateRecord = onUpdateRecord,
         )
     }
 }
@@ -962,9 +961,8 @@ private fun HistoryRecordSheet(
     onDismiss: () -> Unit,
     onBackfillHabit: (String, LocalDate, String) -> Unit,
     onDeleteRecord: (String) -> Unit,
-    onUpdateRecordTime: (String, Long) -> Unit,
+    onUpdateRecord: (String, Long, String?) -> Unit,
 ) {
-    val context = LocalContext.current
     var pendingDeleteRecord by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
     var pendingBackfill by remember(detail.habit.id, selectedDate) { mutableStateOf(false) }
     var pendingRecordDetail by remember(detail.habit.id, selectedDate) { mutableStateOf<CheckInRecordItem?>(null) }
@@ -1078,28 +1076,25 @@ private fun HistoryRecordSheet(
             timeLabel = record.displayTime.format(recordTimeFormatter),
             dateLabel = strings.historyDetailDate(selectedDate),
             backfillBadge = if (record.isBackfilled) strings.backfilledRecord else null,
-            note = record.note,
-            noNoteLabel = strings.noNote,
+            initialHour = record.displayTime.hour,
+            initialMinute = record.displayTime.minute,
+            initialNote = record.note,
+            noteLabel = strings.noteLabel,
+            notePlaceholder = strings.notePlaceholder,
             editTimeLabel = strings.editTime,
+            saveLabel = strings.save,
             deleteLabel = strings.deleteRecordAction,
             dismissLabel = strings.cancel,
-            onEditTime = {
-                showPulseTimePicker(
-                    context = context,
-                    initialHour = record.displayTime.hour,
-                    initialMinute = record.displayTime.minute,
-                    onSelected = { hour, minute ->
-                        val date = Instant.ofEpochMilli(record.occurredAtEpochMillis)
-                            .atZone(timeZone)
-                            .toLocalDate()
-                        val newMillis = date.atTime(hour, minute)
-                            .atZone(timeZone)
-                            .toInstant()
-                            .toEpochMilli()
-                        onUpdateRecordTime(record.id, newMillis)
-                        pendingRecordDetail = null
-                    },
-                )
+            onSave = { hour, minute, note ->
+                val date = Instant.ofEpochMilli(record.occurredAtEpochMillis)
+                    .atZone(timeZone)
+                    .toLocalDate()
+                val newMillis = date.atTime(hour, minute)
+                    .atZone(timeZone)
+                    .toInstant()
+                    .toEpochMilli()
+                onUpdateRecord(record.id, newMillis, note)
+                pendingRecordDetail = null
             },
             onDelete = {
                 pendingDeleteRecord = record
@@ -1156,7 +1151,6 @@ private fun HistoryRecordRow(
         Text(record.displayTime.format(recordTimeFormatter), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
     }
 }
-
 
 
 

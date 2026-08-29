@@ -350,9 +350,9 @@ class AppViewModel(
         }
     }
 
-    fun updateCheckInTime(eventId: String, occurredAtEpochMillis: Long) {
+    fun updateCheckInRecord(eventId: String, occurredAtEpochMillis: Long, note: String?) {
         viewModelScope.launch {
-            checkInRepository.updateCheckInTime(eventId, occurredAtEpochMillis)
+            checkInRepository.updateCheckInRecord(eventId, occurredAtEpochMillis, note)
             triggerSync()
         }
     }

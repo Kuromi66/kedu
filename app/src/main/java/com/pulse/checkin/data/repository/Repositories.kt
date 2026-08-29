@@ -109,10 +109,11 @@ class CheckInRepositoryImpl(
         )
     }
 
-    override suspend fun updateCheckInTime(eventId: String, occurredAtEpochMillis: Long) {
-        eventDao.updateTime(
+    override suspend fun updateCheckInRecord(eventId: String, occurredAtEpochMillis: Long, note: String?) {
+        eventDao.updateRecord(
             id = eventId,
             occurredAtEpochMillis = occurredAtEpochMillis,
+            note = note,
             updatedAtEpochMillis = clock.nowMillis(),
         )
     }

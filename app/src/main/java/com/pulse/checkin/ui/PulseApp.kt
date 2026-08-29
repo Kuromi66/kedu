@@ -162,7 +162,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     onCheckInHabit = viewModel::checkInHabit,
                                     onDeleteRecord = viewModel::deleteCheckInRecord,
                                     onDeleteHabit = viewModel::archiveHabit,
-                                    onUpdateRecordTime = viewModel::updateCheckInTime,
+                                    onUpdateRecord = viewModel::updateCheckInRecord,
                                 )
                                 AppTab.HISTORY -> HistoryScreen(
                                     snapshot = uiState.historySnapshot,
@@ -176,7 +176,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     onBackToCurrentMonth = { viewModel.selectDate(LocalDate.now()) },
                                     onBackfillHabit = viewModel::backfillHabit,
                                     onDeleteRecord = viewModel::deleteCheckInRecord,
-                                    onUpdateRecordTime = viewModel::updateCheckInTime,
+                                    onUpdateRecord = viewModel::updateCheckInRecord,
                                 )
                                 AppTab.STATS -> StatsScreen(
                                     snapshot = uiState.yearSnapshot,

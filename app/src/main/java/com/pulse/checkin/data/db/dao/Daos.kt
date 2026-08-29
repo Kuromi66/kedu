@@ -69,8 +69,8 @@ interface CheckInEventDao {
     @Query("UPDATE check_in_events SET deletedAtEpochMillis = :deletedAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
     suspend fun softDeleteById(id: String, deletedAtEpochMillis: Long, updatedAtEpochMillis: Long)
 
-    @Query("UPDATE check_in_events SET occurredAtEpochMillis = :occurredAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
-    suspend fun updateTime(id: String, occurredAtEpochMillis: Long, updatedAtEpochMillis: Long)
+    @Query("UPDATE check_in_events SET occurredAtEpochMillis = :occurredAtEpochMillis, note = :note, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
+    suspend fun updateRecord(id: String, occurredAtEpochMillis: Long, note: String?, updatedAtEpochMillis: Long)
 
     @Query("UPDATE check_in_events SET deletedAtEpochMillis = :deletedAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE habitId = :habitId AND deletedAtEpochMillis IS NULL")
     suspend fun tombstoneByHabit(habitId: String, deletedAtEpochMillis: Long, updatedAtEpochMillis: Long)

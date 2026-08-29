@@ -2,6 +2,7 @@ package com.pulse.checkin.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,13 +10,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,16 +37,27 @@ fun RecordDetailDialog(
     timeLabel: String,
     dateLabel: String,
     backfillBadge: String?,
-    note: String?,
-    noNoteLabel: String,
-    editTimeLabel: String? = null,
+    initialHour: Int,
+    initialMinute: Int,
+    initialNote: String?,
+    noteLabel: String,
+    notePlaceholder: String,
+    editTimeLabel: String,
+    saveLabel: String,
     deleteLabel: String,
     dismissLabel: String,
-    onEditTime: (() -> Unit)? = null,
+    onSave: (hour: Int, minute: Int, note: String?) -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var hour by remember { mutableStateOf(initialHour) }
+    var minute by remember { mutableStateOf(initialMinute) }
+    var timeEdited by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf(initialNote ?: "") }
+    var showTimePicker by remember { mutableStateOf(false) }
+    val hasChanges = timeEdited || note != (initialNote ?: "")
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = true),
@@ -56,8 +74,8 @@ fun RecordDetailDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 22.dp),
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
                         text = title,
@@ -71,43 +89,54 @@ fun RecordDetailDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         DetailRow(text = timeLabel, modifier = Modifier.weight(1f))
-                        if (editTimeLabel != null && onEditTime != null) {
-                            TextButton(onClick = onEditTime) {
-                                Text(
-                                    text = editTimeLabel,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
+                        TextButton(onClick = { showTimePicker = true }) {
+                            Text(
+                                text = editTimeLabel,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
                     DetailRow(text = dateLabel)
                     backfillBadge?.let { badge ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                    RoundedCornerShape(999.dp),
+                                )
+                                .padding(horizontal = 12.dp, vertical = 5.dp),
+                        ) {
                             Text(
                                 text = badge,
                                 color = MaterialTheme.colorScheme.primary,
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier
-                                    .background(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                                        RoundedCornerShape(999.dp),
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 5.dp),
                             )
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
-                    Text(
-                        text = note?.takeIf { it.isNotBlank() } ?: noNoteLabel,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (note.isNullOrBlank()) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
+                    OutlinedTextField(
+                        value = note,
+                        onValueChange = { note = it.take(200) },
+                        label = { Text(noteLabel) },
+                        placeholder = { Text(notePlaceholder) },
+                        minLines = 2,
+                        maxLines = 4,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                     )
+                    if (hasChanges) {
+                        Button(
+                            onClick = { onSave(hour, minute, note.trim().ifBlank { null }) },
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                        ) {
+                            Text(saveLabel)
+                        }
+                    }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.18f))
                 Row(
@@ -152,6 +181,20 @@ fun RecordDetailDialog(
                 }
             }
         }
+    }
+
+    if (showTimePicker) {
+        PulseTimePickerDialog(
+            initialHour = hour,
+            initialMinute = minute,
+            onConfirm = { pickedHour, pickedMinute ->
+                hour = pickedHour
+                minute = pickedMinute
+                timeEdited = pickedHour != initialHour || pickedMinute != initialMinute
+                showTimePicker = false
+            },
+            onDismiss = { showTimePicker = false },
+        )
     }
 }
 
