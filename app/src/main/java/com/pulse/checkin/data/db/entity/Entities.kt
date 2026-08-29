@@ -17,6 +17,7 @@ data class HabitEntity(
     val dailyTargetCount: Int?,
     val createdAtEpochMillis: Long,
     val archived: Boolean,
+    val deletedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long = createdAtEpochMillis,
 )
 

@@ -172,6 +172,7 @@ interface HabitRecord {
   createdAtEpochMillis: number;
   archived: boolean;
   updatedAtEpochMillis: number;
+  deletedAtEpochMillis: number | null;
 }
 
 interface EventRecord {
@@ -222,7 +223,8 @@ function isHabit(value: unknown): value is HabitRecord {
     asNumber(item.colorArgb) !== null &&
     asNumber(item.sortOrder) !== null &&
     asNumber(item.createdAtEpochMillis) !== null &&
-    asNumber(item.updatedAtEpochMillis) !== null
+    asNumber(item.updatedAtEpochMillis) !== null &&
+    (item.deletedAtEpochMillis === null || item.deletedAtEpochMillis === undefined || asNumber(item.deletedAtEpochMillis) !== null)
   );
 }
 
@@ -279,6 +281,7 @@ function habitBindings(userId: string, habit: HabitRecord, firstSeenAt: number):
     habit.archived ? 1 : 0,
     habit.updatedAtEpochMillis,
     firstSeenAt,
+    habit.deletedAtEpochMillis ?? null,
   ];
 }
 
@@ -334,14 +337,15 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       `INSERT INTO habits
          (id, user_id, name, color_argb, glyph, sort_order, reminder_enabled, reminder_hour,
           reminder_minute, target_enabled, daily_target_count, created_at, archived, updated_at,
-          first_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          first_seen_at, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, color_argb = excluded.color_argb, glyph = excluded.glyph,
          sort_order = excluded.sort_order, reminder_enabled = excluded.reminder_enabled,
          reminder_hour = excluded.reminder_hour, reminder_minute = excluded.reminder_minute,
          target_enabled = excluded.target_enabled, daily_target_count = excluded.daily_target_count,
-         created_at = excluded.created_at, archived = excluded.archived, updated_at = excluded.updated_at
+         created_at = excluded.created_at, archived = excluded.archived,
+         updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
        WHERE excluded.updated_at > habits.updated_at AND habits.user_id = excluded.user_id`,
     ).bind(...habitBindings(userId, habit, now)),
   );
@@ -401,7 +405,8 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
 
   const { results: habits } = await env.DB.prepare(
     `SELECT id, name, color_argb, glyph, sort_order, reminder_enabled, reminder_hour,
-            reminder_minute, target_enabled, daily_target_count, created_at, archived, updated_at
+            reminder_minute, target_enabled, daily_target_count, created_at, archived, updated_at,
+            deleted_at
      FROM habits WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
   )
     .bind(userId, since, since)
@@ -437,6 +442,7 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       createdAtEpochMillis: row.created_at,
       archived: !!row.archived,
       updatedAtEpochMillis: row.updated_at,
+      deletedAtEpochMillis: row.deleted_at ?? null,
     })),
     events: events.map((row) => ({
       id: row.id,

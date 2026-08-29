@@ -12,8 +12,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HabitDao {
-    @Query("SELECT * FROM habits WHERE archived = 0 ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
+    @Query("SELECT * FROM habits WHERE archived = 0 AND deletedAtEpochMillis IS NULL ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     fun observeActiveHabits(): Flow<List<HabitEntity>>
+
+    @Query("SELECT * FROM habits WHERE archived = 1 AND deletedAtEpochMillis IS NULL ORDER BY createdAtEpochMillis ASC")
+    fun observeArchived(): Flow<List<HabitEntity>>
 
     @Query("SELECT * FROM habits ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     suspend fun getAll(): List<HabitEntity>
@@ -21,7 +24,7 @@ interface HabitDao {
     @Query("SELECT * FROM habits WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): HabitEntity?
 
-    @Query("SELECT * FROM habits WHERE archived = 0 AND reminderEnabled = 1")
+    @Query("SELECT * FROM habits WHERE archived = 0 AND reminderEnabled = 1 AND deletedAtEpochMillis IS NULL")
     suspend fun getActiveReminderHabits(): List<HabitEntity>
 
     @Upsert
@@ -35,6 +38,9 @@ interface HabitDao {
 
     @Query("UPDATE habits SET archived = :archived, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
     suspend fun setArchived(id: String, archived: Boolean, updatedAtEpochMillis: Long)
+
+    @Query("UPDATE habits SET deletedAtEpochMillis = :deletedAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
+    suspend fun setDeleted(id: String, deletedAtEpochMillis: Long, updatedAtEpochMillis: Long)
 }
 
 @Dao
@@ -62,6 +68,9 @@ interface CheckInEventDao {
 
     @Query("UPDATE check_in_events SET deletedAtEpochMillis = :deletedAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE id = :id")
     suspend fun softDeleteById(id: String, deletedAtEpochMillis: Long, updatedAtEpochMillis: Long)
+
+    @Query("UPDATE check_in_events SET deletedAtEpochMillis = :deletedAtEpochMillis, updatedAtEpochMillis = :updatedAtEpochMillis WHERE habitId = :habitId AND deletedAtEpochMillis IS NULL")
+    suspend fun tombstoneByHabit(habitId: String, deletedAtEpochMillis: Long, updatedAtEpochMillis: Long)
 }
 
 @Dao

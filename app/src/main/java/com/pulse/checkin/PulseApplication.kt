@@ -51,7 +51,11 @@ class AppContainer(context: Context) {
 
     val sessionManager = SessionManager(appContext)
     val syncClock: SyncClock = DeviceSyncClock(sessionManager)
-    val habitRepository: HabitRepository = HabitRepositoryImpl(database.habitDao(), syncClock)
+    val habitRepository: HabitRepository = HabitRepositoryImpl(
+        database.habitDao(),
+        database.checkInEventDao(),
+        syncClock,
+    )
     val checkInRepository: CheckInRepository = CheckInRepositoryImpl(database.checkInEventDao(), syncClock)
     val dayEventRepository: DayEventRepository = DayEventRepositoryImpl(database.dayEventDao(), syncClock)
     val preferences = AppPreferences(appContext)

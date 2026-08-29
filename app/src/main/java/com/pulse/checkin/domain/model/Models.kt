@@ -44,6 +44,7 @@ data class Habit(
     val dailyTargetCount: Int? = null,
     val createdAtEpochMillis: Long = System.currentTimeMillis(),
     val archived: Boolean = false,
+    val deletedAtEpochMillis: Long? = null,
     val updatedAtEpochMillis: Long = createdAtEpochMillis,
 ) {
     fun reminderTimeOrNull(): LocalTime? {

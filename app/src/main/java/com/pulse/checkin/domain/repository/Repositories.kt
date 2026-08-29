@@ -8,10 +8,13 @@ import kotlinx.coroutines.flow.Flow
 
 interface HabitRepository {
     fun observeHabits(): Flow<List<Habit>>
+    fun observeArchivedHabits(): Flow<List<Habit>>
     suspend fun getHabit(id: String): Habit?
     suspend fun getActiveReminderHabits(): List<Habit>
     suspend fun upsert(habit: Habit)
     suspend fun setArchived(id: String, archived: Boolean)
+    suspend fun restoreHabit(id: String)
+    suspend fun deleteHabitPermanently(id: String)
 }
 
 interface CheckInRepository {

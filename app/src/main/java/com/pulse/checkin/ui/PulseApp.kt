@@ -175,6 +175,7 @@ fun PulseApp(viewModel: AppViewModel) {
                                     themeMode = uiState.preferences.themeMode,
                                     appLanguage = uiState.preferences.appLanguage,
                                     notificationsGranted = notificationsGranted,
+                                    archivedHabits = uiState.archivedHabits,
                                     syncState = syncUiState,
                                     onLogin = viewModel::login,
                                     onRegister = viewModel::register,
@@ -193,6 +194,8 @@ fun PulseApp(viewModel: AppViewModel) {
                                     onImportData = {
                                         importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
                                     },
+                                    onRestoreHabit = viewModel::restoreHabit,
+                                    onDeleteHabitPermanently = viewModel::deleteHabitPermanently,
                                 )
                                 AppTab.DAY_EVENTS -> DayEventsScreen(
                                     dayEvents = uiState.dayEvents,

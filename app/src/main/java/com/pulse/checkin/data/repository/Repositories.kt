@@ -23,10 +23,15 @@ import kotlinx.coroutines.flow.map
 
 class HabitRepositoryImpl(
     private val habitDao: HabitDao,
+    private val eventDao: CheckInEventDao,
     private val clock: SyncClock,
 ) : HabitRepository {
     override fun observeHabits(): Flow<List<Habit>> {
         return habitDao.observeActiveHabits().map { habits -> habits.map(HabitEntity::toDomain) }
+    }
+
+    override fun observeArchivedHabits(): Flow<List<Habit>> {
+        return habitDao.observeArchived().map { habits -> habits.map(HabitEntity::toDomain) }
     }
 
     override suspend fun getHabit(id: String): Habit? = habitDao.getById(id)?.toDomain()
@@ -41,6 +46,16 @@ class HabitRepositoryImpl(
 
     override suspend fun setArchived(id: String, archived: Boolean) {
         habitDao.setArchived(id, archived, updatedAtEpochMillis = clock.nowMillis())
+    }
+
+    override suspend fun restoreHabit(id: String) {
+        habitDao.setArchived(id, archived = false, updatedAtEpochMillis = clock.nowMillis())
+    }
+
+    override suspend fun deleteHabitPermanently(id: String) {
+        val now = clock.nowMillis()
+        habitDao.setDeleted(id, deletedAtEpochMillis = now, updatedAtEpochMillis = now)
+        eventDao.tombstoneByHabit(id, deletedAtEpochMillis = now, updatedAtEpochMillis = now)
     }
 }
 
@@ -108,6 +123,7 @@ private fun HabitEntity.toDomain(): Habit = Habit(
     dailyTargetCount = dailyTargetCount,
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
+    deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
 )
 
@@ -124,6 +140,7 @@ private fun Habit.toEntity(): HabitEntity = HabitEntity(
     dailyTargetCount = dailyTargetCount,
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
+    deletedAtEpochMillis = deletedAtEpochMillis,
     updatedAtEpochMillis = updatedAtEpochMillis,
 )
 

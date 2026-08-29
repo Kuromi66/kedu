@@ -131,6 +131,7 @@ data class AppUiState(
     val selectedStatsHabitId: String? = null,
     val preferences: UserPreferences = UserPreferences(),
     val habits: List<Habit> = emptyList(),
+    val archivedHabits: List<Habit> = emptyList(),
     val dayEvents: List<DayEvent> = emptyList(),
     val todaySnapshot: TodaySnapshot = TodaySnapshot.Empty,
     val historySnapshot: MonthSnapshot = MonthSnapshot.Empty,
@@ -141,6 +142,7 @@ data class AppUiState(
 private data class BaseUiInputs(
     val habits: List<Habit>,
     val events: List<CheckInEvent>,
+    val archivedHabits: List<Habit>,
     val dayEvents: List<DayEvent>,
     val preferences: UserPreferences,
     val selectedTab: AppTab,
@@ -215,6 +217,7 @@ class AppViewModel(
         BaseUiInputs(
             habits = habits,
             events = events,
+            archivedHabits = emptyList(),
             dayEvents = emptyList(),
             preferences = preferences,
             selectedTab = tab,
@@ -222,6 +225,8 @@ class AppViewModel(
         )
     }.combine(dayEventRepository.observeDayEvents()) { base, dayEvents ->
         base.copy(dayEvents = dayEvents)
+    }.combine(habitRepository.observeArchivedHabits()) { base, archivedHabits ->
+        base.copy(archivedHabits = archivedHabits)
     }.combine(selectedHistoryHabitId) { base, rawHistoryHabitId ->
         base to rawHistoryHabitId
     }.combine(selectedStatsYear) { (base, rawHistoryHabitId), statsYear ->
@@ -258,6 +263,7 @@ class AppViewModel(
             selectedStatsHabitId = effectiveStatsHabitId,
             preferences = base.preferences,
             habits = base.habits,
+            archivedHabits = base.archivedHabits,
             dayEvents = base.dayEvents,
             todaySnapshot = statsCalculator.buildTodaySnapshot(base.habits, base.events, today),
             historySnapshot = statsCalculator.buildMonthSnapshot(
@@ -393,6 +399,21 @@ class AppViewModel(
     fun archiveHabit(habitId: String) {
         viewModelScope.launch {
             habitRepository.setArchived(habitId, true)
+            reminderScheduler.cancelForHabit(habitId)
+            triggerSync()
+        }
+    }
+
+    fun restoreHabit(habitId: String) {
+        viewModelScope.launch {
+            habitRepository.restoreHabit(habitId)
+            triggerSync()
+        }
+    }
+
+    fun deleteHabitPermanently(habitId: String) {
+        viewModelScope.launch {
+            habitRepository.deleteHabitPermanently(habitId)
             reminderScheduler.cancelForHabit(habitId)
             triggerSync()
         }

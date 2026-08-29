@@ -31,6 +31,7 @@ class BackupManager(
     suspend fun exportToUri(uri: Uri): Result<BackupSummary> = runCatching {
         withContext(Dispatchers.IO) {
             val habits = database.habitDao().getAll()
+                .filter { it.deletedAtEpochMillis == null }
             val events = database.checkInEventDao().getAll()
             val dayEvents = database.dayEventDao().getAll()
             val preferences = appPreferences.currentPreferences()
@@ -109,6 +110,7 @@ private fun HabitEntity.toJsonV2(): JSONObject = JSONObject()
     .put("dailyTargetCount", dailyTargetCount)
     .put("createdAtEpochMillis", createdAtEpochMillis)
     .put("archived", archived)
+    .put("deletedAtEpochMillis", deletedAtEpochMillis ?: JSONObject.NULL)
     .put("updatedAtEpochMillis", updatedAtEpochMillis)
 
 private fun CheckInEventEntity.toJsonV2(): JSONObject = JSONObject()
@@ -158,6 +160,7 @@ private fun JSONArray.toHabitEntities(version: Int, now: Long): List<HabitEntity
                     dailyTargetCount = item.optNullableInt("dailyTargetCount"),
                     createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
                     archived = item.optBoolean("archived", false),
+                    deletedAtEpochMillis = null,
                     updatedAtEpochMillis = now,
                 )
             } else {
@@ -174,6 +177,7 @@ private fun JSONArray.toHabitEntities(version: Int, now: Long): List<HabitEntity
                     dailyTargetCount = item.optNullableInt("dailyTargetCount"),
                     createdAtEpochMillis = item.optLong("createdAtEpochMillis", now),
                     archived = item.optBoolean("archived", false),
+                    deletedAtEpochMillis = item.optNullableLong("deletedAtEpochMillis"),
                     updatedAtEpochMillis = item.optLong("updatedAtEpochMillis", now),
                 )
             },

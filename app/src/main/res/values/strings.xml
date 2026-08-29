@@ -164,6 +164,11 @@
     <string name="day_event_reminder">Remind before</string>
     <string name="day_event_reminder_desc">Notify you before the date</string>
     <string name="day_event_reminder_days">%1$d days before</string>
+    <string name="archived_habits">Archived habits</string>
+    <string name="archived_habits_desc">Restore or permanently delete archived habits</string>
+    <string name="restore">Restore</string>
+    <string name="no_archived_habits">No archived habits</string>
+    <string name="confirm_delete_habit_permanent">Permanently delete this habit and all its check-ins? This cannot be undone.</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

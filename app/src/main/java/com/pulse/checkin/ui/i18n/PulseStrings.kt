@@ -206,6 +206,11 @@ class PulseStrings(private val context: Context) {
     val dayEventReminder: String get() = context.getString(R.string.day_event_reminder)
     val dayEventReminderDesc: String get() = context.getString(R.string.day_event_reminder_desc)
     fun dayEventReminderDays(count: Int): String = context.getString(R.string.day_event_reminder_days, count)
+    val archivedHabits: String get() = context.getString(R.string.archived_habits)
+    val archivedHabitsDesc: String get() = context.getString(R.string.archived_habits_desc)
+    val restore: String get() = context.getString(R.string.restore)
+    val noArchivedHabits: String get() = context.getString(R.string.no_archived_habits)
+    val confirmDeleteHabitPermanent: String get() = context.getString(R.string.confirm_delete_habit_permanent)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

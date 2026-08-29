@@ -21,11 +21,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,16 +45,19 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.pulse.checkin.BuildConfig
 import com.pulse.checkin.data.cloud.SyncError
+import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.ThemeMode
 import com.pulse.checkin.ui.components.DestructiveConfirmDialog
 import com.pulse.checkin.ui.components.GlassCard
+import com.pulse.checkin.ui.components.HabitGlyph
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
 import com.pulse.checkin.ui.components.ScreenHeader
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 import com.pulse.checkin.ui.i18n.PulseStrings
 import com.pulse.checkin.ui.SyncUiState
+import com.pulse.checkin.ui.util.toPulseColor
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -62,6 +68,7 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     appLanguage: AppLanguage,
     notificationsGranted: Boolean,
+    archivedHabits: List<Habit>,
     syncState: SyncUiState,
     onLogin: (email: String, password: String) -> Unit,
     onRegister: (email: String, password: String) -> Unit,
@@ -72,11 +79,14 @@ fun SettingsScreen(
     onRequestNotificationPermission: () -> Unit,
     onExportData: () -> Unit,
     onImportData: () -> Unit,
+    onRestoreHabit: (String) -> Unit,
+    onDeleteHabitPermanently: (String) -> Unit,
 ) {
     val strings = LocalPulseStrings.current
     val compactLayout = LocalConfiguration.current.screenWidthDp <= 360
     val horizontalPadding = if (compactLayout) 16.dp else 20.dp
     val contentSpacing = if (compactLayout) 12.dp else 16.dp
+    var showArchived by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ScreenHeader(title = strings.settingsTitle, compactLayout = compactLayout)
@@ -160,6 +170,40 @@ fun SettingsScreen(
             }
             item {
                 GlassCard {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f))
+                            .clickable { showArchived = true }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = strings.archivedHabits,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = strings.archivedHabitsDesc,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        PulseActionIcon(
+                            kind = PulseIconKind.Records,
+                            color = MaterialTheme.colorScheme.primary,
+                            compactLayout = compactLayout,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+            }
+            item {
+                GlassCard {
                     SettingsSectionHeader(
                         title = strings.notifications,
                         icon = PulseIconKind.Bell,
@@ -211,6 +255,114 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showArchived) {
+        ArchivedHabitsSheet(
+            habits = archivedHabits,
+            compactLayout = compactLayout,
+            onDismiss = { showArchived = false },
+            onRestore = onRestoreHabit,
+            onDelete = onDeleteHabitPermanently,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ArchivedHabitsSheet(
+    habits: List<Habit>,
+    compactLayout: Boolean,
+    onDismiss: () -> Unit,
+    onRestore: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    val strings = LocalPulseStrings.current
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = if (compactLayout) 16.dp else 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = strings.archivedHabits,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (habits.isEmpty()) {
+                GlassCard {
+                    Text(strings.noArchivedHabits, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                habits.forEach { habit ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(habit.colorArgb.toPulseColor().copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            HabitGlyph(
+                                glyph = habit.glyph,
+                                color = habit.colorArgb.toPulseColor(),
+                                modifier = Modifier.size(20.dp),
+                                compactLayout = true,
+                                textStyle = MaterialTheme.typography.titleLarge,
+                            )
+                        }
+                        Text(
+                            text = habit.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = { onRestore(habit.id) }) {
+                            Text(
+                                text = strings.restore,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        TextButton(onClick = { pendingDelete = habit.id }) {
+                            Text(
+                                text = strings.confirmDelete,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pendingDelete?.let { id ->
+        DestructiveConfirmDialog(
+            message = strings.confirmDeleteHabitPermanent,
+            confirmLabel = strings.confirmDelete,
+            dismissLabel = strings.cancel,
+            onConfirm = {
+                onDelete(id)
+                pendingDelete = null
+            },
+            onDismiss = { pendingDelete = null },
+        )
     }
 }
 
