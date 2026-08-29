@@ -19,6 +19,7 @@ fun HabitEntity.toDto(): HabitDto = HabitDto(
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    deletedAtEpochMillis = deletedAtEpochMillis,
 )
 
 fun HabitDto.toEntity(): HabitEntity = HabitEntity(
@@ -35,6 +36,7 @@ fun HabitDto.toEntity(): HabitEntity = HabitEntity(
     createdAtEpochMillis = createdAtEpochMillis,
     archived = archived,
     updatedAtEpochMillis = updatedAtEpochMillis,
+    deletedAtEpochMillis = deletedAtEpochMillis,
 )
 
 fun CheckInEventEntity.toDto(): EventDto = EventDto(

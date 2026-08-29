@@ -30,6 +30,7 @@ data class HabitDto(
     val createdAtEpochMillis: Long,
     val archived: Boolean,
     val updatedAtEpochMillis: Long,
+    val deletedAtEpochMillis: Long? = null,
 )
 
 @Serializable
