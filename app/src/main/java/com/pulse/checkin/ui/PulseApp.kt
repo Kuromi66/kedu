@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.CompositionLocalProvider
 import com.pulse.checkin.ui.components.GlassCard
 import com.pulse.checkin.ui.components.DayEventEditorSheet
+import com.pulse.checkin.ui.components.CheckInNoteDialog
 import com.pulse.checkin.ui.components.HabitEditorSheet
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
@@ -66,7 +68,10 @@ import kotlinx.coroutines.launch
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
-fun PulseApp(viewModel: AppViewModel) {
+fun PulseApp(
+    viewModel: AppViewModel,
+    pendingCheckInHabitId: String? = null,
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val syncUiState by viewModel.syncUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -75,6 +80,11 @@ fun PulseApp(viewModel: AppViewModel) {
     var editorDraft by remember { mutableStateOf<HabitDraft?>(null) }
     val editorVisible = editorDraft != null
     var dayEventEditorDraft by remember { mutableStateOf<DayEventDraft?>(null) }
+    var pendingCheckInHabitIdState by remember { mutableStateOf(pendingCheckInHabitId) }
+
+    LaunchedEffect(pendingCheckInHabitId) {
+        pendingCheckInHabitIdState = pendingCheckInHabitId
+    }
     val backgroundBlur by animateDpAsState(
         targetValue = if (editorVisible) 14.dp else 0.dp,
         animationSpec = tween(durationMillis = 260),
@@ -259,6 +269,23 @@ fun PulseApp(viewModel: AppViewModel) {
                             viewModel.archiveDayEvent(draft.id)
                         },
                     )
+                }
+                pendingCheckInHabitIdState?.let { habitId ->
+                    uiState.habits.firstOrNull { it.id == habitId }?.let { habit ->
+                        CheckInNoteDialog(
+                            title = strings.confirmCheckInTitle,
+                            message = strings.confirmCheckInText(habit.name),
+                            noteLabel = strings.noteLabel,
+                            notePlaceholder = strings.notePlaceholder,
+                            confirmLabel = strings.confirmCheckIn,
+                            dismissLabel = strings.cancel,
+                            onConfirm = { note ->
+                                viewModel.checkInHabit(habitId, note)
+                                pendingCheckInHabitIdState = null
+                            },
+                            onDismiss = { pendingCheckInHabitIdState = null },
+                        )
+                    }
                 }
             }
         }

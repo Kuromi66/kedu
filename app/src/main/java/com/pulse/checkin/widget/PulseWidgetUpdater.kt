@@ -16,6 +16,7 @@ import com.pulse.checkin.domain.model.Habit
 import com.pulse.checkin.domain.stats.DayCountCalculator
 import com.pulse.checkin.domain.stats.DayCountResult
 import com.pulse.checkin.reminder.EXTRA_NAVIGATE_TO
+import com.pulse.checkin.reminder.NAVIGATE_TO_CHECK_IN
 import com.pulse.checkin.reminder.NAVIGATE_TO_DAY_EVENTS
 import com.pulse.checkin.ui.util.AndroidLunarCalendar
 import java.time.LocalDate
@@ -133,7 +134,7 @@ class PulseWidgetUpdater(
             )
             views.setOnClickPendingIntent(
                 checkInRowIds[index],
-                checkInPendingIntent(habit.id),
+                openCheckInIntent(habit.id),
             )
         }
 
@@ -181,12 +182,13 @@ class PulseWidgetUpdater(
         return views
     }
 
-    private fun checkInPendingIntent(habitId: String): PendingIntent {
-        val intent = Intent(context, PulseCheckInWidgetProvider::class.java).apply {
-            action = PulseCheckInWidgetProvider.ACTION_CHECK_IN
-            putExtra(PulseCheckInWidgetProvider.EXTRA_HABIT_ID, habitId)
+    private fun openCheckInIntent(habitId: String): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_NAVIGATE_TO, NAVIGATE_TO_CHECK_IN)
+            putExtra(MainActivity.EXTRA_CHECK_IN_HABIT_ID, habitId)
         }
-        return PendingIntent.getBroadcast(
+        return PendingIntent.getActivity(
             context,
             (habitId.hashCode() and 0x7fffffff).coerceAtLeast(1),
             intent,

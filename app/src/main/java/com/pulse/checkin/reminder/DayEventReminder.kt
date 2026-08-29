@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit
 
 const val EXTRA_NAVIGATE_TO = "navigate_to"
 const val NAVIGATE_TO_DAY_EVENTS = "day_events"
+const val NAVIGATE_TO_CHECK_IN = "check_in"
 
 private const val DAY_EVENT_CHANNEL_ID = "pulse_day_events"
 private const val DAY_EVENT_CHANNEL_NAME = "\u91cd\u8981\u65e5\u671f\u63d0\u9192"
