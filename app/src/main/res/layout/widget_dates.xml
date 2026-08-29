@@ -5,38 +5,62 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="12dp">
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/dates_title"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/widget_dates_title"
-        android:textColor="@color/widget_text_primary"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/dates_accent_dot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:text="\u25CF"
+            android:textColor="@color/widget_accent"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/dates_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/widget_dates_title"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/date_rows"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:orientation="vertical">
 
         <FrameLayout
             android:id="@+id/date_row_1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
+            android:layout_marginBottom="7dp"
             android:background="@drawable/widget_row_bg"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="8dp">
+            android:paddingHorizontal="11dp"
+            android:paddingVertical="9dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/date_dot_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="7dp"
+                    android:text="\u25CF"
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/date_name_1"
@@ -52,6 +76,10 @@
                     android:id="@+id/date_count_1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/widget_pill"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="3dp"
                     android:textColor="@color/widget_accent"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -62,16 +90,24 @@
             android:id="@+id/date_row_2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
+            android:layout_marginBottom="7dp"
             android:background="@drawable/widget_row_bg"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="8dp">
+            android:paddingHorizontal="11dp"
+            android:paddingVertical="9dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/date_dot_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="7dp"
+                    android:text="\u25CF"
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/date_name_2"
@@ -87,6 +123,10 @@
                     android:id="@+id/date_count_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/widget_pill"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="3dp"
                     android:textColor="@color/widget_accent"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -97,16 +137,24 @@
             android:id="@+id/date_row_3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
+            android:layout_marginBottom="7dp"
             android:background="@drawable/widget_row_bg"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="8dp">
+            android:paddingHorizontal="11dp"
+            android:paddingVertical="9dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/date_dot_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="7dp"
+                    android:text="\u25CF"
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/date_name_3"
@@ -122,6 +170,10 @@
                     android:id="@+id/date_count_3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/widget_pill"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="3dp"
                     android:textColor="@color/widget_accent"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -133,14 +185,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/widget_row_bg"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="8dp">
+            android:paddingHorizontal="11dp"
+            android:paddingVertical="9dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/date_dot_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="7dp"
+                    android:text="\u25CF"
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/date_name_4"
@@ -156,6 +216,10 @@
                     android:id="@+id/date_count_4"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/widget_pill"
+                    android:paddingHorizontal="9dp"
+                    android:paddingVertical="3dp"
                     android:textColor="@color/widget_accent"
                     android:textSize="12sp"
                     android:textStyle="bold" />

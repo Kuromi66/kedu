@@ -45,6 +45,12 @@ class PulseWidgetUpdater(
         R.id.habit_progress_3,
         R.id.habit_progress_4,
     )
+    private val checkInDotIds = intArrayOf(
+        R.id.habit_dot_1,
+        R.id.habit_dot_2,
+        R.id.habit_dot_3,
+        R.id.habit_dot_4,
+    )
     private val datesRowIds = intArrayOf(
         R.id.date_row_1,
         R.id.date_row_2,
@@ -63,6 +69,13 @@ class PulseWidgetUpdater(
         R.id.date_count_3,
         R.id.date_count_4,
     )
+    private val datesDotIds = intArrayOf(
+        R.id.date_dot_1,
+        R.id.date_dot_2,
+        R.id.date_dot_3,
+        R.id.date_dot_4,
+    )
+    private val datesAccent = context.getColor(R.color.widget_accent)
 
     suspend fun updateAll() {
         updateCheckInWidget()
@@ -120,6 +133,7 @@ class PulseWidgetUpdater(
             }
             views.setViewVisibility(checkInRowIds[index], View.VISIBLE)
             views.setTextViewText(checkInNameIds[index], habit.name)
+            views.setTextColor(checkInDotIds[index], habit.colorArgb.toInt())
             val count = counts[habit.id] ?: 0
             val target = habit.targetCountOrDefault()
             val progressText = if (target != null) {
@@ -168,6 +182,7 @@ class PulseWidgetUpdater(
             views.setViewVisibility(datesRowIds[index], View.VISIBLE)
             views.setTextViewText(datesNameIds[index], event.name)
             views.setTextViewText(datesCountIds[index], daysText)
+            views.setTextColor(datesDotIds[index], datesAccent)
             views.setOnClickPendingIntent(datesRowIds[index], openDayEventsIntent())
         }
 
@@ -175,6 +190,7 @@ class PulseWidgetUpdater(
             views.setViewVisibility(datesRowIds[0], View.VISIBLE)
             views.setTextViewText(datesNameIds[0], context.getString(R.string.widget_no_dates))
             views.setTextViewText(datesCountIds[0], "")
+            views.setTextColor(datesDotIds[0], datesAccent)
             views.setOnClickPendingIntent(datesRowIds[0], openDayEventsIntent())
         }
 

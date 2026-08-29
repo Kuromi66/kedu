@@ -3,4 +3,5 @@
     <color name="widget_text_primary">#101828</color>
     <color name="widget_text_secondary">#667085</color>
     <color name="widget_accent">#2446FF</color>
+    <color name="widget_pill_bg">#E8EDFF</color>
 </resources>
