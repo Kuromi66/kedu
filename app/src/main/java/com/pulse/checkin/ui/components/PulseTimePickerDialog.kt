@@ -1,27 +1,36 @@
 package com.pulse.checkin.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,6 +38,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pulse.checkin.ui.i18n.LocalPulseStrings
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PulseTimePickerDialog(
     initialHour: Int,
@@ -38,7 +48,7 @@ fun PulseTimePickerDialog(
 ) {
     val strings = LocalPulseStrings.current
     var hour by remember { mutableStateOf(initialHour.coerceIn(0, 23)) }
-    var minute by remember { mutableStateOf((initialMinute / 5 * 5).coerceIn(0, 55)) }
+    var minute by remember { mutableStateOf(initialMinute.coerceIn(0, 59)) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -54,7 +64,7 @@ fun PulseTimePickerDialog(
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
                     text = strings.selectTime,
@@ -63,36 +73,40 @@ fun PulseTimePickerDialog(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = strings.timeHourLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items((0..23).toList()) { value ->
-                            TimeChip(
-                                selected = hour == value,
-                                label = "%02d".format(value),
-                                onClick = { hour = value },
-                            )
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        WheelColumn(
+                            values = (0..23).toList(),
+                            initialValue = hour,
+                            onValueChange = { hour = it },
+                        )
+                        Text(
+                            text = strings.timeHourLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = strings.timeMinuteLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items((0..55 step 5).toList()) { value ->
-                            TimeChip(
-                                selected = minute == value,
-                                label = "%02d".format(value),
-                                onClick = { minute = value },
-                            )
-                        }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        WheelColumn(
+                            values = (0..59).toList(),
+                            initialValue = minute,
+                            onValueChange = { minute = it },
+                        )
+                        Text(
+                            text = strings.timeMinuteLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -116,19 +130,56 @@ fun PulseTimePickerDialog(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TimeChip(
-    selected: Boolean,
-    label: String,
-    onClick: () -> Unit,
+private fun WheelColumn(
+    values: List<Int>,
+    initialValue: Int,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-            selectedLabelColor = MaterialTheme.colorScheme.primary,
-        ),
-    )
+    val itemHeight = 40.dp
+    val viewportHeight = 160.dp
+    val initialIndex = values.indexOf(initialValue).coerceAtLeast(0)
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { index ->
+                values.getOrNull(index)?.let(onValueChange)
+            }
+    }
+
+    Box(
+        modifier = modifier
+            .width(72.dp)
+            .height(viewportHeight),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight)
+                .clip(RoundedCornerShape(14.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+        )
+        LazyColumn(
+            state = listState,
+            flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
+            contentPadding = PaddingValues(vertical = (viewportHeight - itemHeight) / 2),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(values.size) { index ->
+                Text(
+                    text = "%02d".format(values[index]),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemHeight),
+                )
+            }
+        }
+    }
 }
