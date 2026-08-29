@@ -69,6 +69,7 @@ fun DayEventEditorSheet(
         mutableStateOf(initialDraft.reminderDaysBefore.coerceIn(1, 7))
     }
     var showDatePicker by remember { mutableStateOf(false) }
+    val showReminder = !(!repeatsMonthly && !repeatsYearly && date.isBefore(LocalDate.now()))
 
     val switchColors = SwitchDefaults.colors(
         checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
@@ -280,46 +281,48 @@ fun DayEventEditorSheet(
                         }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = strings.dayEventReminder,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
+                if (showReminder) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = strings.dayEventReminder,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = strings.dayEventReminderDesc,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = reminderEnabled,
+                                onCheckedChange = { reminderEnabled = it },
+                                colors = switchColors,
                             )
+                        }
+                        if (reminderEnabled) {
                             Text(
-                                text = strings.dayEventReminderDesc,
+                                text = strings.dayEventReminderDays(reminderDaysBefore),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
-                        Switch(
-                            checked = reminderEnabled,
-                            onCheckedChange = { reminderEnabled = it },
-                            colors = switchColors,
-                        )
-                    }
-                    if (reminderEnabled) {
-                        Text(
-                            text = strings.dayEventReminderDays(reminderDaysBefore),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items((1..7).toList()) { day ->
-                                FilterChip(
-                                    selected = reminderDaysBefore == day,
-                                    onClick = { reminderDaysBefore = day },
-                                    label = { Text("$day") },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
-                                    ),
-                                )
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items((1..7).toList()) { day ->
+                                    FilterChip(
+                                        selected = reminderDaysBefore == day,
+                                        onClick = { reminderDaysBefore = day },
+                                        label = { Text("$day") },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                        ),
+                                    )
+                                }
                             }
                         }
                     }
@@ -342,7 +345,7 @@ fun DayEventEditorSheet(
                                 date = date,
                                 repeatsMonthly = repeatsMonthly,
                                 repeatsYearly = repeatsYearly,
-                                reminderEnabled = reminderEnabled,
+                                reminderEnabled = showReminder && reminderEnabled,
                                 reminderDaysBefore = reminderDaysBefore,
                                 note = note.trim().ifBlank { null },
                                 calendarType = calendarType,

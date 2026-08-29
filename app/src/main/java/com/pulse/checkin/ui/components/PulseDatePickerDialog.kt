@@ -83,10 +83,19 @@ fun PulseDatePickerDialog(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    PulseIconButton(
-                        kind = PulseIconKind.ArrowRight,
-                        onClick = { displayedMonth = displayedMonth.plusMonths(1) },
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PulseIconButton(
+                            kind = PulseIconKind.CurrentTime,
+                            onClick = {
+                                selectedDate = today
+                                displayedMonth = YearMonth.from(today)
+                            },
+                        )
+                        PulseIconButton(
+                            kind = PulseIconKind.ArrowRight,
+                            onClick = { displayedMonth = displayedMonth.plusMonths(1) },
+                        )
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     strings.weekHeaders.forEach { header ->
