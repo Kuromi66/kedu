@@ -16,6 +16,8 @@ class DayCountCalculatorTest {
         date: LocalDate,
         repeatsMonthly: Boolean = false,
         repeatsYearly: Boolean = false,
+        reminderEnabled: Boolean = false,
+        reminderDaysBefore: Int = 1,
         calendarType: CalendarType = CalendarType.SOLAR,
         lunarMonth: Int? = null,
         lunarDay: Int? = null,
@@ -26,6 +28,8 @@ class DayCountCalculatorTest {
         date = date,
         repeatsMonthly = repeatsMonthly,
         repeatsYearly = repeatsYearly,
+        reminderEnabled = reminderEnabled,
+        reminderDaysBefore = reminderDaysBefore,
         calendarType = calendarType,
         lunarMonth = lunarMonth,
         lunarDay = lunarDay,
@@ -194,6 +198,46 @@ class DayCountCalculatorTest {
         val ev = event(LocalDate.of(2000, 1, 15), repeatsMonthly = true)
         val progress = DayCountCalculator.progress(ev, today, fakeLunar)
         assertEquals(8f / 31f, progress!!, 0.01f)
+    }
+
+    @Test
+    fun `monthly reminder date is days before next occurrence`() {
+        val ev = event(
+            date = LocalDate.of(2000, 1, 15),
+            repeatsMonthly = true,
+            reminderEnabled = true,
+            reminderDaysBefore = 3,
+        )
+        val reminder = DayCountCalculator.nextReminderDate(ev, today, fakeLunar)
+        assertEquals(LocalDate.of(2026, 9, 12), reminder)
+    }
+
+    @Test
+    fun `monthly reminder on reminder day moves to next cycle`() {
+        val ev = event(
+            date = LocalDate.of(2000, 1, 15),
+            repeatsMonthly = true,
+            reminderEnabled = true,
+            reminderDaysBefore = 3,
+        )
+        val reminder = DayCountCalculator.nextReminderDate(
+            ev,
+            from = LocalDate.of(2026, 9, 12),
+            lunar = fakeLunar,
+        )
+        assertEquals(LocalDate.of(2026, 10, 12), reminder)
+    }
+
+    @Test
+    fun `yearly reminder date is days before next occurrence`() {
+        val ev = event(
+            date = LocalDate.of(2020, 1, 1),
+            repeatsYearly = true,
+            reminderEnabled = true,
+            reminderDaysBefore = 3,
+        )
+        val reminder = DayCountCalculator.nextReminderDate(ev, today, fakeLunar)
+        assertEquals(LocalDate.of(2026, 12, 29), reminder)
     }
 
     private class FakeLunarCalendar : LunarCalendar {

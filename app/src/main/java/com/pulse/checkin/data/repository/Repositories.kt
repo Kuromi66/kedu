@@ -148,6 +148,10 @@ class DayEventRepositoryImpl(
 
     override suspend fun getDayEvent(id: String): DayEvent? = dayEventDao.getById(id)?.toDomain()
 
+    override suspend fun getActiveReminderDayEvents(): List<DayEvent> {
+        return dayEventDao.getActiveReminderDayEvents().map(DayEventEntity::toDomain)
+    }
+
     override suspend fun upsert(event: DayEvent) {
         dayEventDao.upsert(event.toEntity())
     }
@@ -170,6 +174,8 @@ private fun DayEventEntity.toDomain(): DayEvent = DayEvent(
     date = LocalDate.parse(eventDate),
     repeatsMonthly = repeatsMonthly,
     repeatsYearly = repeatsYearly,
+    reminderEnabled = reminderEnabled,
+    reminderDaysBefore = reminderDaysBefore,
     note = note,
     sortOrder = sortOrder,
     calendarType = runCatching { CalendarType.valueOf(calendarType) }.getOrDefault(CalendarType.SOLAR),
@@ -187,6 +193,8 @@ private fun DayEvent.toEntity(): DayEventEntity = DayEventEntity(
     eventDate = date.toString(),
     repeatsMonthly = repeatsMonthly,
     repeatsYearly = repeatsYearly,
+    reminderEnabled = reminderEnabled,
+    reminderDaysBefore = reminderDaysBefore,
     note = note,
     sortOrder = sortOrder,
     calendarType = calendarType.name,

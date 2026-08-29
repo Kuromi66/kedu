@@ -33,6 +33,22 @@ object DayCountCalculator {
         }
     }
 
+    fun nextReminderDate(
+        event: DayEvent,
+        from: LocalDate,
+        lunar: LunarCalendar,
+        daysBefore: Int = event.reminderDaysBefore,
+    ): LocalDate {
+        val days = daysBefore.coerceAtLeast(1).toLong()
+        var occurrence = nextOccurrence(event, from, lunar)
+        var reminder = occurrence.minusDays(days)
+        if (!reminder.isAfter(from)) {
+            occurrence = nextOccurrence(event, occurrence.plusDays(1), lunar)
+            reminder = occurrence.minusDays(days)
+        }
+        return reminder
+    }
+
     fun sortForDisplay(events: List<DayEvent>, today: LocalDate, lunar: LunarCalendar): List<DayEvent> {
         val upcoming = events
             .filter { compute(it, today, lunar) !is DayCountResult.DaysSince }

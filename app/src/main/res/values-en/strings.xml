@@ -161,6 +161,9 @@
     <string name="repeat_yearly">Yearly</string>
     <string name="monthly_day_label">Day of month</string>
     <string name="monthly_date_format">Monthly on the %1$d</string>
+    <string name="day_event_reminder">Remind before</string>
+    <string name="day_event_reminder_desc">Notify you before the date</string>
+    <string name="day_event_reminder_days">%1$d days before</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

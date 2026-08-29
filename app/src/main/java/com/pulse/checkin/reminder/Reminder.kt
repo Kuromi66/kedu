@@ -142,6 +142,8 @@ class BootReceiver : BroadcastReceiver() {
                 val container = (context.applicationContext as PulseApplication).container
                 val habits = container.habitRepository.getActiveReminderHabits()
                 container.reminderScheduler.syncAll(habits)
+                val dayEvents = container.dayEventRepository.getActiveReminderDayEvents()
+                container.dayEventReminderScheduler.syncAll(dayEvents)
             } finally {
                 pendingResult.finish()
             }

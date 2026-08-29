@@ -69,6 +69,9 @@ interface DayEventDao {
     @Query("SELECT * FROM day_events WHERE archived = 0 ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     fun observeActive(): Flow<List<DayEventEntity>>
 
+    @Query("SELECT * FROM day_events WHERE archived = 0 AND reminderEnabled = 1 ORDER BY eventDate ASC")
+    suspend fun getActiveReminderDayEvents(): List<DayEventEntity>
+
     @Query("SELECT * FROM day_events ORDER BY sortOrder ASC, createdAtEpochMillis ASC")
     suspend fun getAll(): List<DayEventEntity>
 

@@ -127,6 +127,8 @@ private fun DayEventEntity.toJsonV2(): JSONObject = JSONObject()
     .put("eventDate", eventDate)
     .put("repeatsMonthly", repeatsMonthly)
     .put("repeatsYearly", repeatsYearly)
+    .put("reminderEnabled", reminderEnabled)
+    .put("reminderDaysBefore", reminderDaysBefore)
     .put("note", note ?: JSONObject.NULL)
     .put("sortOrder", sortOrder)
     .put("calendarType", calendarType)
@@ -223,6 +225,8 @@ private fun JSONArray.toDayEventEntities(version: Int, now: Long): List<DayEvent
                 eventDate = item.optString("eventDate"),
                 repeatsMonthly = item.optBoolean("repeatsMonthly", false),
                 repeatsYearly = item.optBoolean("repeatsYearly", false),
+                reminderEnabled = item.optBoolean("reminderEnabled", false),
+                reminderDaysBefore = item.optInt("reminderDaysBefore", 1),
                 note = item.optNullableString("note"),
                 sortOrder = item.optInt("sortOrder", index),
                 calendarType = item.optString("calendarType", "SOLAR").takeIf { it == "LUNAR" } ?: "SOLAR",

@@ -20,6 +20,9 @@ class SyncWorker(
         return when (container.syncManager.syncOnce()) {
             is SyncOutcome.Success -> {
                 container.reminderScheduler.syncAll(container.habitRepository.getActiveReminderHabits())
+                container.dayEventReminderScheduler.syncAll(
+                    container.dayEventRepository.getActiveReminderDayEvents(),
+                )
                 Result.success()
             }
             is SyncOutcome.SignedOut -> Result.success()

@@ -24,6 +24,10 @@ import com.pulse.checkin.domain.stats.LocalStatsCalculator
 import com.pulse.checkin.domain.stats.StatsCalculator
 import com.pulse.checkin.reminder.ReminderScheduler
 import com.pulse.checkin.reminder.ReminderSchedulerImpl
+import com.pulse.checkin.reminder.DayEventReminderScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class PulseApplication : Application() {
     lateinit var container: AppContainer
@@ -33,6 +37,11 @@ class PulseApplication : Application() {
         super.onCreate()
         container = AppContainer(this)
         SyncWorker.schedule(this)
+        CoroutineScope(Dispatchers.IO).launch {
+            container.dayEventReminderScheduler.syncAll(
+                container.dayEventRepository.getActiveReminderDayEvents(),
+            )
+        }
     }
 }
 
@@ -49,6 +58,7 @@ class AppContainer(context: Context) {
     val backupManager = BackupManager(appContext, database, preferences)
     val statsCalculator: StatsCalculator = LocalStatsCalculator()
     val reminderScheduler: ReminderScheduler = ReminderSchedulerImpl(appContext)
+    val dayEventReminderScheduler = DayEventReminderScheduler(appContext)
     val cloudApi: CloudApi = CloudApiFactory.create()
     val syncDataSource: SyncDataSource = RoomSyncDataSource(
         database.habitDao(),

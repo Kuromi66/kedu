@@ -32,6 +32,7 @@ import com.pulse.checkin.domain.stats.StatsCalculator
 import com.pulse.checkin.domain.stats.TodaySnapshot
 import com.pulse.checkin.domain.stats.YearSnapshot
 import com.pulse.checkin.reminder.ReminderScheduler
+import com.pulse.checkin.reminder.DayEventReminderScheduler
 import com.pulse.checkin.ui.util.AndroidLunarCalendar
 import java.time.LocalDate
 import java.time.YearMonth
@@ -96,6 +97,8 @@ data class DayEventDraft(
     val date: LocalDate = LocalDate.now(),
     val repeatsMonthly: Boolean = false,
     val repeatsYearly: Boolean = false,
+    val reminderEnabled: Boolean = false,
+    val reminderDaysBefore: Int = 1,
     val note: String? = null,
     val calendarType: CalendarType = CalendarType.SOLAR,
     val lunarMonth: Int? = null,
@@ -109,6 +112,8 @@ data class DayEventDraft(
             date = event.date,
             repeatsMonthly = event.repeatsMonthly,
             repeatsYearly = event.repeatsYearly,
+            reminderEnabled = event.reminderEnabled,
+            reminderDaysBefore = event.reminderDaysBefore,
             note = event.note,
             calendarType = event.calendarType,
             lunarMonth = event.lunarMonth,
@@ -157,6 +162,7 @@ class AppViewModel(
     private val backupManager: BackupManager,
     private val statsCalculator: StatsCalculator,
     private val reminderScheduler: ReminderScheduler,
+    private val dayEventReminderScheduler: DayEventReminderScheduler,
     private val syncManager: SyncManager,
     private val syncClock: SyncClock,
 ) : ViewModel() {
@@ -415,6 +421,8 @@ class AppViewModel(
                 date = date,
                 repeatsMonthly = draft.repeatsMonthly,
                 repeatsYearly = draft.repeatsYearly,
+                reminderEnabled = draft.reminderEnabled,
+                reminderDaysBefore = draft.reminderDaysBefore.coerceIn(1, 7),
                 note = draft.note?.trim()?.ifBlank { null },
                 sortOrder = sortOrder,
                 calendarType = calendarType,
@@ -426,6 +434,11 @@ class AppViewModel(
                 updatedAtEpochMillis = syncClock.nowMillis(),
             )
             dayEventRepository.upsert(event)
+            if (event.reminderEnabled) {
+                dayEventReminderScheduler.scheduleForDayEvent(event)
+            } else {
+                dayEventReminderScheduler.cancelForDayEvent(event.id)
+            }
             triggerSync()
         }
     }
@@ -433,6 +446,7 @@ class AppViewModel(
     fun archiveDayEvent(eventId: String) {
         viewModelScope.launch {
             dayEventRepository.setArchived(eventId, true)
+            dayEventReminderScheduler.cancelForDayEvent(eventId)
             triggerSync()
         }
     }
@@ -526,6 +540,9 @@ class AppViewModel(
                     )
                 }
                 reminderScheduler.syncAll(habitRepository.getActiveReminderHabits())
+                dayEventReminderScheduler.syncAll(
+                    dayEventRepository.getActiveReminderDayEvents(),
+                )
             }
             is SyncOutcome.SignedOut -> syncUiStateInternal.update { it.copy(isSyncing = false) }
             is SyncOutcome.Failure -> syncUiStateInternal.update {
@@ -557,6 +574,7 @@ class AppViewModel(
                     backupManager = container.backupManager,
                     statsCalculator = container.statsCalculator,
                     reminderScheduler = container.reminderScheduler,
+                    dayEventReminderScheduler = container.dayEventReminderScheduler,
                     syncManager = container.syncManager,
                     syncClock = container.syncClock,
                 )

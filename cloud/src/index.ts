@@ -191,6 +191,8 @@ interface DayEventRecord {
   eventDate: string;
   repeatsMonthly: boolean;
   repeatsYearly: boolean;
+  reminderEnabled: boolean;
+  reminderDaysBefore: number;
   note: string | null;
   sortOrder: number;
   calendarType: string;
@@ -248,6 +250,8 @@ function isDayEvent(value: unknown): value is DayEventRecord {
     typeof item.eventDate === 'string' &&
     DATE_RE.test(item.eventDate) &&
     (item.repeatsMonthly === undefined || item.repeatsMonthly === true || item.repeatsMonthly === false) &&
+    (item.reminderEnabled === undefined || item.reminderEnabled === true || item.reminderEnabled === false) &&
+    (item.reminderDaysBefore === undefined || asNumber(item.reminderDaysBefore) !== null) &&
     asNumber(item.sortOrder) !== null &&
     (calendarType === undefined || calendarType === 'SOLAR' || calendarType === 'LUNAR') &&
     (item.lunarMonth === null || item.lunarMonth === undefined || asNumber(item.lunarMonth) !== null) &&
@@ -301,6 +305,8 @@ function dayEventBindings(userId: string, event: DayEventRecord, firstSeenAt: nu
     event.eventDate,
     event.repeatsMonthly ? 1 : 0,
     event.repeatsYearly ? 1 : 0,
+    event.reminderEnabled ? 1 : 0,
+    event.reminderDaysBefore ?? 1,
     event.note ?? null,
     event.sortOrder,
     event.calendarType ?? 'SOLAR',
@@ -371,8 +377,9 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     env.DB.prepare(
       `INSERT INTO day_events
          (id, user_id, name, event_date, repeats_monthly, repeats_yearly, note, sort_order, calendar_type,
-          lunar_month, lunar_day, lunar_leap, created_at, archived, updated_at, first_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          lunar_month, lunar_day, lunar_leap, reminder_enabled, reminder_days_before, created_at, archived,
+          updated_at, first_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, event_date = excluded.event_date,
          repeats_monthly = excluded.repeats_monthly,
@@ -381,6 +388,8 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
          calendar_type = excluded.calendar_type,
          lunar_month = excluded.lunar_month, lunar_day = excluded.lunar_day,
          lunar_leap = excluded.lunar_leap,
+         reminder_enabled = excluded.reminder_enabled,
+         reminder_days_before = excluded.reminder_days_before,
          created_at = excluded.created_at, archived = excluded.archived,
          updated_at = excluded.updated_at
        WHERE excluded.updated_at > day_events.updated_at AND day_events.user_id = excluded.user_id`,
@@ -405,7 +414,8 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
     .all();
   const { results: dayEvents } = await env.DB.prepare(
     `SELECT id, name, event_date, repeats_monthly, repeats_yearly, note, sort_order, calendar_type,
-            lunar_month, lunar_day, lunar_leap, created_at, archived, updated_at
+            lunar_month, lunar_day, lunar_leap, reminder_enabled, reminder_days_before,
+            created_at, archived, updated_at
      FROM day_events WHERE user_id = ? AND (updated_at > ? OR first_seen_at > ?) ORDER BY updated_at ASC`,
   )
     .bind(userId, since, since)
@@ -444,6 +454,8 @@ async function handleSync(request: Request, env: Env): Promise<Response> {
       eventDate: row.event_date,
       repeatsMonthly: !!row.repeats_monthly,
       repeatsYearly: !!row.repeats_yearly,
+      reminderEnabled: !!row.reminder_enabled,
+      reminderDaysBefore: row.reminder_days_before ?? 1,
       note: row.note ?? null,
       sortOrder: row.sort_order,
       calendarType: row.calendar_type ?? 'SOLAR',

@@ -64,6 +64,10 @@ fun DayEventEditorSheet(
     var lunarMonth by remember(initialDraft.id) { mutableStateOf(initialDraft.lunarMonth ?: 1) }
     var lunarDay by remember(initialDraft.id) { mutableStateOf(initialDraft.lunarDay ?: 1) }
     var lunarLeap by remember(initialDraft.id) { mutableStateOf(initialDraft.lunarLeap) }
+    var reminderEnabled by remember(initialDraft.id) { mutableStateOf(initialDraft.reminderEnabled) }
+    var reminderDaysBefore by remember(initialDraft.id) {
+        mutableStateOf(initialDraft.reminderDaysBefore.coerceIn(1, 7))
+    }
     var showDatePicker by remember { mutableStateOf(false) }
 
     val switchColors = SwitchDefaults.colors(
@@ -276,6 +280,50 @@ fun DayEventEditorSheet(
                         }
                     }
                 }
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = strings.dayEventReminder,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = strings.dayEventReminderDesc,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = reminderEnabled,
+                            onCheckedChange = { reminderEnabled = it },
+                            colors = switchColors,
+                        )
+                    }
+                    if (reminderEnabled) {
+                        Text(
+                            text = strings.dayEventReminderDays(reminderDaysBefore),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items((1..7).toList()) { day ->
+                                FilterChip(
+                                    selected = reminderDaysBefore == day,
+                                    onClick = { reminderDaysBefore = day },
+                                    label = { Text("$day") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it.take(100) },
@@ -294,6 +342,8 @@ fun DayEventEditorSheet(
                                 date = date,
                                 repeatsMonthly = repeatsMonthly,
                                 repeatsYearly = repeatsYearly,
+                                reminderEnabled = reminderEnabled,
+                                reminderDaysBefore = reminderDaysBefore,
                                 note = note.trim().ifBlank { null },
                                 calendarType = calendarType,
                                 lunarMonth = if (calendarType == CalendarType.LUNAR) lunarMonth else null,
