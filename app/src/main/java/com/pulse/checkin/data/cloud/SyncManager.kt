@@ -64,13 +64,10 @@ class SyncManager(
                 val localEvents = dataSource.getAllEventsIncludingDeleted()
                 val localDayEvents = dataSource.getAllDayEvents()
                 val pushHabits = localHabits
-                    .filter { it.updatedAtEpochMillis > watermark }
                     .map { it.toDto() }
                 val pushEvents = localEvents
-                    .filter { it.updatedAtEpochMillis > watermark }
                     .map { it.toDto() }
                 val pushDayEvents = localDayEvents
-                    .filter { it.updatedAtEpochMillis > watermark }
                     .map { it.toDto() }
                 val response = api.sync(
                     authorization = "Bearer $token",

@@ -6,8 +6,12 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.map
 
 interface SyncSessionStore {
@@ -28,6 +32,7 @@ private val Context.sessionDataStore by preferencesDataStore(name = "pulse_sessi
 class SessionManager(context: Context) : SyncSessionStore {
     private val appContext = context.applicationContext
     private val clockOffset = AtomicLong(0L)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private object Keys {
         val authToken = stringPreferencesKey("auth_token")
@@ -35,6 +40,14 @@ class SessionManager(context: Context) : SyncSessionStore {
         val accountEmail = stringPreferencesKey("account_email")
         val syncWatermark = longPreferencesKey("sync_watermark")
         val lastSyncAt = longPreferencesKey("last_sync_at")
+        val clockOffset = longPreferencesKey("clock_offset")
+    }
+
+    init {
+        scope.launch {
+            val savedOffset = appContext.sessionDataStore.data.first()[Keys.clockOffset] ?: 0L
+            clockOffset.set(savedOffset)
+        }
     }
 
     override val sessionFlow: Flow<Session?> = appContext.sessionDataStore.data.map { preferences ->
@@ -52,6 +65,11 @@ class SessionManager(context: Context) : SyncSessionStore {
         get() = clockOffset.get()
         set(value) {
             clockOffset.set(value)
+            scope.launch {
+                appContext.sessionDataStore.edit { preferences ->
+                    preferences[Keys.clockOffset] = value
+                }
+            }
         }
 
     override suspend fun currentToken(): String? = appContext.sessionDataStore.data.first()[Keys.authToken]

@@ -130,7 +130,7 @@ class SyncManagerTest {
     }
 
     @Test
-    fun `sync pushes only records newer than watermark and applies pulled records`() = runBlocking {
+    fun `sync pushes all local records and applies pulled records`() = runBlocking {
         val session = FakeSession()
         val dataSource = FakeDataSource(
             habits = mutableListOf(
@@ -173,7 +173,7 @@ class SyncManagerTest {
 
         assertIs<SyncOutcome.Success>(outcome)
         assertEquals("Bearer token-1", api.lastAuthHeader)
-        assertEquals(listOf("h-local"), api.lastRequest?.habits?.map { it.id })
+        assertEquals(listOf("h-local", "h-old"), api.lastRequest?.habits?.map { it.id })
         assertEquals(listOf("e-local"), api.lastRequest?.events?.map { it.id })
         assertEquals(1_000L, api.lastRequest?.since)
         assertTrue(dataSource.habits.any { it.id == "pulled-h" })
