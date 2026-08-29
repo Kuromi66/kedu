@@ -170,15 +170,19 @@ private fun WheelColumn(
             modifier = Modifier.fillMaxWidth(),
         ) {
             items(values.size) { index ->
-                Text(
-                    text = "%02d".format(values[index]),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(itemHeight),
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "%02d".format(values[index]),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
         }
     }
