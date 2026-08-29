@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class PulseWidgetProvider : AppWidgetProvider() {
+class PulseCheckInWidgetProvider : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -17,7 +17,7 @@ class PulseWidgetProvider : AppWidgetProvider() {
     ) {
         val app = context.applicationContext as PulseApplication
         app.appScope.launch {
-            app.container.pulseWidgetUpdater.updateAll()
+            app.container.pulseWidgetUpdater.updateCheckInWidget()
         }
     }
 
@@ -32,7 +32,7 @@ class PulseWidgetProvider : AppWidgetProvider() {
                 container.checkInRepository.addCheckIn(habitId)
                 container.syncManager.syncOnce()
             } finally {
-                container.pulseWidgetUpdater.updateAll()
+                container.pulseWidgetUpdater.updateCheckInWidget()
                 pendingResult.finish()
             }
         }

@@ -174,6 +174,9 @@
     <string name="widget_description">桌面快捷打卡、进度与重要日期倒计时</string>
     <string name="widget_title">今日打卡</string>
     <string name="widget_summary">%1$d 次 · %2$d/%3$d 达标</string>
+    <string name="widget_dates_title">重要日期</string>
+    <string name="widget_dates_description">桌面重要日期倒计时</string>
+    <string name="widget_no_dates">暂无即将到来的日期</string>
     <string name="habit_editor_new">添加习惯</string>
     <string name="habit_editor_edit">编辑习惯</string>
     <string name="habit_name">习惯名称</string>

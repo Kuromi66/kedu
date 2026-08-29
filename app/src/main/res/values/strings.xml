@@ -179,6 +179,9 @@
     <string name="widget_description">Quick check-in, progress and important date countdown on your home screen</string>
     <string name="widget_title">Today</string>
     <string name="widget_summary">%1$d check-ins · %2$d/%3$d done</string>
+    <string name="widget_dates_title">Important Dates</string>
+    <string name="widget_dates_description">Important date countdown on your home screen</string>
+    <string name="widget_no_dates">No upcoming dates</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

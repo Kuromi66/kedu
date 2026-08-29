@@ -177,22 +177,4 @@
             </LinearLayout>
         </FrameLayout>
     </LinearLayout>
-
-    <FrameLayout
-        android:id="@+id/date_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/widget_row_bg"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="8dp">
-
-        <TextView
-            android:id="@+id/widget_date_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/widget_text_primary"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-    </FrameLayout>
 </LinearLayout>

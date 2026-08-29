@@ -48,14 +48,25 @@
         </provider>
 
         <receiver
-            android:name=".widget.PulseWidgetProvider"
+            android:name=".widget.PulseCheckInWidgetProvider"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/pulse_widget_info" />
+                android:resource="@xml/pulse_checkin_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.PulseDatesWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pulse_dates_widget_info" />
         </receiver>
     </application>
 
