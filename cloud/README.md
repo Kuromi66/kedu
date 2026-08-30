@@ -24,6 +24,23 @@ PULSE_API_BASE_URL=https://pulse-sync.<子域名>.workers.dev
 | POST | `/auth/register` | 注册，body `{ email, password }` |
 | POST | `/auth/login` | 登录，body `{ email, password }`，返回 `{ token, userId, serverTime }` |
 | POST | `/auth/logout` | 登出，需 `Authorization: Bearer <token>` |
-| POST | `/sync` | 同步，需 Bearer；body `{ since, habits[], events[] }`，返回 `{ serverTime, habits[], events[] }` |
+| POST | `/sync` | 同步，需 Bearer；body `{ since, habits[], events[], dayEvents[] }`，返回 `{ serverTime, habits[], events[], dayEvents[] }` |
+| GET | `/version` | 版本清单，无需登录，供客户端检查更新 |
 
 同步采用单条记录 Last-Write-Wins：推送时服务端保留 `updated_at` 较大的版本，随后返回该用户 `updated_at > since` 的全部记录，客户端幂等合并。
+
+## 代码结构
+
+`src/` 按职责拆分，便于维护与扩展：
+
+| 文件 | 职责 |
+| --- | --- |
+| `index.ts` | Workers 入口：路由分发与统一错误处理 |
+| `types.ts` | 环境绑定类型（D1） |
+| `constants.ts` | CORS、会话有效期、同步限额、版本清单等常量 |
+| `http.ts` | JSON/错误响应与请求体解析 |
+| `validation.ts` | 记录 DTO 类型与字段校验 |
+| `crypto.ts` | 随机数、hex 与 PBKDF2 密码哈希 |
+| `db.ts` | D1 全部 SQL：会话、用户、习惯/打卡/重要日期 upsert 与增量拉取 |
+| `auth.ts` | 注册、登录、登出与 Bearer 鉴权 |
+| `sync.ts` | 同步处理器：先落库推送（LWW），再返回增量变更 |
