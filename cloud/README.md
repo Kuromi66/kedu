@@ -17,6 +17,10 @@
 PULSE_API_BASE_URL=https://pulse-sync.<子域名>.workers.dev
 ```
 
+## 定时任务
+
+Worker 注册了每周日凌晨 04:00（UTC）的 Cron 触发，自动物理清除超过 90 天保留期的「彻底删除」墓碑（习惯与打卡），并兜底清理指向已不存在习惯的孤儿打卡。保留期大于常见离线时长，确保删除能先同步到其他设备再被清除。
+
 ## 接口
 
 | 方法 | 路径 | 说明 |
@@ -35,7 +39,7 @@ PULSE_API_BASE_URL=https://pulse-sync.<子域名>.workers.dev
 
 | 文件 | 职责 |
 | --- | --- |
-| `index.ts` | Workers 入口：路由分发与统一错误处理 |
+| `index.ts` | Workers 入口：路由分发、统一错误处理与定时清理入口 |
 | `types.ts` | 环境绑定类型（D1） |
 | `constants.ts` | CORS、会话有效期、同步限额、版本清单等常量 |
 | `http.ts` | JSON/错误响应与请求体解析 |

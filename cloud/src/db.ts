@@ -1,7 +1,7 @@
 // 数据库访问层：封装 D1 的全部 SQL 语句
 // 约定：同步采用单条记录 Last-Write-Wins（LWW），即 updated_at 大者胜；
 // first_seen_at 用于登录后首次同步，保证云端已有但本地从未见过的记录也能被拉回
-import { BATCH_LIMIT } from './constants';
+import { BATCH_LIMIT, DELETED_RETENTION_MS } from './constants';
 import type { Env } from './types';
 import type { DayEventRecord, EventRecord, HabitRecord } from './validation';
 
@@ -233,6 +233,27 @@ export async function upsertDayEvents(
 }
 
 // ---------- 增量拉取 ----------
+
+// ---------- 过期墓碑清理 ----------
+
+// 物理清除超过保留期的彻底删除记录，供定时任务（scheduled）调用。
+// 先清打卡再清习惯，最后兜底清掉指向已不存在习惯的孤儿打卡；
+// day_events 只有归档（archived）没有墓碑，归档可恢复，不在此清理范围
+export async function purgeDeletedRecords(env: Env): Promise<void> {
+  const cutoff = Date.now() - DELETED_RETENTION_MS;
+  await env.DB.prepare(
+    'DELETE FROM events WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+  )
+    .bind(cutoff)
+    .run();
+  await env.DB.prepare(
+    'DELETE FROM habits WHERE deleted_at IS NOT NULL AND deleted_at < ?',
+  )
+    .bind(cutoff)
+    .run();
+  await env.DB.prepare('DELETE FROM events WHERE habit_id NOT IN (SELECT id FROM habits)')
+    .run();
+}
 
 // 行类型：与表字段 snake_case 一一对应，用于读取后映射为 API 响应形状
 interface HabitRow {

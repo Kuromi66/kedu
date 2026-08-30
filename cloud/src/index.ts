@@ -2,6 +2,7 @@
 // 业务逻辑按职责拆分在 auth / sync / db / validation / http / crypto / constants 等模块
 import { handleLogin, handleLogout, handleRegister } from './auth';
 import { CORS_HEADERS, VERSION_MANIFEST } from './constants';
+import { purgeDeletedRecords } from './db';
 import { error, HttpError, json } from './http';
 import { handleSync } from './sync';
 import type { Env } from './types';
@@ -44,5 +45,9 @@ export default {
       if (err instanceof HttpError) return error(err.message, err.status);
       return error('Internal error', 500);
     }
+  },
+  // 定时任务：每周清理超过保留期的彻底删除墓碑，避免 D1 中长期堆积无用行
+  async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+    await purgeDeletedRecords(env);
   },
 };

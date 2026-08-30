@@ -6,6 +6,10 @@ routes = [
   { pattern = "sync.kon123.click", custom_domain = true }
 ]
 
+# 定时清理墓碑：每周日 04:00（UTC）执行一次（Cloudflare cron 星期日为 SUN/1）
+[triggers]
+crons = ["0 4 * * SUN"]
+
 # D1 database for sync data.
 # 1. Run: npx wrangler d1 create pulse
 # 2. Copy the returned database_id below.

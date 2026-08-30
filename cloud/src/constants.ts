@@ -19,6 +19,10 @@ export const MAX_BODY_BYTES = 2_000_000;
 // D1 batch 单批最大语句数：超过时需分批执行
 export const BATCH_LIMIT = 100;
 
+// 彻底删除墓碑保留期：超过该时长后由定时任务物理清除。
+// 必须大于任意设备可能离线的时间，否则离线设备会把已删除记录重新上传
+export const DELETED_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
 // localDate 格式校验：YYYY-MM-DD
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
