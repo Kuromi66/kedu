@@ -16,6 +16,9 @@ import com.pulse.checkin.data.cloud.SyncError
 import com.pulse.checkin.data.cloud.SyncException
 import com.pulse.checkin.data.cloud.SyncManager
 import com.pulse.checkin.data.cloud.SyncOutcome
+import com.pulse.checkin.data.update.UpdateCheckResult
+import com.pulse.checkin.data.update.UpdateManager
+import com.pulse.checkin.data.update.VersionManifest
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.domain.model.AppLanguage
 import com.pulse.checkin.domain.model.CalendarType
@@ -90,6 +93,16 @@ data class SyncUiState(
     val lastSyncAtEpochMillis: Long? = null,
     val syncError: SyncError? = null,
     val authError: SyncError? = null,
+)
+
+enum class UpdateCheckMessage {
+    LATEST,
+    FAILED,
+}
+
+data class UpdateUiState(
+    val manifest: VersionManifest? = null,
+    val message: UpdateCheckMessage? = null,
 )
 
 data class DayEventDraft(
@@ -169,6 +182,7 @@ class AppViewModel(
     private val dayEventReminderScheduler: DayEventReminderScheduler,
     private val syncManager: SyncManager,
     private val syncClock: SyncClock,
+    private val updateManager: UpdateManager,
 ) : ViewModel() {
     private val selectedTab = MutableStateFlow(AppTab.TODAY)
     private val selectedDate = MutableStateFlow(LocalDate.now())
@@ -177,9 +191,11 @@ class AppViewModel(
     private val selectedStatsHabitId = MutableStateFlow<String?>(null)
     private val currentDate = MutableStateFlow(LocalDate.now())
     private val syncUiStateInternal = MutableStateFlow(SyncUiState())
+    private val updateUiStateInternal = MutableStateFlow(UpdateUiState())
     private var syncJob: Job? = null
 
     val syncUiState: StateFlow<SyncUiState> = syncUiStateInternal
+    val updateUiState: StateFlow<UpdateUiState> = updateUiStateInternal
 
     init {
         viewModelScope.launch {
@@ -554,6 +570,34 @@ class AppViewModel(
         }
     }
 
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            when (val result = updateManager.check(force = true)) {
+                is UpdateCheckResult.Available -> {
+                    updateUiStateInternal.update {
+                        it.copy(manifest = result.manifest, message = null)
+                    }
+                }
+                UpdateCheckResult.UpToDate,
+                UpdateCheckResult.SkippedToday,
+                -> updateUiStateInternal.update {
+                    it.copy(message = UpdateCheckMessage.LATEST)
+                }
+                UpdateCheckResult.Failed -> updateUiStateInternal.update {
+                    it.copy(message = UpdateCheckMessage.FAILED)
+                }
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        updateUiStateInternal.update { it.copy(manifest = null) }
+    }
+
+    fun clearUpdateMessage() {
+        updateUiStateInternal.update { it.copy(message = null) }
+    }
+
     private fun triggerSync() {
         syncJob?.cancel()
         syncJob = viewModelScope.launch {
@@ -612,6 +656,7 @@ class AppViewModel(
                     dayEventReminderScheduler = container.dayEventReminderScheduler,
                     syncManager = container.syncManager,
                     syncClock = container.syncClock,
+                    updateManager = container.updateManager,
                 )
             }
         }

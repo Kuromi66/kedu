@@ -80,6 +80,7 @@ fun SettingsScreen(
     onExportData: () -> Unit,
     onImportData: () -> Unit,
     onExportCsv: () -> Unit,
+    onCheckUpdate: () -> Unit,
     onRestoreHabit: (String) -> Unit,
     onDeleteHabitPermanently: (String) -> Unit,
 ) {
@@ -267,6 +268,20 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = onCheckUpdate,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)),
+                    ) {
+                        SettingsButtonContent(
+                            text = strings.checkUpdate,
+                            icon = PulseIconKind.Info,
+                            color = MaterialTheme.colorScheme.primary,
+                            compactLayout = compactLayout,
+                        )
+                    }
                 }
             }
         }

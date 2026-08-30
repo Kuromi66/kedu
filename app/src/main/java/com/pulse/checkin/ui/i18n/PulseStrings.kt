@@ -221,6 +221,16 @@ class PulseStrings(private val context: Context) {
     val widgetTitle: String get() = context.getString(R.string.widget_title)
     fun widgetSummary(total: Int, completed: Int, target: Int): String =
         context.getString(R.string.widget_summary, total, completed, target)
+    val checkUpdate: String get() = context.getString(R.string.check_update)
+    fun updateAvailableTitle(version: String): String =
+        context.getString(R.string.update_available_title, version)
+    val updateLatest: String get() = context.getString(R.string.update_latest)
+    val updateFailed: String get() = context.getString(R.string.update_failed)
+    val updateNow: String get() = context.getString(R.string.update_now)
+    val updateLater: String get() = context.getString(R.string.update_later)
+    val updateNotificationTitle: String get() = context.getString(R.string.update_notification_title)
+    fun updateNotificationText(version: String): String =
+        context.getString(R.string.update_notification_text, version)
 
     val habitEditorNew: String get() = context.getString(R.string.habit_editor_new)
     val habitEditorEdit: String get() = context.getString(R.string.habit_editor_edit)

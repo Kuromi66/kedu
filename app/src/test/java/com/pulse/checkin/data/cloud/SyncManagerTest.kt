@@ -3,6 +3,7 @@ package com.pulse.checkin.data.cloud
 import com.pulse.checkin.data.db.entity.CheckInEventEntity
 import com.pulse.checkin.data.db.entity.DayEventEntity
 import com.pulse.checkin.data.db.entity.HabitEntity
+import com.pulse.checkin.data.update.VersionManifest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -59,6 +60,8 @@ class SyncManagerTest {
         var lastRequest: SyncRequest? = null
         var lastAuth: AuthRequest? = null
         var lastAuthHeader: String? = null
+
+        override suspend fun fetchVersion(): VersionManifest = VersionManifest(1, "1.0.0", "", "")
 
         override suspend fun register(body: AuthRequest): AuthResponse {
             lastAuth = body
@@ -253,6 +256,7 @@ class SyncManagerTest {
     @Test
     fun `register maps http 409 to email taken`() = runBlocking {
         val failingApi = object : CloudApi {
+            override suspend fun fetchVersion(): VersionManifest = VersionManifest(1, "1.0.0", "", "")
             override suspend fun register(body: AuthRequest): AuthResponse {
                 throw HttpException(
                     Response.error<Any>(
@@ -277,6 +281,7 @@ class SyncManagerTest {
     @Test
     fun `sync failure returns typed error`() = runBlocking {
         val failingApi = object : CloudApi {
+            override suspend fun fetchVersion(): VersionManifest = VersionManifest(1, "1.0.0", "", "")
             override suspend fun register(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun logout(authorization: String): Response<Unit> = Response.success(Unit)
@@ -298,6 +303,7 @@ class SyncManagerTest {
     fun `logout clears local session even when server unreachable`() = runBlocking {
         val session = FakeSession()
         val failingApi = object : CloudApi {
+            override suspend fun fetchVersion(): VersionManifest = VersionManifest(1, "1.0.0", "", "")
             override suspend fun register(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun logout(authorization: String): Response<Unit> = throw RuntimeException("network down")

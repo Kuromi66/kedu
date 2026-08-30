@@ -1,6 +1,7 @@
 package com.pulse.checkin.data.cloud
 
 import com.pulse.checkin.BuildConfig
+import com.pulse.checkin.data.update.VersionManifest
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -9,10 +10,14 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface CloudApi {
+    @GET("version")
+    suspend fun fetchVersion(): VersionManifest
+
     @POST("auth/register")
     suspend fun register(@Body body: AuthRequest): AuthResponse
 

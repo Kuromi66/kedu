@@ -182,6 +182,14 @@
     <string name="widget_dates_title">Important Dates</string>
     <string name="widget_dates_description">Important date countdown on your home screen</string>
     <string name="widget_no_dates">No upcoming dates</string>
+    <string name="check_update">Check for updates</string>
+    <string name="update_available_title">New version v%1$s available</string>
+    <string name="update_latest">You\'re up to date</string>
+    <string name="update_failed">Failed to check for updates</string>
+    <string name="update_now">Update</string>
+    <string name="update_later">Later</string>
+    <string name="update_notification_title">Update available</string>
+    <string name="update_notification_text">v%1$s is available, tap to view</string>
 
     <string name="habit_editor_new">New habit</string>
     <string name="habit_editor_edit">Edit habit</string>

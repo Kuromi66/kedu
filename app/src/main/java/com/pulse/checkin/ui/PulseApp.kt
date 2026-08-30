@@ -2,7 +2,9 @@ package com.pulse.checkin.ui
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,6 +57,7 @@ import com.pulse.checkin.ui.components.CheckInNoteDialog
 import com.pulse.checkin.ui.components.HabitEditorSheet
 import com.pulse.checkin.ui.components.PulseActionIcon
 import com.pulse.checkin.ui.components.PulseIconKind
+import com.pulse.checkin.ui.components.UpdateDialog
 import com.pulse.checkin.ui.screen.HistoryScreen
 import com.pulse.checkin.ui.screen.DayEventsScreen
 import com.pulse.checkin.ui.screen.SettingsScreen
@@ -71,9 +74,11 @@ import kotlinx.coroutines.launch
 fun PulseApp(
     viewModel: AppViewModel,
     pendingCheckInHabitId: String? = null,
+    pendingUpdateCheck: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val syncUiState by viewModel.syncUiState.collectAsStateWithLifecycle()
+    val updateUiState by viewModel.updateUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val strings = rememberPulseStrings(uiState.preferences.appLanguage)
@@ -84,6 +89,24 @@ fun PulseApp(
 
     LaunchedEffect(pendingCheckInHabitId) {
         pendingCheckInHabitIdState = pendingCheckInHabitId
+    }
+    LaunchedEffect(pendingUpdateCheck) {
+        if (pendingUpdateCheck) {
+            viewModel.checkForUpdate()
+        }
+    }
+    LaunchedEffect(updateUiState.message) {
+        when (updateUiState.message) {
+            UpdateCheckMessage.LATEST -> {
+                Toast.makeText(context, strings.updateLatest, Toast.LENGTH_SHORT).show()
+                viewModel.clearUpdateMessage()
+            }
+            UpdateCheckMessage.FAILED -> {
+                Toast.makeText(context, strings.updateFailed, Toast.LENGTH_SHORT).show()
+                viewModel.clearUpdateMessage()
+            }
+            null -> Unit
+        }
     }
     val backgroundBlur by animateDpAsState(
         targetValue = if (editorVisible) 14.dp else 0.dp,
@@ -221,6 +244,7 @@ fun PulseApp(
                                     onExportCsv = {
                                         csvLauncher.launch("pulse-checkins-${LocalDate.now()}.csv")
                                     },
+                                    onCheckUpdate = viewModel::checkForUpdate,
                                     onRestoreHabit = viewModel::restoreHabit,
                                     onDeleteHabitPermanently = viewModel::deleteHabitPermanently,
                                 )
@@ -286,6 +310,21 @@ fun PulseApp(
                             onDismiss = { pendingCheckInHabitIdState = null },
                         )
                     }
+                }
+                updateUiState.manifest?.let { manifest ->
+                    UpdateDialog(
+                        title = strings.updateAvailableTitle(manifest.versionName),
+                        notes = manifest.notes,
+                        updateLabel = strings.updateNow,
+                        laterLabel = strings.updateLater,
+                        onUpdate = {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(manifest.url)),
+                            )
+                            viewModel.dismissUpdateDialog()
+                        },
+                        onDismiss = { viewModel.dismissUpdateDialog() },
+                    )
                 }
             }
         }

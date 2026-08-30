@@ -14,6 +14,15 @@ const MAX_BODY_BYTES = 2_000_000;
 const BATCH_LIMIT = 100;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+// 应用版本清单：每次发版时更新这里，并随 Worker 一起部署。
+const VERSION_MANIFEST = {
+  versionCode: 14,
+  versionName: '1.7.0',
+  notes:
+    '新增检查更新功能：设置页可手动检查更新，发现新版本会弹窗展示说明并可跳转下载；后台每日检查并推送新版本提醒。',
+  url: 'https://github.com/Kuromi66/kedu/releases/tag/v1.7.0',
+};
+
 class HttpError extends Error {
   constructor(
     message: string,
@@ -484,6 +493,9 @@ export default {
     try {
       if (url.pathname === '/health' && request.method === 'GET') {
         return json({ ok: true });
+      }
+      if (url.pathname === '/version' && request.method === 'GET') {
+        return json(VERSION_MANIFEST);
       }
       if (url.pathname === '/auth/register' && request.method === 'POST') {
         return await handleRegister(request, env);

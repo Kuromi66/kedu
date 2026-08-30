@@ -13,6 +13,10 @@ import com.pulse.checkin.data.cloud.SyncClock
 import com.pulse.checkin.data.cloud.SyncDataSource
 import com.pulse.checkin.data.cloud.SyncManager
 import com.pulse.checkin.data.cloud.SyncWorker
+import com.pulse.checkin.data.update.UpdateCheckResult
+import com.pulse.checkin.data.update.UpdateCheckWorker
+import com.pulse.checkin.data.update.UpdateManager
+import com.pulse.checkin.data.update.UpdateNotifier
 import com.pulse.checkin.data.db.PulseDatabase
 import com.pulse.checkin.data.preferences.AppPreferences
 import com.pulse.checkin.data.repository.CheckInRepositoryImpl
@@ -43,10 +47,22 @@ class PulseApplication : Application() {
         super.onCreate()
         container = AppContainer(this)
         SyncWorker.schedule(this)
+        UpdateCheckWorker.schedule(this)
         appScope.launch {
             container.dayEventReminderScheduler.syncAll(
                 container.dayEventRepository.getActiveReminderDayEvents(),
             )
+        }
+        appScope.launch {
+            when (val result = container.updateManager.check(force = false)) {
+                is UpdateCheckResult.Available -> {
+                    if (container.updateManager.shouldNotify(result.manifest)) {
+                        container.updateManager.markNotified(result.manifest)
+                        UpdateNotifier.notify(this@PulseApplication, result.manifest)
+                    }
+                }
+                else -> Unit
+            }
         }
         appScope.launch {
             combine(
@@ -88,4 +104,5 @@ class AppContainer(context: Context) {
         database.dayEventDao(),
     )
     val syncManager = SyncManager(cloudApi, sessionManager, syncDataSource, syncClock)
+    val updateManager = UpdateManager(cloudApi, preferences)
 }

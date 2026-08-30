@@ -11,6 +11,7 @@ import com.pulse.checkin.ui.AppTab
 import com.pulse.checkin.reminder.EXTRA_NAVIGATE_TO
 import com.pulse.checkin.reminder.NAVIGATE_TO_CHECK_IN
 import com.pulse.checkin.reminder.NAVIGATE_TO_DAY_EVENTS
+import com.pulse.checkin.reminder.NAVIGATE_TO_UPDATE
 
 class MainActivity : AppCompatActivity() {
     private val viewModel by viewModels<AppViewModel> {
@@ -28,7 +29,11 @@ class MainActivity : AppCompatActivity() {
             null
         }
         setContent {
-            PulseApp(viewModel = viewModel, pendingCheckInHabitId = pendingCheckInHabitId)
+            PulseApp(
+                viewModel = viewModel,
+                pendingCheckInHabitId = pendingCheckInHabitId,
+                pendingUpdateCheck = navigateTo == NAVIGATE_TO_UPDATE,
+            )
         }
         if (navigateTo == NAVIGATE_TO_DAY_EVENTS) {
             viewModel.selectTab(AppTab.DAY_EVENTS)
