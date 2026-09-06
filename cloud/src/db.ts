@@ -1,7 +1,7 @@
 // 数据库访问层：封装 D1 的全部 SQL 语句
 // 约定：同步采用单条记录 Last-Write-Wins（LWW），即 updated_at 大者胜；
 // first_seen_at 用于登录后首次同步，保证云端已有但本地从未见过的记录也能被拉回
-import { BATCH_LIMIT, DELETED_RETENTION_MS } from './constants';
+import { BATCH_LIMIT, DELETED_RETENTION_MS, SESSION_MAX_PER_USER } from './constants';
 import type { Env } from './types';
 import type { DayEventRecord, EventRecord, HabitRecord } from './validation';
 
@@ -34,6 +34,23 @@ export async function findUserBySession(env: Env, token: string): Promise<string
 // 登出：删除指定会话
 export async function deleteSessionByToken(env: Env, token: string): Promise<void> {
   await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+}
+
+// 清理某用户的 session：删除已过期项，并仅保留最近 MAX 条（防多端在线导致无限堆积）。
+// 保留多设备登录：不删仍然有效的 token，只裁掉过期与最陈旧超量项
+export async function pruneUserSessions(env: Env, userId: string): Promise<void> {
+  // ① 删除已过期 session（过期 token 无法再鉴权，仅占用表空间）
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND expires_at <= ?')
+    .bind(userId, Date.now())
+    .run();
+  // ② 超出上限时删掉最古老的，保留最近 SESSION_MAX_PER_USER 条
+  await env.DB.prepare(
+    `DELETE FROM sessions WHERE user_id = ? AND token NOT IN (
+       SELECT token FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT ?
+     )`,
+  )
+    .bind(userId, userId, SESSION_MAX_PER_USER)
+    .run();
 }
 
 // ---------- 用户 ----------

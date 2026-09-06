@@ -10,6 +10,9 @@ export const CORS_HEADERS = {
 // 登录会话有效期：90 天
 export const SESSION_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
+// 单个用户最多保留的有效会话数（多设备在线上限，超出清理最陈旧项）
+export const SESSION_MAX_PER_USER = 10;
+
 // 密码哈希迭代次数：兼顾安全与性能
 export const PBKDF2_ITERATIONS = 100_000;
 

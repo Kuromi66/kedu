@@ -8,6 +8,7 @@ import {
   findUserBySession,
   insertSession,
   insertUser,
+  pruneUserSessions,
 } from './db';
 import { error, json, readJson } from './http';
 import type { Env } from './types';
@@ -65,7 +66,9 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
   if (!user) return error('Invalid credentials', 401);
   const hash = await hashPassword(password, user.salt);
   if (hash !== user.password_hash) return error('Invalid credentials', 401);
+  // 签发新 token 后清理该用户过期/超量 session，不影响多设备同时在线
   const token = await createSession(env, user.id);
+  await pruneUserSessions(env, user.id);
   return json({ token, userId: user.id, serverTime: Date.now() });
 }
 
