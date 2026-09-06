@@ -38,7 +38,7 @@ object CloudApiFactory {
     fun create(baseUrl: String = BuildConfig.PULSE_API_BASE_URL): CloudApi {
         val effectiveBaseUrl = baseUrl.ifBlank { "https://pulse-sync.invalid/" }
             .let { if (it.endsWith("/")) it else "$it/" }
-        val json = Json { ignoreUnknownKeys = true }
+        val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
         val client = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

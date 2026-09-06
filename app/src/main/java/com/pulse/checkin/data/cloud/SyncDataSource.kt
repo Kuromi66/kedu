@@ -14,6 +14,7 @@ interface SyncDataSource {
     suspend fun upsertEvents(events: List<CheckInEventEntity>)
     suspend fun getAllDayEvents(): List<DayEventEntity>
     suspend fun upsertDayEvents(events: List<DayEventEntity>)
+    suspend fun clearAll()
 }
 
 class RoomSyncDataSource(
@@ -37,5 +38,11 @@ class RoomSyncDataSource(
 
     override suspend fun upsertDayEvents(events: List<DayEventEntity>) {
         events.forEach { dayEventDao.upsert(it) }
+    }
+
+    override suspend fun clearAll() {
+        habitDao.clearAll()
+        eventDao.clearAll()
+        dayEventDao.clearAll()
     }
 }

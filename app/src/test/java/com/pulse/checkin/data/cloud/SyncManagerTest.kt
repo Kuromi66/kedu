@@ -116,6 +116,12 @@ class SyncManagerTest {
                 this.dayEvents.add(event)
             }
         }
+
+        override suspend fun clearAll() {
+            habits.clear()
+            events.clear()
+            dayEvents.clear()
+        }
     }
 
     private val fakeClock = object : SyncClock {
@@ -251,6 +257,39 @@ class SyncManagerTest {
         assertTrue(result.isSuccess)
         assertEquals("a@example.com", manager.sessionFlow.firstSessionEmail())
         assertEquals(0L, session.currentWatermark())
+    }
+
+    @Test
+    fun `login clears local data to avoid leaking previous account`() = runBlocking {
+        val session = FakeSession()
+        val dataSource = FakeDataSource(
+            habits = mutableListOf(habit(id = "old-h", updatedAt = 1_000L)),
+            events = mutableListOf(event(id = "old-e", habitId = "old-h", updatedAt = 1_000L)),
+        )
+        val manager = SyncManager(FakeApi(), session, dataSource, fakeClock)
+
+        val result = manager.login("a@example.com", "secret123")
+
+        assertTrue(result.isSuccess)
+        assertTrue(dataSource.habits.isEmpty())
+        assertTrue(dataSource.events.isEmpty())
+        assertEquals(0L, session.currentWatermark())
+    }
+
+    @Test
+    fun `logout clears local data`() = runBlocking {
+        val session = FakeSession()
+        val dataSource = FakeDataSource(
+            habits = mutableListOf(habit(id = "old-h", updatedAt = 1_000L)),
+            events = mutableListOf(event(id = "old-e", habitId = "old-h", updatedAt = 1_000L)),
+        )
+        val manager = SyncManager(FakeApi(), session, dataSource, fakeClock)
+
+        manager.logout()
+
+        assertTrue(dataSource.habits.isEmpty())
+        assertTrue(dataSource.events.isEmpty())
+        assertNull(session.currentToken())
     }
 
     @Test

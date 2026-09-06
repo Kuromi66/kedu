@@ -26,6 +26,7 @@ class SyncManager(
     suspend fun login(email: String, password: String): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
             val response = api.login(AuthRequest(email = email.trim(), password = password))
+            dataSource.clearAll()
             session.saveSession(response.token, response.userId, email.trim())
             session.clockOffsetMillis = response.serverTime - System.currentTimeMillis()
             session.saveSyncState(watermark = 0L, lastSyncAtEpochMillis = 0L)
@@ -35,6 +36,7 @@ class SyncManager(
     suspend fun register(email: String, password: String): Result<Unit> = withContext(ioDispatcher) {
         runCatching {
             val response = api.register(AuthRequest(email = email.trim(), password = password))
+            dataSource.clearAll()
             session.saveSession(response.token, response.userId, email.trim())
             session.clockOffsetMillis = response.serverTime - System.currentTimeMillis()
             session.saveSyncState(watermark = 0L, lastSyncAtEpochMillis = 0L)
@@ -48,6 +50,7 @@ class SyncManager(
                 runCatching { api.logout("Bearer $token") }
             }
         } finally {
+            dataSource.clearAll()
             session.clearSession()
         }
     }

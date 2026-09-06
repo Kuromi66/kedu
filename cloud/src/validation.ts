@@ -78,7 +78,7 @@ export function isHabit(value: unknown): value is HabitRecord {
     asString(item.id) !== null &&
     asString(item.name) !== null &&
     asNumber(item.colorArgb) !== null &&
-    asNumber(item.sortOrder) !== null &&
+    (item.sortOrder === undefined || asNumber(item.sortOrder) !== null) &&
     asNumber(item.createdAtEpochMillis) !== null &&
     asNumber(item.updatedAtEpochMillis) !== null &&
     (item.deletedAtEpochMillis === null ||
@@ -119,7 +119,7 @@ export function isDayEvent(value: unknown): value is DayEventRecord {
       item.reminderEnabled === true ||
       item.reminderEnabled === false) &&
     (item.reminderDaysBefore === undefined || asNumber(item.reminderDaysBefore) !== null) &&
-    asNumber(item.sortOrder) !== null &&
+    (item.sortOrder === undefined || asNumber(item.sortOrder) !== null) &&
     (calendarType === undefined || calendarType === 'SOLAR' || calendarType === 'LUNAR') &&
     (item.lunarMonth === null ||
       item.lunarMonth === undefined ||
