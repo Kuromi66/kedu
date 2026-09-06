@@ -25,19 +25,25 @@ class RoomSyncDataSource(
     override suspend fun getAllHabits(): List<HabitEntity> = habitDao.getAll()
 
     override suspend fun upsertHabits(habits: List<HabitEntity>) {
-        habits.forEach { habitDao.upsert(it) }
+        if (habits.isNotEmpty()) {
+            habitDao.insertAll(habits)
+        }
     }
 
     override suspend fun getAllEventsIncludingDeleted(): List<CheckInEventEntity> = eventDao.getAllIncludingDeleted()
 
     override suspend fun upsertEvents(events: List<CheckInEventEntity>) {
-        events.forEach { eventDao.upsert(it) }
+        if (events.isNotEmpty()) {
+            eventDao.insertAll(events)
+        }
     }
 
     override suspend fun getAllDayEvents(): List<DayEventEntity> = dayEventDao.getAll()
 
     override suspend fun upsertDayEvents(events: List<DayEventEntity>) {
-        events.forEach { dayEventDao.upsert(it) }
+        if (events.isNotEmpty()) {
+            dayEventDao.insertAll(events)
+        }
     }
 
     override suspend fun clearAll() {

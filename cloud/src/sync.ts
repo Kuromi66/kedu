@@ -1,10 +1,23 @@
 // 数据同步：POST /sync 处理器
-// 流程：先落库客户端推送（LWW），再返回该用户自 since 以来的全部变更
+// 流程：先落库客户端推送（LWW），再返回该用户自 since 以来的全部变更；
+// 若请求带 fetchIds（对帐补拉），则只返回指定 id 的最新正文，避免全量回显
 import { authenticate } from './auth';
-import { fetchChangedRecords, upsertDayEvents, upsertEvents, upsertHabits } from './db';
+import {
+  fetchChangedRecords,
+  fetchRecordMeta,
+  fetchRecordsByIds,
+  upsertDayEvents,
+  upsertEvents,
+  upsertHabits,
+} from './db';
 import { error, json, readJson } from './http';
 import type { Env } from './types';
 import { isDayEvent, isEvent, isHabit } from './validation';
+
+// 抽取 id 数组：仅保留非空字符串
+function sanitizeIds(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string' && id.length > 0) : [];
+}
 
 export async function handleSync(request: Request, env: Env): Promise<Response> {
   const userId = await authenticate(request, env);
@@ -25,7 +38,30 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
   await upsertEvents(env, userId, eventsIn, now);
   await upsertDayEvents(env, userId, dayEventsIn, now);
 
+  // 对帐补拉：带 fetchIds 时只返回指定 id 的最新正文；否则走增量拉取（按 since 水位）
+  const fetchIds = body.fetchIds as { habits?: unknown; events?: unknown; dayEvents?: unknown } | undefined;
+  const hasFetchIds = Boolean(
+    fetchIds && (sanitizeIds(fetchIds.habits).length > 0 || sanitizeIds(fetchIds.events).length > 0 || sanitizeIds(fetchIds.dayEvents).length > 0),
+  );
+  if (hasFetchIds) {
+    const changes = await fetchRecordsByIds(env, userId, {
+      habits: sanitizeIds(fetchIds!.habits),
+      events: sanitizeIds(fetchIds!.events),
+      dayEvents: sanitizeIds(fetchIds!.dayEvents),
+    });
+    return json({ serverTime: Date.now(), ...changes });
+  }
+
   // 增量拉取：客户端用 serverTime 推进水位，保证拉取与写入在同一时间基准
   const changes = await fetchChangedRecords(env, userId, since);
   return json({ serverTime: Date.now(), ...changes });
+}
+
+// POST /sync/meta 处理器：返回该用户全部记录的轻量摘要（id + updatedAt），
+// 供客户端对帐时与本地做双向版本比对，正文按需通过 /sync 的 fetchIds 补拉
+export async function handleSyncMeta(request: Request, env: Env): Promise<Response> {
+  const userId = await authenticate(request, env);
+  if (!userId) return error('Unauthorized', 401);
+  const meta = await fetchRecordMeta(env, userId);
+  return json({ serverTime: Date.now(), ...meta });
 }

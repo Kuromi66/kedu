@@ -22,9 +22,11 @@ interface SyncSessionStore {
     suspend fun currentAccountEmail(): String?
     suspend fun currentWatermark(): Long
     suspend fun currentLastSyncAt(): Long
+    suspend fun currentLastReconcileAt(): Long
     suspend fun saveSession(token: String, userId: String, email: String)
     suspend fun clearSession()
     suspend fun saveSyncState(watermark: Long, lastSyncAtEpochMillis: Long)
+    suspend fun saveLastReconcileAt(reconcileAtEpochMillis: Long)
 }
 
 private val Context.sessionDataStore by preferencesDataStore(name = "pulse_session")
@@ -40,6 +42,7 @@ class SessionManager(context: Context) : SyncSessionStore {
         val accountEmail = stringPreferencesKey("account_email")
         val syncWatermark = longPreferencesKey("sync_watermark")
         val lastSyncAt = longPreferencesKey("last_sync_at")
+        val lastReconcileAt = longPreferencesKey("last_reconcile_at")
         val clockOffset = longPreferencesKey("clock_offset")
     }
 
@@ -82,6 +85,8 @@ class SessionManager(context: Context) : SyncSessionStore {
 
     override suspend fun currentLastSyncAt(): Long = appContext.sessionDataStore.data.first()[Keys.lastSyncAt] ?: 0L
 
+    override suspend fun currentLastReconcileAt(): Long = appContext.sessionDataStore.data.first()[Keys.lastReconcileAt] ?: 0L
+
     override suspend fun saveSession(token: String, userId: String, email: String) {
         appContext.sessionDataStore.edit { preferences ->
             preferences[Keys.authToken] = token
@@ -102,6 +107,12 @@ class SessionManager(context: Context) : SyncSessionStore {
         appContext.sessionDataStore.edit { preferences ->
             preferences[Keys.syncWatermark] = watermark
             preferences[Keys.lastSyncAt] = lastSyncAtEpochMillis
+        }
+    }
+
+    override suspend fun saveLastReconcileAt(reconcileAtEpochMillis: Long) {
+        appContext.sessionDataStore.edit { preferences ->
+            preferences[Keys.lastReconcileAt] = reconcileAtEpochMillis
         }
     }
 }

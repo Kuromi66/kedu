@@ -40,6 +40,11 @@ class UpdateManagerTest {
             authorization: String,
             body: com.pulse.checkin.data.cloud.SyncRequest,
         ): com.pulse.checkin.data.cloud.SyncResponse = error("unused")
+
+        override suspend fun syncMeta(
+            authorization: String,
+        ): com.pulse.checkin.data.cloud.MetaResponse =
+            com.pulse.checkin.data.cloud.MetaResponse(serverTime = 0L)
     }
 
     private class FakeStore : UpdateStateStore {

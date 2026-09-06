@@ -4,7 +4,7 @@ import { handleLogin, handleLogout, handleRegister } from './auth';
 import { CORS_HEADERS, VERSION_MANIFEST } from './constants';
 import { purgeDeletedRecords } from './db';
 import { error, HttpError, json } from './http';
-import { handleSync } from './sync';
+import { handleSync, handleSyncMeta } from './sync';
 import type { Env } from './types';
 
 export type { Env };
@@ -38,6 +38,10 @@ export default {
       // 多端数据同步
       if (url.pathname === '/sync' && request.method === 'POST') {
         return await handleSync(request, env);
+      }
+      // 同步对帐：轻量摘要，供客户端校验与补拉
+      if (url.pathname === '/sync/meta' && request.method === 'POST') {
+        return await handleSyncMeta(request, env);
       }
       return error('Not found', 404);
     } catch (err) {

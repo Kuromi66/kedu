@@ -24,6 +24,7 @@ class SyncManagerTest {
         private var token: String? = "token-1"
         private var watermark = 1_000L
         private var lastSyncAt = 0L
+        private var lastReconcileAt = 0L
 
         override val sessionFlow: Flow<Session?> =
             MutableStateFlow(Session(token = "token-1", userId = "u-1", email = "a@example.com"))
@@ -40,6 +41,8 @@ class SyncManagerTest {
 
         override suspend fun currentLastSyncAt(): Long = lastSyncAt
 
+        override suspend fun currentLastReconcileAt(): Long = lastReconcileAt
+
         override suspend fun saveSession(token: String, userId: String, email: String) {
             this.token = token
         }
@@ -52,10 +55,15 @@ class SyncManagerTest {
             this.watermark = watermark
             this.lastSyncAt = lastSyncAtEpochMillis
         }
+
+        override suspend fun saveLastReconcileAt(reconcileAtEpochMillis: Long) {
+            this.lastReconcileAt = reconcileAtEpochMillis
+        }
     }
 
     private class FakeApi(
         var syncResponse: SyncResponse = SyncResponse(serverTime = 3_000L),
+        var metaResponse: MetaResponse = MetaResponse(serverTime = 3_000L),
     ) : CloudApi {
         var lastRequest: SyncRequest? = null
         var lastAuth: AuthRequest? = null
@@ -82,6 +90,11 @@ class SyncManagerTest {
             lastAuthHeader = authorization
             lastRequest = body
             return syncResponse
+        }
+
+        override suspend fun syncMeta(authorization: String): MetaResponse {
+            lastAuthHeader = authorization
+            return metaResponse
         }
     }
 
@@ -139,7 +152,7 @@ class SyncManagerTest {
     }
 
     @Test
-    fun `sync pushes all local records and applies pulled records`() = runBlocking {
+    fun `sync pushes only changed records and applies pulled records`() = runBlocking {
         val session = FakeSession()
         val dataSource = FakeDataSource(
             habits = mutableListOf(
@@ -182,7 +195,7 @@ class SyncManagerTest {
 
         assertIs<SyncOutcome.Success>(outcome)
         assertEquals("Bearer token-1", api.lastAuthHeader)
-        assertEquals(listOf("h-local", "h-old"), api.lastRequest?.habits?.map { it.id })
+        assertEquals(listOf("h-local"), api.lastRequest?.habits?.map { it.id })
         assertEquals(listOf("e-local"), api.lastRequest?.events?.map { it.id })
         assertEquals(1_000L, api.lastRequest?.since)
         assertTrue(dataSource.habits.any { it.id == "pulled-h" })
@@ -206,6 +219,56 @@ class SyncManagerTest {
 
         assertEquals(listOf("e-deleted"), api.lastRequest?.events?.map { it.id })
         assertEquals(1_700L, api.lastRequest?.events?.single()?.deletedAtEpochMillis)
+    }
+
+    @Test
+    fun `reconcile uploads newer local and fetches newer remote by id`() = runBlocking {
+        val session = FakeSession()
+        // 本地有两条习惯：h-local 比服务端新，h-missing 服务端没有；h-remote 服务端有但本地缺
+        val dataSource = FakeDataSource(
+            habits = mutableListOf(
+                habit(id = "h-local", updatedAt = 1_500L),
+                habit(id = "h-missing", updatedAt = 500L),
+            ),
+        )
+        val api = FakeApi(
+            metaResponse = MetaResponse(
+                serverTime = 4_000L,
+                habits = listOf(
+                    RecordMeta(id = "h-local", updatedAtEpochMillis = 1_000L),
+                    RecordMeta(id = "h-remote", updatedAtEpochMillis = 2_000L),
+                ),
+            ),
+            syncResponse = SyncResponse(
+                serverTime = 5_000L,
+                habits = listOf(
+                    HabitDto(
+                        id = "h-remote",
+                        name = "云端习惯",
+                        colorArgb = 1L,
+                        glyph = "P",
+                        sortOrder = 0,
+                        reminderEnabled = false,
+                        targetEnabled = false,
+                        createdAtEpochMillis = 1L,
+                        archived = false,
+                        updatedAtEpochMillis = 2_000L,
+                    ),
+                ),
+            ),
+        )
+        val manager = SyncManager(api, session, dataSource, fakeClock)
+
+        val outcome = manager.reconcileOnce()
+
+        assertIs<SyncOutcome.Success>(outcome)
+        // 只上传「本地更新/本地有而服务端缺」的
+        assertEquals(listOf("h-local", "h-missing"), api.lastRequest?.habits?.map { it.id })
+        // 只拉取「服务端更新/本地缺」的，避免全量回显
+        assertEquals(listOf("h-remote"), api.lastRequest?.fetchIds?.habits)
+        // 拉回的远端版本写回本地
+        assertTrue(dataSource.habits.any { it.id == "h-remote" })
+        assertEquals(5_000L, session.currentWatermark())
     }
 
     @Test
@@ -308,6 +371,7 @@ class SyncManagerTest {
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun logout(authorization: String): Response<Unit> = Response.success(Unit)
             override suspend fun sync(authorization: String, body: SyncRequest): SyncResponse = error("unused")
+            override suspend fun syncMeta(authorization: String): MetaResponse = MetaResponse(serverTime = 0L)
         }
         val manager = SyncManager(failingApi, FakeSession(), FakeDataSource(), fakeClock)
 
@@ -329,6 +393,7 @@ class SyncManagerTest {
                     Response.error<Any>(401, """{"error":"Unauthorized"}""".toResponseBody("application/json".toMediaType())),
                 )
             }
+            override suspend fun syncMeta(authorization: String): MetaResponse = MetaResponse(serverTime = 0L)
         }
         val manager = SyncManager(failingApi, FakeSession(), FakeDataSource(), fakeClock)
 
@@ -347,6 +412,7 @@ class SyncManagerTest {
             override suspend fun login(body: AuthRequest): AuthResponse = error("unused")
             override suspend fun logout(authorization: String): Response<Unit> = throw RuntimeException("network down")
             override suspend fun sync(authorization: String, body: SyncRequest): SyncResponse = error("unused")
+            override suspend fun syncMeta(authorization: String): MetaResponse = MetaResponse(serverTime = 0L)
         }
         val manager = SyncManager(failingApi, session, FakeDataSource(), fakeClock)
 

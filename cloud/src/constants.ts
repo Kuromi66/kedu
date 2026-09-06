@@ -32,9 +32,9 @@ export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // 应用版本清单：每次发版时更新这里，并随 Worker 一起部署。
 // 客户端「检查更新」读取该清单，versionCode 大于当前版本即提示更新。
 export const VERSION_MANIFEST = {
-  versionCode: 14,
-  versionName: '1.7.0',
+  versionCode: 15,
+  versionName: '1.7.1',
   notes:
-    '新增检查更新功能：设置页可手动检查更新，发现新版本会弹窗展示说明并可跳转下载；后台每日检查并推送新版本提醒。',
-  url: 'https://github.com/Kuromi66/kedu/releases/tag/v1.7.0',
+    '云同步性能与稳定性优化：日常同步改为只上传增量记录；新增定时对帐（每 12 小时与进入前台时按版本双向补全，时钟漂移也稳）；同步请求体 gzip 压缩；服务端批量写入；修复首条重要日期因默认字段缺失被静默丢弃的问题；登录自动清理过期与超量会话。',
+  url: 'https://github.com/Kuromi66/kedu/releases/tag/v1.7.1',
 };

@@ -17,7 +17,7 @@ class SyncWorker(
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result {
         val container = (applicationContext as PulseApplication).container
-        return when (container.syncManager.syncOnce()) {
+        return when (container.syncManager.reconcileOnce()) {
             is SyncOutcome.Success -> {
                 container.reminderScheduler.syncAll(container.habitRepository.getActiveReminderHabits())
                 container.dayEventReminderScheduler.syncAll(

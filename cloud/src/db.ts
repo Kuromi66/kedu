@@ -113,20 +113,22 @@ function habitBindings(userId: string, habit: HabitRecord, firstSeenAt: number):
   ];
 }
 
-// 批量 upsert 习惯：按 updated_at 大者胜（LWW），自动分批执行
+// 批量 upsert 习惯：按 updated_at 大者胜（LWW），多行 VALUES + ON CONFLICT，按批执行减少 prepare 次数
 export async function upsertHabits(
   env: Env,
   userId: string,
   habits: HabitRecord[],
   firstSeenAt: number,
 ): Promise<void> {
-  const statements = habits.map((habit) =>
-    env.DB.prepare(
+  const COLUMNS = 16;
+  for (let index = 0; index < habits.length; index += BATCH_LIMIT) {
+    const chunk = habits.slice(index, index + BATCH_LIMIT);
+    await env.DB.prepare(
       `INSERT INTO habits
          (id, user_id, name, color_argb, glyph, sort_order, reminder_enabled, reminder_hour,
           reminder_minute, target_enabled, daily_target_count, created_at, archived, updated_at,
           first_seen_at, deleted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES ${valuePlaceholders(chunk.length, COLUMNS)}
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, color_argb = excluded.color_argb, glyph = excluded.glyph,
          sort_order = excluded.sort_order, reminder_enabled = excluded.reminder_enabled,
@@ -135,9 +137,10 @@ export async function upsertHabits(
          created_at = excluded.created_at, archived = excluded.archived,
          updated_at = excluded.updated_at, deleted_at = excluded.deleted_at
        WHERE excluded.updated_at > habits.updated_at AND habits.user_id = excluded.user_id`,
-    ).bind(...habitBindings(userId, habit, firstSeenAt)),
-  );
-  await runBatches(env, statements);
+    )
+      .bind(...chunk.flatMap((habit) => habitBindings(userId, habit, firstSeenAt)))
+      .run();
+  }
 }
 
 // ---------- 打卡记录同步 ----------
@@ -159,7 +162,7 @@ function eventBindings(userId: string, event: EventRecord, firstSeenAt: number):
 }
 
 // 批量 upsert 打卡记录：仅接受归属当前用户已有习惯的记录（防止脏数据）；
-// 软删除以 deleted_at 墓碑传播，不做物理删除
+// 软删除以 deleted_at 墓碑传播，不做物理删除；多行 VALUES + ON CONFLICT
 export async function upsertEvents(
   env: Env,
   userId: string,
@@ -172,23 +175,25 @@ export async function upsertEvents(
     .bind(userId)
     .all<{ id: string }>();
   const validHabitIds = new Set(habitRows.map((row) => row.id));
-  const statements = events
-    .filter((event) => validHabitIds.has(event.habitId))
-    .map((event) =>
-      env.DB.prepare(
-        `INSERT INTO events
-           (id, user_id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at,
-            first_seen_at, note)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(id) DO UPDATE SET
-           habit_id = excluded.habit_id, occurred_at = excluded.occurred_at,
-           local_date = excluded.local_date, is_backfilled = excluded.is_backfilled,
-           deleted_at = excluded.deleted_at, updated_at = excluded.updated_at,
-           note = excluded.note
-         WHERE excluded.updated_at > events.updated_at AND events.user_id = excluded.user_id`,
-      ).bind(...eventBindings(userId, event, firstSeenAt)),
-    );
-  await runBatches(env, statements);
+  const accepted = events.filter((event) => validHabitIds.has(event.habitId));
+  const COLUMNS = 10;
+  for (let index = 0; index < accepted.length; index += BATCH_LIMIT) {
+    const chunk = accepted.slice(index, index + BATCH_LIMIT);
+    await env.DB.prepare(
+      `INSERT INTO events
+         (id, user_id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at,
+          first_seen_at, note)
+       VALUES ${valuePlaceholders(chunk.length, COLUMNS)}
+       ON CONFLICT(id) DO UPDATE SET
+         habit_id = excluded.habit_id, occurred_at = excluded.occurred_at,
+         local_date = excluded.local_date, is_backfilled = excluded.is_backfilled,
+         deleted_at = excluded.deleted_at, updated_at = excluded.updated_at,
+         note = excluded.note
+       WHERE excluded.updated_at > events.updated_at AND events.user_id = excluded.user_id`,
+    )
+      .bind(...chunk.flatMap((event) => eventBindings(userId, event, firstSeenAt)))
+      .run();
+  }
 }
 
 // ---------- 重要日期同步 ----------
@@ -217,20 +222,22 @@ function dayEventBindings(userId: string, event: DayEventRecord, firstSeenAt: nu
   ];
 }
 
-// 批量 upsert 重要日期：与习惯/打卡相同的 LWW 策略
+// 批量 upsert 重要日期：与习惯/打卡相同的 LWW 策略；多行 VALUES + ON CONFLICT
 export async function upsertDayEvents(
   env: Env,
   userId: string,
   dayEvents: DayEventRecord[],
   firstSeenAt: number,
 ): Promise<void> {
-  const statements = dayEvents.map((dayEvent) =>
-    env.DB.prepare(
+  const COLUMNS = 18;
+  for (let index = 0; index < dayEvents.length; index += BATCH_LIMIT) {
+    const chunk = dayEvents.slice(index, index + BATCH_LIMIT);
+    await env.DB.prepare(
       `INSERT INTO day_events
          (id, user_id, name, event_date, repeats_monthly, repeats_yearly, note, sort_order, calendar_type,
           lunar_month, lunar_day, lunar_leap, reminder_enabled, reminder_days_before, created_at, archived,
           updated_at, first_seen_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       VALUES ${valuePlaceholders(chunk.length, COLUMNS)}
        ON CONFLICT(id) DO UPDATE SET
          name = excluded.name, event_date = excluded.event_date,
          repeats_monthly = excluded.repeats_monthly,
@@ -244,9 +251,10 @@ export async function upsertDayEvents(
          created_at = excluded.created_at, archived = excluded.archived,
          updated_at = excluded.updated_at
        WHERE excluded.updated_at > day_events.updated_at AND day_events.user_id = excluded.user_id`,
-    ).bind(...dayEventBindings(userId, dayEvent, firstSeenAt)),
-  );
-  await runBatches(env, statements);
+    )
+      .bind(...chunk.flatMap((dayEvent) => dayEventBindings(userId, dayEvent, firstSeenAt)))
+      .run();
+  }
 }
 
 // ---------- 增量拉取 ----------
@@ -398,11 +406,165 @@ export async function fetchChangedRecords(
   };
 }
 
+// ---------- 对帐（轻量摘要 + 按 id 拉取） ----------
+
+// 行类型：对帐摘要只取 id 与 updated_at
+interface MetaRow {
+  id: string;
+  updated_at: number;
+}
+
+// 摘要记录：客户端据此与本地做 id+版本双向比对
+export interface RecordMeta {
+  id: string;
+  updatedAtEpochMillis: number;
+}
+
+// 返回该用户全部记录的轻量摘要（不含正文）。对帐低频调用，数据量小、不受时效影响
+export async function fetchRecordMeta(
+  env: Env,
+  userId: string,
+): Promise<{ habits: RecordMeta[]; events: RecordMeta[]; dayEvents: RecordMeta[] }> {
+  const { results: habitRows } = await env.DB.prepare(
+    'SELECT id, updated_at FROM habits WHERE user_id = ?',
+  )
+    .bind(userId)
+    .all<MetaRow>();
+  const { results: eventRows } = await env.DB.prepare(
+    'SELECT id, updated_at FROM events WHERE user_id = ?',
+  )
+    .bind(userId)
+    .all<MetaRow>();
+  const { results: dayEventRows } = await env.DB.prepare(
+    'SELECT id, updated_at FROM day_events WHERE user_id = ?',
+  )
+    .bind(userId)
+    .all<MetaRow>();
+  const map = (rows: MetaRow[]): RecordMeta[] =>
+    rows.map((row) => ({ id: row.id, updatedAtEpochMillis: row.updated_at }));
+  return { habits: map(habitRows), events: map(eventRows), dayEvents: map(dayEventRows) };
+}
+
+// 生成 SQL 占位符串（?, ?, ...）
+function idPlaceholders(count: number): string {
+  return new Array(count).fill('?').join(',');
+}
+
+// 按 id 集合返回最新正文（含墓碑）。对帐用：只补「服务端更新/本地缺失」项，避免全量回显。
+// D1 单条语句绑定参数有限，按 BATCH_LIMIT 切片分批查询
+export async function fetchRecordsByIds(
+  env: Env,
+  userId: string,
+  ids: { habits: string[]; events: string[]; dayEvents: string[] },
+): Promise<{ habits: HabitRecord[]; events: EventRecord[]; dayEvents: DayEventRecord[] }> {
+  const habitRows: HabitRow[] = [];
+  const eventRows: EventRow[] = [];
+  const dayEventRows: DayEventRow[] = [];
+  for (const chunk of chunkIds(ids.habits)) {
+    const { results } = await env.DB.prepare(
+      `SELECT id, name, color_argb, glyph, sort_order, reminder_enabled, reminder_hour,
+              reminder_minute, target_enabled, daily_target_count, created_at, archived, updated_at,
+              deleted_at
+       FROM habits WHERE user_id = ? AND id IN (${idPlaceholders(chunk.length)})`,
+    )
+      .bind(userId, ...chunk)
+      .all<HabitRow>();
+    habitRows.push(...results);
+  }
+  for (const chunk of chunkIds(ids.events)) {
+    const { results } = await env.DB.prepare(
+      `SELECT id, habit_id, occurred_at, local_date, is_backfilled, deleted_at, updated_at, note
+       FROM events WHERE user_id = ? AND id IN (${idPlaceholders(chunk.length)})`,
+    )
+      .bind(userId, ...chunk)
+      .all<EventRow>();
+    eventRows.push(...results);
+  }
+  for (const chunk of chunkIds(ids.dayEvents)) {
+    const { results } = await env.DB.prepare(
+      `SELECT id, name, event_date, repeats_monthly, repeats_yearly, note, sort_order, calendar_type,
+              lunar_month, lunar_day, lunar_leap, reminder_enabled, reminder_days_before,
+              created_at, archived, updated_at
+       FROM day_events WHERE user_id = ? AND id IN (${idPlaceholders(chunk.length)})`,
+    )
+      .bind(userId, ...chunk)
+      .all<DayEventRow>();
+    dayEventRows.push(...results);
+  }
+  return {
+    habits: habitRows.map((row) => habitRowToRecord(row)),
+    events: eventRows.map((row) => eventRowToRecord(row)),
+    dayEvents: dayEventRows.map((row) => dayEventRowToRecord(row)),
+  };
+}
+
 // ---------- 公共工具 ----------
 
-// 分批执行 D1 语句：batch 有单次语句数上限，超出时切批
-async function runBatches(env: Env, statements: D1PreparedStatement[]): Promise<void> {
-  for (let index = 0; index < statements.length; index += BATCH_LIMIT) {
-    await env.DB.batch(statements.slice(index, index + BATCH_LIMIT));
+// 生成多行 VALUES 占位符串，如 3 行 2 列 → (?,?),(?,?),(?,?)
+function valuePlaceholders(rows: number, columns: number): string {
+  const row = `(${new Array(columns).fill('?').join(',')})`;
+  return new Array(rows).fill(row).join(',');
+}
+
+// 将 id 数组按 BATCH_LIMIT 切片（对帐补拉时避免单条 SQL 占位符过多）
+function chunkIds(ids: string[]): string[][] {
+  const chunks: string[][] = [];
+  for (let index = 0; index < ids.length; index += BATCH_LIMIT) {
+    chunks.push(ids.slice(index, index + BATCH_LIMIT));
   }
+  return chunks;
+}
+
+// 行 → 记录映射（供 fetchRecordsByIds 复用，与 fetchChangedRecords 保持一致）
+function habitRowToRecord(row: HabitRow): HabitRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    colorArgb: row.color_argb,
+    glyph: row.glyph,
+    sortOrder: row.sort_order,
+    reminderEnabled: !!row.reminder_enabled,
+    reminderHour: row.reminder_hour ?? null,
+    reminderMinute: row.reminder_minute ?? null,
+    targetEnabled: !!row.target_enabled,
+    dailyTargetCount: row.daily_target_count ?? null,
+    createdAtEpochMillis: row.created_at,
+    archived: !!row.archived,
+    updatedAtEpochMillis: row.updated_at,
+    deletedAtEpochMillis: row.deleted_at ?? null,
+  };
+}
+
+function eventRowToRecord(row: EventRow): EventRecord {
+  return {
+    id: row.id,
+    habitId: row.habit_id,
+    occurredAtEpochMillis: row.occurred_at,
+    localDate: row.local_date,
+    isBackfilled: !!row.is_backfilled,
+    deletedAtEpochMillis: row.deleted_at ?? null,
+    updatedAtEpochMillis: row.updated_at,
+    note: row.note ?? null,
+  };
+}
+
+function dayEventRowToRecord(row: DayEventRow): DayEventRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    eventDate: row.event_date,
+    repeatsMonthly: !!row.repeats_monthly,
+    repeatsYearly: !!row.repeats_yearly,
+    reminderEnabled: !!row.reminder_enabled,
+    reminderDaysBefore: row.reminder_days_before ?? 1,
+    note: row.note ?? null,
+    sortOrder: row.sort_order,
+    calendarType: row.calendar_type ?? 'SOLAR',
+    lunarMonth: row.lunar_month ?? null,
+    lunarDay: row.lunar_day ?? null,
+    lunarLeap: !!row.lunar_leap,
+    createdAtEpochMillis: row.created_at,
+    archived: !!row.archived,
+    updatedAtEpochMillis: row.updated_at,
+  };
 }

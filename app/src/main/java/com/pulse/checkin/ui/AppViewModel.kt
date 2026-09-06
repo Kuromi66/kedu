@@ -570,6 +570,16 @@ class AppViewModel(
         }
     }
 
+    // 进入前台时触发一次对帐（低频）：距上次对帐不足 30 分钟则跳过
+    fun reconcileNow() {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val last = syncManager.currentLastReconcileAt()
+            if (last != 0L && now - last < RECONCILE_MIN_INTERVAL_MS) return@launch
+            runReconcileInternal()
+        }
+    }
+
     fun checkForUpdate() {
         viewModelScope.launch {
             when (val result = updateManager.check(force = true)) {
@@ -606,9 +616,13 @@ class AppViewModel(
         }
     }
 
-    private suspend fun runSyncInternal() {
+    private suspend fun runSyncInternal() = runSyncAction { syncManager.syncOnce() }
+
+    private suspend fun runReconcileInternal() = runSyncAction { syncManager.reconcileOnce() }
+
+    private suspend fun runSyncAction(action: suspend () -> SyncOutcome) {
         syncUiStateInternal.update { it.copy(isSyncing = true, syncError = null) }
-        when (val outcome = syncManager.syncOnce()) {
+        when (val outcome = action()) {
             is SyncOutcome.Success -> {
                 syncUiStateInternal.update {
                     it.copy(
@@ -642,6 +656,9 @@ class AppViewModel(
     }
 
     companion object {
+        // 进入前台触发对帐的最小间隔，避免频繁前后台切换导致的对帐风暴
+        private const val RECONCILE_MIN_INTERVAL_MS = 30 * 60 * 1000L
+
         fun factory(container: AppContainer): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 AppViewModel(

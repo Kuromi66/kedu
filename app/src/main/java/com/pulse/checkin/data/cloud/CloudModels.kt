@@ -71,6 +71,7 @@ data class SyncRequest(
     val habits: List<HabitDto>,
     val events: List<EventDto>,
     val dayEvents: List<DayEventDto> = emptyList(),
+    val fetchIds: FetchIds? = null,
 )
 
 @Serializable
@@ -79,6 +80,29 @@ data class SyncResponse(
     val habits: List<HabitDto> = emptyList(),
     val events: List<EventDto> = emptyList(),
     val dayEvents: List<DayEventDto> = emptyList(),
+)
+
+// 对帐补拉：指定需要从服务端拉取最新正文的 id 集合
+@Serializable
+data class FetchIds(
+    val habits: List<String> = emptyList(),
+    val events: List<String> = emptyList(),
+    val dayEvents: List<String> = emptyList(),
+)
+
+// 对帐摘要：只含 id 与该记录的更新时间，用来与本地做双向版本比对
+@Serializable
+data class RecordMeta(
+    val id: String,
+    val updatedAtEpochMillis: Long,
+)
+
+@Serializable
+data class MetaResponse(
+    val serverTime: Long,
+    val habits: List<RecordMeta> = emptyList(),
+    val events: List<RecordMeta> = emptyList(),
+    val dayEvents: List<RecordMeta> = emptyList(),
 )
 
 data class Session(
